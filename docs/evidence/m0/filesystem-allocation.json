@@ -1,0 +1,27 @@
+{
+  "method": "disposable local files; truncate to 64 MiB and write complete 1 MiB file; fsync then stat; all fixtures removed",
+  "results": [
+    {
+      "filesystem": "temporary filesystem",
+      "truncated": {
+        "logical_bytes": 67108864,
+        "allocated_bytes": 0
+      },
+      "complete": {
+        "logical_bytes": 1048576,
+        "allocated_bytes": 1048576
+      }
+    },
+    {
+      "filesystem": "selected NTFS3 data disk",
+      "truncated": {
+        "logical_bytes": 67108864,
+        "allocated_bytes": 67108864
+      },
+      "complete": {
+        "logical_bytes": 1048576,
+        "allocated_bytes": 1048576
+      }
+    }
+  ]
+}

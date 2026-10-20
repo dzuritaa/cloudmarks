@@ -1,0 +1,22 @@
+{
+  "rclone": "rclone v1.75.2",
+  "expected_sha256": "7a17b02927ebb569ac751cc3c378b69d92c7650e941f235ed3e1ad392ade6443",
+  "online": {
+    "ok": true,
+    "sha256": "7a17b02927ebb569ac751cc3c378b69d92c7650e941f235ed3e1ad392ade6443"
+  },
+  "offline_same_process": {
+    "ok": true,
+    "sha256": "7a17b02927ebb569ac751cc3c378b69d92c7650e941f235ed3e1ad392ade6443"
+  },
+  "offline_after_restart": {
+    "ok": false,
+    "sha256": null
+  },
+  "origin_unavailable_method": "fixture HTTP server stopped; no system network changes",
+  "layout": "vfs",
+  "offline_restart_listing": {
+    "ok": false,
+    "entries": null
+  }
+}

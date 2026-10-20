@@ -1,0 +1,128 @@
+{"event": "loaded", "seconds": 0.0001}
+{"event": "scheduled", "seconds": 0.0863, "name": "06-refresh.txt", "request": 1}
+{"event": "completed", "seconds": 0.1265, "name": "06-refresh.txt", "request": 1, "emblem": "emblem-downloads", "label": "Before refresh (fixture)"}
+{"event": "scheduled", "seconds": 0.1268, "name": "05-unknown.txt", "request": 2}
+{"event": "completed", "seconds": 0.1669, "name": "05-unknown.txt", "request": 2, "emblem": "emblem-dialog-question", "label": "Needs checking (fixture)"}
+{"event": "scheduled", "seconds": 0.1672, "name": "04-error.txt", "request": 3}
+{"event": "completed", "seconds": 0.2073, "name": "04-error.txt", "request": 3, "emblem": "emblem-important", "label": "Error (fixture)"}
+{"event": "scheduled", "seconds": 0.2076, "name": "03-transfer.txt", "request": 4}
+{"event": "completed", "seconds": 0.2477, "name": "03-transfer.txt", "request": 4, "emblem": "emblem-synchronizing", "label": "Downloading (fixture)"}
+{"event": "scheduled", "seconds": 0.2479, "name": "02-local.txt", "request": 5}
+{"event": "completed", "seconds": 0.2881, "name": "02-local.txt", "request": 5, "emblem": "emblem-default", "label": "Saved locally (fixture)"}
+{"event": "scheduled", "seconds": 0.2883, "name": "01-cloud.txt", "request": 6}
+{"event": "completed", "seconds": 0.3286, "name": "01-cloud.txt", "request": 6, "emblem": "emblem-downloads", "label": "Cloud only (fixture)"}
+{"event": "invalidated", "seconds": 1.6275, "name": "06-refresh.txt"}
+{"event": "scheduled", "seconds": 1.6278, "name": "06-refresh.txt", "request": 7}
+{"event": "completed", "seconds": 1.6681, "name": "06-refresh.txt", "request": 7, "emblem": "emblem-default", "label": "After refresh (fixture)"}
+{"event": "loaded", "seconds": 0.0001}
+{"event": "scheduled", "seconds": 0.0759, "name": "06-refresh.txt", "request": 1}
+{"event": "completed", "seconds": 0.1162, "name": "06-refresh.txt", "request": 1, "emblem": "emblem-downloads", "label": "Before refresh (fixture)"}
+{"event": "scheduled", "seconds": 0.1166, "name": "05-unknown.txt", "request": 2}
+{"event": "completed", "seconds": 0.1569, "name": "05-unknown.txt", "request": 2, "emblem": "emblem-dialog-question", "label": "Needs checking (fixture)"}
+{"event": "scheduled", "seconds": 0.1572, "name": "04-error.txt", "request": 3}
+{"event": "completed", "seconds": 0.1979, "name": "04-error.txt", "request": 3, "emblem": "emblem-important", "label": "Error (fixture)"}
+{"event": "scheduled", "seconds": 0.1982, "name": "03-transfer.txt", "request": 4}
+{"event": "completed", "seconds": 0.2389, "name": "03-transfer.txt", "request": 4, "emblem": "emblem-synchronizing", "label": "Downloading (fixture)"}
+{"event": "scheduled", "seconds": 0.2392, "name": "02-local.txt", "request": 5}
+{"event": "completed", "seconds": 0.28, "name": "02-local.txt", "request": 5, "emblem": "emblem-default", "label": "Saved locally (fixture)"}
+{"event": "scheduled", "seconds": 0.2804, "name": "01-cloud.txt", "request": 6}
+{"event": "completed", "seconds": 0.3212, "name": "01-cloud.txt", "request": 6, "emblem": "emblem-downloads", "label": "Cloud only (fixture)"}
+{"event": "invalidated", "seconds": 1.6167, "name": "06-refresh.txt"}
+{"event": "scheduled", "seconds": 1.6169, "name": "06-refresh.txt", "request": 7}
+{"event": "completed", "seconds": 1.6571, "name": "06-refresh.txt", "request": 7, "emblem": "emblem-default", "label": "After refresh (fixture)"}
+{"event": "loaded", "seconds": 0.0001}
+{"event": "scheduled", "seconds": 0.0753, "name": "06-refresh.txt", "request": 1}
+{"event": "completed", "seconds": 0.1156, "name": "06-refresh.txt", "request": 1, "emblem": "emblem-downloads", "label": "Before refresh (fixture)"}
+{"event": "scheduled", "seconds": 0.1159, "name": "05-unknown.txt", "request": 2}
+{"event": "completed", "seconds": 0.1566, "name": "05-unknown.txt", "request": 2, "emblem": "emblem-dialog-question", "label": "Needs checking (fixture)"}
+{"event": "scheduled", "seconds": 0.157, "name": "04-error.txt", "request": 3}
+{"event": "completed", "seconds": 0.1975, "name": "04-error.txt", "request": 3, "emblem": "emblem-important", "label": "Error (fixture)"}
+{"event": "scheduled", "seconds": 0.1978, "name": "03-transfer.txt", "request": 4}
+{"event": "completed", "seconds": 0.238, "name": "03-transfer.txt", "request": 4, "emblem": "emblem-synchronizing", "label": "Downloading (fixture)"}
+{"event": "scheduled", "seconds": 0.2383, "name": "02-local.txt", "request": 5}
+{"event": "completed", "seconds": 0.2788, "name": "02-local.txt", "request": 5, "emblem": "emblem-default", "label": "Saved locally (fixture)"}
+{"event": "scheduled", "seconds": 0.2791, "name": "01-cloud.txt", "request": 6}
+{"event": "completed", "seconds": 0.3194, "name": "01-cloud.txt", "request": 6, "emblem": "emblem-downloads", "label": "Cloud only (fixture)"}
+{"event": "invalidated", "seconds": 1.6162, "name": "06-refresh.txt"}
+{"event": "scheduled", "seconds": 1.6164, "name": "06-refresh.txt", "request": 7}
+{"event": "completed", "seconds": 1.6573, "name": "06-refresh.txt", "request": 7, "emblem": "emblem-default", "label": "After refresh (fixture)"}
+{"event": "loaded", "seconds": 0.0}
+{"event": "scheduled", "seconds": 0.0751, "name": "06-refresh.txt", "request": 1}
+{"event": "completed", "seconds": 0.1154, "name": "06-refresh.txt", "request": 1, "emblem": "emblem-downloads", "label": "Before refresh (fixture)"}
+{"event": "scheduled", "seconds": 0.1157, "name": "05-unknown.txt", "request": 2}
+{"event": "completed", "seconds": 0.1561, "name": "05-unknown.txt", "request": 2, "emblem": "emblem-dialog-question", "label": "Needs checking (fixture)"}
+{"event": "scheduled", "seconds": 0.1564, "name": "04-error.txt", "request": 3}
+{"event": "completed", "seconds": 0.1971, "name": "04-error.txt", "request": 3, "emblem": "emblem-important", "label": "Error (fixture)"}
+{"event": "scheduled", "seconds": 0.1974, "name": "03-transfer.txt", "request": 4}
+{"event": "completed", "seconds": 0.2378, "name": "03-transfer.txt", "request": 4, "emblem": "emblem-synchronizing", "label": "Downloading (fixture)"}
+{"event": "scheduled", "seconds": 0.238, "name": "02-local.txt", "request": 5}
+{"event": "completed", "seconds": 0.2786, "name": "02-local.txt", "request": 5, "emblem": "emblem-default", "label": "Saved locally (fixture)"}
+{"event": "scheduled", "seconds": 0.2789, "name": "01-cloud.txt", "request": 6}
+{"event": "completed", "seconds": 0.3196, "name": "01-cloud.txt", "request": 6, "emblem": "emblem-downloads", "label": "Cloud only (fixture)"}
+{"event": "invalidated", "seconds": 1.6161, "name": "06-refresh.txt"}
+{"event": "scheduled", "seconds": 1.6163, "name": "06-refresh.txt", "request": 7}
+{"event": "completed", "seconds": 1.6566, "name": "06-refresh.txt", "request": 7, "emblem": "emblem-default", "label": "After refresh (fixture)"}
+{"event": "loaded", "seconds": 0.0}
+{"event": "scheduled", "seconds": 0.0785, "name": "06-refresh.txt", "request": 1}
+{"event": "completed", "seconds": 0.1193, "name": "06-refresh.txt", "request": 1, "emblem": "emblem-downloads", "label": "Before refresh (fixture)"}
+{"event": "scheduled", "seconds": 0.1197, "name": "05-unknown.txt", "request": 2}
+{"event": "completed", "seconds": 0.1599, "name": "05-unknown.txt", "request": 2, "emblem": "emblem-dialog-question", "label": "Needs checking (fixture)"}
+{"event": "scheduled", "seconds": 0.1602, "name": "04-error.txt", "request": 3}
+{"event": "completed", "seconds": 0.2007, "name": "04-error.txt", "request": 3, "emblem": "emblem-important", "label": "Error (fixture)"}
+{"event": "scheduled", "seconds": 0.201, "name": "03-transfer.txt", "request": 4}
+{"event": "completed", "seconds": 0.2412, "name": "03-transfer.txt", "request": 4, "emblem": "emblem-synchronizing", "label": "Downloading (fixture)"}
+{"event": "scheduled", "seconds": 0.2415, "name": "02-local.txt", "request": 5}
+{"event": "completed", "seconds": 0.2817, "name": "02-local.txt", "request": 5, "emblem": "emblem-default", "label": "Saved locally (fixture)"}
+{"event": "scheduled", "seconds": 0.282, "name": "01-cloud.txt", "request": 6}
+{"event": "completed", "seconds": 0.3229, "name": "01-cloud.txt", "request": 6, "emblem": "emblem-downloads", "label": "Cloud only (fixture)"}
+{"event": "invalidated", "seconds": 1.6203, "name": "06-refresh.txt"}
+{"event": "scheduled", "seconds": 1.6205, "name": "06-refresh.txt", "request": 7}
+{"event": "completed", "seconds": 1.6611, "name": "06-refresh.txt", "request": 7, "emblem": "emblem-default", "label": "After refresh (fixture)"}
+{"event": "loaded", "seconds": 0.0001}
+{"event": "scheduled", "seconds": 0.079, "name": "06-refresh.txt", "request": 1}
+{"event": "completed", "seconds": 0.1193, "name": "06-refresh.txt", "request": 1, "emblem": "emblem-downloads", "label": "Before refresh (fixture)"}
+{"event": "scheduled", "seconds": 0.1197, "name": "05-unknown.txt", "request": 2}
+{"event": "completed", "seconds": 0.1602, "name": "05-unknown.txt", "request": 2, "emblem": "emblem-dialog-question", "label": "Needs checking (fixture)"}
+{"event": "scheduled", "seconds": 0.1605, "name": "04-error.txt", "request": 3}
+{"event": "completed", "seconds": 0.2008, "name": "04-error.txt", "request": 3, "emblem": "emblem-important", "label": "Error (fixture)"}
+{"event": "scheduled", "seconds": 0.201, "name": "03-transfer.txt", "request": 4}
+{"event": "completed", "seconds": 0.2413, "name": "03-transfer.txt", "request": 4, "emblem": "emblem-synchronizing", "label": "Downloading (fixture)"}
+{"event": "scheduled", "seconds": 0.2416, "name": "02-local.txt", "request": 5}
+{"event": "completed", "seconds": 0.2821, "name": "02-local.txt", "request": 5, "emblem": "emblem-default", "label": "Saved locally (fixture)"}
+{"event": "scheduled", "seconds": 0.2824, "name": "01-cloud.txt", "request": 6}
+{"event": "completed", "seconds": 0.3226, "name": "01-cloud.txt", "request": 6, "emblem": "emblem-downloads", "label": "Cloud only (fixture)"}
+{"event": "invalidated", "seconds": 1.62, "name": "06-refresh.txt"}
+{"event": "scheduled", "seconds": 1.6203, "name": "06-refresh.txt", "request": 7}
+{"event": "completed", "seconds": 1.6605, "name": "06-refresh.txt", "request": 7, "emblem": "emblem-default", "label": "After refresh (fixture)"}
+{"event": "loaded", "seconds": 0.0}
+{"event": "scheduled", "seconds": 0.079, "name": "06-refresh.txt", "request": 1}
+{"event": "completed", "seconds": 0.1193, "name": "06-refresh.txt", "request": 1, "emblem": "emblem-downloads", "label": "Before refresh (fixture)"}
+{"event": "scheduled", "seconds": 0.1196, "name": "05-unknown.txt", "request": 2}
+{"event": "completed", "seconds": 0.1598, "name": "05-unknown.txt", "request": 2, "emblem": "emblem-dialog-question", "label": "Needs checking (fixture)"}
+{"event": "scheduled", "seconds": 0.16, "name": "04-error.txt", "request": 3}
+{"event": "completed", "seconds": 0.2004, "name": "04-error.txt", "request": 3, "emblem": "emblem-important", "label": "Error (fixture)"}
+{"event": "scheduled", "seconds": 0.2007, "name": "03-transfer.txt", "request": 4}
+{"event": "completed", "seconds": 0.2411, "name": "03-transfer.txt", "request": 4, "emblem": "emblem-synchronizing", "label": "Downloading (fixture)"}
+{"event": "scheduled", "seconds": 0.2414, "name": "02-local.txt", "request": 5}
+{"event": "completed", "seconds": 0.2816, "name": "02-local.txt", "request": 5, "emblem": "emblem-default", "label": "Saved locally (fixture)"}
+{"event": "scheduled", "seconds": 0.2819, "name": "01-cloud.txt", "request": 6}
+{"event": "completed", "seconds": 0.3221, "name": "01-cloud.txt", "request": 6, "emblem": "emblem-downloads", "label": "Cloud only (fixture)"}
+{"event": "invalidated", "seconds": 1.6199, "name": "06-refresh.txt"}
+{"event": "scheduled", "seconds": 1.6201, "name": "06-refresh.txt", "request": 7}
+{"event": "completed", "seconds": 1.6603, "name": "06-refresh.txt", "request": 7, "emblem": "emblem-default", "label": "After refresh (fixture)"}
+{"event": "loaded", "seconds": 0.0}
+{"event": "scheduled", "seconds": 0.0792, "name": "06-refresh.txt", "request": 1}
+{"event": "completed", "seconds": 0.1195, "name": "06-refresh.txt", "request": 1, "emblem": "emblem-downloads", "label": "Before refresh (fixture)"}
+{"event": "scheduled", "seconds": 0.1198, "name": "05-unknown.txt", "request": 2}
+{"event": "completed", "seconds": 0.1602, "name": "05-unknown.txt", "request": 2, "emblem": "emblem-dialog-question", "label": "Needs checking (fixture)"}
+{"event": "scheduled", "seconds": 0.1605, "name": "04-error.txt", "request": 3}
+{"event": "completed", "seconds": 0.201, "name": "04-error.txt", "request": 3, "emblem": "emblem-important", "label": "Error (fixture)"}
+{"event": "scheduled", "seconds": 0.2013, "name": "03-transfer.txt", "request": 4}
+{"event": "completed", "seconds": 0.2415, "name": "03-transfer.txt", "request": 4, "emblem": "emblem-synchronizing", "label": "Downloading (fixture)"}
+{"event": "scheduled", "seconds": 0.2418, "name": "02-local.txt", "request": 5}
+{"event": "completed", "seconds": 0.2823, "name": "02-local.txt", "request": 5, "emblem": "emblem-default", "label": "Saved locally (fixture)"}
+{"event": "scheduled", "seconds": 0.2826, "name": "01-cloud.txt", "request": 6}
+{"event": "completed", "seconds": 0.3229, "name": "01-cloud.txt", "request": 6, "emblem": "emblem-downloads", "label": "Cloud only (fixture)"}
+{"event": "invalidated", "seconds": 1.6205, "name": "06-refresh.txt"}
+{"event": "scheduled", "seconds": 1.6207, "name": "06-refresh.txt", "request": 7}
+{"event": "completed", "seconds": 1.6614, "name": "06-refresh.txt", "request": 7, "emblem": "emblem-default", "label": "After refresh (fixture)"}

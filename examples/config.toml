@@ -1,0 +1,16 @@
+version = 1
+
+[account]
+# Placeholders only. Keep actual account IDs in private local configuration.
+expected_drive_id = "fixture-test-drive"
+allowed_root_id = "fixture-disposable-root"
+blocked_drive_ids = ["fixture-personal-drive"]
+
+[storage]
+root = "/selected-data-disk/cloudmarks-store"
+volume_id = "replace-with-the-store-marker-identifier"
+state_path = "/private-user-state/cloudmarks/state.sqlite3"
+case_sensitive = false
+
+[status]
+max_age_seconds = 300

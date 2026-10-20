@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-19",
+  "scope": "M1 artificial backend; no Microsoft credentials, network, or desktop required",
+  "runs": [
+    {
+      "python": "3.14.4",
+      "filesystem": "temporary filesystem (tmpfs)",
+      "tests": 62,
+      "passed": 62,
+      "duration_seconds": 0.115
+    },
+    {
+      "python": "3.14.4",
+      "filesystem": "selected data disk (NTFS3)",
+      "tests": 62,
+      "passed": 62,
+      "duration_seconds": 110.803
+    },
+    {
+      "python": "3.11.16",
+      "filesystem": "temporary filesystem (tmpfs)",
+      "tests": 62,
+      "passed": 62,
+      "duration_seconds": 0.112
+    }
+  ],
+  "lint": {
+    "tool": "ruff",
+    "version": "0.17.1",
+    "check": "passed",
+    "format": "passed"
+  },
+  "other_checks": [
+    "module compilation",
+    "fixture CLI demo",
+    "example config validation",
+    "evidence JSON parsing",
+    "private identifier/token/path scan"
+  ],
+  "limitations": [
+    "no production helper or Nautilus adapter",
+    "real cloud checksum/read-path adapter deferred",
+    "no storage quota/eviction/upload implementation",
+    "no claim of hardware power-loss coverage"
+  ],
+  "packaging": {
+    "source_distribution": "built; all 62 tests passed from an extracted source archive",
+    "wheel": "built; CLI demo passed after installation in a separate temporary environment",
+    "release_published": false
+  },
+  "implementation_and_tests_sha256": "a59bc06a2984fadb46b34fe20e942d3b7310f91170ee4c6dc64bb38665259a39"
+}

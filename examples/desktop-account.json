@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "mode": "onedrive",
+  "enabled": false,
+  "visible_root": "/private/cloudmarks-test/view",
+  "core_config": "/private/cloudmarks-test/offline.json",
+  "socket": "/run/user/1000/cloudmarks/status.sock"
+}

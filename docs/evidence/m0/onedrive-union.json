@@ -1,0 +1,50 @@
+{
+  "drive_identity_verified": true,
+  "test_account_verified": true,
+  "root_enforced": true,
+  "expected_sha256": "1ec78ef2731590bdd898e35b80cc59cacdc824b46581b20d31fb8cb27545978a",
+  "bytes": 102400,
+  "online": {
+    "sha256": "1ec78ef2731590bdd898e35b80cc59cacdc824b46581b20d31fb8cb27545978a",
+    "read_only": {
+      "write_existing": true,
+      "create_sibling": true,
+      "rename_existing": true,
+      "delete_existing": true
+    }
+  },
+  "offline_restarts": [
+    {
+      "sha256": "1ec78ef2731590bdd898e35b80cc59cacdc824b46581b20d31fb8cb27545978a",
+      "read_only": {
+        "write_existing": true,
+        "create_sibling": true,
+        "rename_existing": true,
+        "delete_existing": true
+      }
+    },
+    {
+      "sha256": "1ec78ef2731590bdd898e35b80cc59cacdc824b46581b20d31fb8cb27545978a",
+      "read_only": {
+        "write_existing": true,
+        "create_sibling": true,
+        "rename_existing": true,
+        "delete_existing": true
+      }
+    }
+  ],
+  "offline_simulation": {
+    "method": "per-process rejecting HTTP(S) proxy; host remains online",
+    "direct_remote_read_blocked": true,
+    "rejected_requests": 4,
+    "network_namespace_fuse_test": "unavailable: AppArmor prevents sandboxed fusermount3"
+  },
+  "local_eviction": {
+    "local_removed": true,
+    "remote_id_unchanged": true,
+    "remote_revision_unchanged": true,
+    "remote_sha256": "1ec78ef2731590bdd898e35b80cc59cacdc824b46581b20d31fb8cb27545978a"
+  },
+  "cloud_fixture_retained": true,
+  "run": "clean end-to-end run with normalized folder ID and Graph-scoped provisioning"
+}

@@ -1,0 +1,18 @@
+[Unit]
+Description=CloudMarks read-only file status helper
+Documentation=https://github.com/dzuritaa/cloudmarks
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/.local/share/cloudmarks/m2/run.py serve --settings %h/.config/cloudmarks/desktop.json
+UMask=0077
+RuntimeDirectory=cloudmarks
+RuntimeDirectoryMode=0700
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=5
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_UNIX
+
+[Install]
+WantedBy=default.target

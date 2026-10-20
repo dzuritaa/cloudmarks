@@ -1,0 +1,12 @@
+{
+  "scope": "isolated fixture-only XDG directories; no desktop or account use",
+  "upgrade_from": "0.1.0.dev0",
+  "upgrade_to": "0.1.0a1",
+  "rollback_to": "0.1.0.dev0",
+  "schema": 3,
+  "enabled_disabled_each_deployment": true,
+  "fixture_state_and_content_byte_preserved": true,
+  "unrelated_extension_preserved": true,
+  "final_deployment_uninstalled": true,
+  "schema_downgrade_tested": false
+}

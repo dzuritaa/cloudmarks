@@ -1,0 +1,50 @@
+{
+  "scope": "existing disposable file; no cloud writes or deletes",
+  "bytes": 102400,
+  "server_checksum": "quickXorHash",
+  "download_sha256": "1ec78ef2731590bdd898e35b80cc59cacdc824b46581b20d31fb8cb27545978a",
+  "progress_events": 5,
+  "mounts": [
+    {
+      "offline_local_only": false,
+      "sha256": "1ec78ef2731590bdd898e35b80cc59cacdc824b46581b20d31fb8cb27545978a",
+      "read_only": {
+        "modify": true,
+        "create": true,
+        "rename": true,
+        "delete": true
+      },
+      "badge": "kept_offline",
+      "controls_refused_while_mounted": true
+    },
+    {
+      "offline_local_only": true,
+      "sha256": "1ec78ef2731590bdd898e35b80cc59cacdc824b46581b20d31fb8cb27545978a",
+      "read_only": {
+        "modify": true,
+        "create": true,
+        "rename": true,
+        "delete": true
+      },
+      "badge": "kept_offline",
+      "controls_refused_while_mounted": true
+    },
+    {
+      "offline_local_only": true,
+      "sha256": "1ec78ef2731590bdd898e35b80cc59cacdc824b46581b20d31fb8cb27545978a",
+      "read_only": {
+        "modify": true,
+        "create": true,
+        "rename": true,
+        "delete": true
+      },
+      "badge": "kept_offline",
+      "controls_refused_while_mounted": true
+    }
+  ],
+  "pin_persisted_after_restart": true,
+  "local_eviction_preserves_remote_identity_revision_checksum": true,
+  "remote_sha256_after_eviction": "1ec78ef2731590bdd898e35b80cc59cacdc824b46581b20d31fb8cb27545978a",
+  "no_cloud_writes_or_deletes": true,
+  "experimental_view_unmounted": true
+}

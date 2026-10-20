@@ -1,0 +1,45 @@
+{
+  "cases": [
+    {
+      "case": "icon-small-light",
+      "completion_count": 7,
+      "alive_at_capture": true
+    },
+    {
+      "case": "icon-small-dark",
+      "completion_count": 14,
+      "alive_at_capture": true
+    },
+    {
+      "case": "icon-large-light",
+      "completion_count": 21,
+      "alive_at_capture": true
+    },
+    {
+      "case": "icon-large-dark",
+      "completion_count": 28,
+      "alive_at_capture": true
+    },
+    {
+      "case": "list-small-light",
+      "completion_count": 35,
+      "alive_at_capture": true
+    },
+    {
+      "case": "list-small-dark",
+      "completion_count": 42,
+      "alive_at_capture": true
+    },
+    {
+      "case": "list-large-light",
+      "completion_count": 49,
+      "alive_at_capture": true
+    },
+    {
+      "case": "list-large-dark",
+      "completion_count": 56,
+      "alive_at_capture": true
+    }
+  ],
+  "uninstall_no_callbacks": true
+}

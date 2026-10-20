@@ -1,0 +1,11 @@
+[Icon Theme]
+Name=CloudMarks
+Comment=CloudMarks fixture status symbols
+Directories=scalable/emblems
+
+[scalable/emblems]
+Size=24
+MinSize=8
+MaxSize=256
+Type=Scalable
+Context=Emblems

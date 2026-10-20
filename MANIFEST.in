@@ -1,0 +1,9 @@
+include PLAN.md YOUR_CHECKLIST.md CHANGELOG.md CONTRIBUTING.md SECURITY.md
+include LICENSE*
+recursive-include .github *.yml
+recursive-include scripts *.py
+recursive-include examples *.toml *.json *.conf *.service
+recursive-include docs *.md *.json *.jsonl *.png *.html
+recursive-include spikes *.py *.md
+recursive-include tests *.py *.md
+global-exclude *.py[cod]

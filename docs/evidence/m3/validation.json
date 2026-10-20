@@ -1,0 +1,174 @@
+{
+  "date": "2026-10-20",
+  "milestone": "M3",
+  "scope": "Experimental single-file CLI controls for the dedicated test account; M2 remains read-only",
+  "automated": {
+    "total_tests": 149,
+    "python": {
+      "3.14.4": {
+        "passed": true,
+        "seconds": 4.376,
+        "resource_warnings": 0
+      },
+      "3.11.16": {
+        "passed": true,
+        "seconds": 4.432
+      }
+    },
+    "m3_new_tests": 48,
+    "ntfs3": {
+      "passed": true,
+      "unique_m3_checks": 48,
+      "batches": [
+        {
+          "tests": 34,
+          "seconds": 123.487
+        },
+        {
+          "tests": 4,
+          "seconds": 15.287
+        },
+        {
+          "tests": 5,
+          "seconds": 1.986
+        },
+        {
+          "tests": 2,
+          "seconds": 9.178
+        },
+        {
+          "tests": 3,
+          "seconds": 13.628
+        }
+      ],
+      "scope": "Controller/state/publication fixtures use selected NTFS3 disk; Graph/config/checksum-only fixtures use ordinary temporary directories."
+    },
+    "failures_covered": [
+      "cancel during download and final metadata checks",
+      "wrong/absent remote checksum",
+      "revision/identity change",
+      "new remote evidence at online mount",
+      "budget and free-space floor",
+      "injected ENOSPC",
+      "missing marker/disk",
+      "symlink/hardlink/dirty/unmanaged file",
+      "schema migration/unknown schema",
+      "abrupt publication and eviction process death",
+      "SQLite commit failure",
+      "token/config diagnostics do not echo credentials"
+    ],
+    "lint": "passed",
+    "format": "passed",
+    "compileall": "passed"
+  },
+  "real_account": {
+    "result": "onedrive.json",
+    "fixture_bytes": 102400,
+    "server_checksum": "QuickXorHash",
+    "online_mounts": 1,
+    "fresh_offline_mounts": 2,
+    "offline_method": "Explicit credential-free local alias; no origin configured, host remains online",
+    "read_only_operations": [
+      "modify",
+      "create",
+      "rename",
+      "delete"
+    ],
+    "all_rejected_with": "EROFS",
+    "pin_survives_restart": true,
+    "mounted_controls_refused": true,
+    "eviction_preserves_remote_identity_revision_content": true,
+    "cloud_writes": 0,
+    "cloud_deletes": 0,
+    "filesystem": "NTFS3",
+    "final_private_cache_transport_offline_mount_smoke": true
+  },
+  "desktop": {
+    "real_account_scene": "account-desktop.json",
+    "screenshot": "account-readonly.png",
+    "mode": "isolated read-only bind of offline FUSE view with status-only helper",
+    "nautilus": "50.2.2",
+    "nautilus_python": "4.1.0",
+    "rclone": "1.75.2",
+    "m2_regression": "m2-regression.json",
+    "regression_cases": 8,
+    "large_folder_entries": 2000,
+    "max_main_loop_gap_seconds": 0.1564,
+    "daily_desktop_changed": false
+  },
+  "packaging": {
+    "sdist": "built locally",
+    "wheel": "installed in separate Python 3.11 environment",
+    "cli": [
+      "demo",
+      "offline --help",
+      "check-config"
+    ],
+    "assets": "six SVG icons, icon theme, all control modules and example templates verified",
+    "published": false
+  },
+  "private_state": {
+    "test_fixture_pins_retained": 1,
+    "pinned_bytes": 102400,
+    "prior_fixture_snapshots": "retained and quota-accounted",
+    "experimental_views_helpers": "stopped",
+    "existing_daily_test_mount": "active and unchanged",
+    "service_enabled": false,
+    "daily_extension_installed": false,
+    "personal_account_reconnected": false,
+    "system_packages_installed": false
+  },
+  "limitations": [
+    "unmount before controls; no hot mounted-tree publication",
+    "M2 status-only protocol; no action menus",
+    "stale evidence and over-8-MiB/512-slot UI entries remain unknown",
+    "no automatic history/orphan collection",
+    "no physical network disconnect, disk unplug, logout/login or destructive full-disk test",
+    "larger real-file and readability/accessibility checks remain before daily use",
+    "no uploads/editing/two-way sync"
+  ],
+  "privacy": "Only disposable content hashes/byte counts/labels and sanitized sandbox screenshot; no live account IDs, tokens or machine storage paths.",
+  "source_sha256": {
+    "cloudmarks/__init__.py": "4aa0bab531aadf28e2394d5fae9cc825959611a92e3dea7c4152b9f6231fcade",
+    "cloudmarks/__main__.py": "d283c23e0a1a30cb1ee4f42481d7df10017f4b62549c272bc033c116a35f89c5",
+    "cloudmarks/config.py": "44844cc1ff9b2527db6c6bbebdec95cb8b2ba78fa26716818103ab1fcf536919",
+    "cloudmarks/desktop.py": "9d6694d8254b1a8d78ef902140bcd2bb9cb8fcf57456f0b27d7f7c3ebffa4aaa",
+    "cloudmarks/engine.py": "50bff97d822c7da6f59e1370c89b7b6bef0f4c82e56146acd55e900273bb13d0",
+    "cloudmarks/fixture.py": "aaf8eb4a563750a058cdf84ed298ddf8d7c601673f52b266c276c9af1c231347",
+    "cloudmarks/fixture_session.py": "1634ec498a2d3aeab8cb40f3920cbfc6a69b9e3b6ad1cd48fb3d523aaf939d12",
+    "cloudmarks/helper.py": "2651b5bc016dc0d6c3464d075137938593a03aa8bead2b5cfc58fea1a9e4065e",
+    "cloudmarks/icons/hicolor/index.theme": "300cd8a1a61c1d0678854905d013ee3be00c361e003ae33e0bbccfb4135226d0",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-cloud.svg": "31823202fd51957c5e52c42a94124c3bc246ba4d7405c83f53867a793b00a419",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-error.svg": "feba97419fe765fd33239fc58221aefafdc3672745589ffc46300ef0244cf78d",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-local.svg": "f1c26a8c5376d35d0663cc685e2c59e303dd6a55b3f84550e78f7fb8472b3bd0",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-pin.svg": "3a28627a2cb22a7cb5e2c7e510f3b8a1a17029a5b22b3babd1e8429dc3f12a83",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-transfer.svg": "2e40ec1b8e28f26562e2505d590bde9aaeeb1db086c360eb3ab2ffc443b65f5b",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-unknown.svg": "7d24889bc1c5a6c7e77cdd450d73209a3018159b3bdd4461d0747878dbe40c8f",
+    "cloudmarks/install.py": "9bce3c65ee18faebc8356e11d8ec750367cb363e5772b05fa4a64d6f42b656bb",
+    "cloudmarks/ipc.py": "b5e644c4b7cc23b9d8d72882675ad7ade7e78d289dccc2518fe8e3d44d84048f",
+    "cloudmarks/model.py": "eea938ad3153660e02c2905f5e56d938bc380098718eb819f175006b92acc520",
+    "cloudmarks/nautilus_extension.py": "375aa042d8a0b93290bf43f8be29a7e5564ff9c57456257b7f7cccc5a3da5493",
+    "cloudmarks/offline.py": "eb72e0acb599048b6d7ebb2615b73889c57e7682305fc2a7f4772312b26ee649",
+    "cloudmarks/offline_cli.py": "89cd2afc5f010c2c772cc0369856b557d56dbf022ecb1094931d264091097322",
+    "cloudmarks/offline_config.py": "4b403e6a5e9df8612816a278cb05b837e76bd2157a4b8fa291891d3971c41cec",
+    "cloudmarks/onedrive.py": "f39d6d1e892c31eaebf3189827394b80f327e24a1dad45294bf98b5dab9f5cd4",
+    "cloudmarks/paths.py": "492ea8e8a5a13f06a9978ac411f40c193cde706d79d4931819b19688c210a58c",
+    "cloudmarks/state.py": "8bb850fabd3f6065087a69e4f175590fa82d11f2a5870c4c73af3826ddc81329",
+    "cloudmarks/view.py": "b4cefc3c78153c44ed35db3cb7a374a3a2527d6bed82943c8a3950f27f79347e",
+    "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/desktop/run_account_readonly.py": "cf790c613695c1a27becbe44a7a8dfb6a6b92738833f4627c8b1cbc13ae306ba",
+    "tests/desktop/run_isolated.py": "4ac5cb5aa486d277bf844148bc5057a0564d0d4ef3441157a53e00acd665a68b",
+    "tests/integration/run_offline.py": "851a0cc54f0a63d100ff46777170a347419b6842bec641b7b7a427b24f22043e",
+    "tests/test_core.py": "64c2e4fa68920c6bea4dd44b44a5accc5628045b69a4e627fbe49089e4c6cebe",
+    "tests/test_desktop.py": "267bcb050ad51a176286636bc45dc4b10ec286a8776a76007f9a485fd3468586",
+    "tests/test_nautilus_adapter.py": "2f702158ad8487805e0aab0e631c5269ddbdfeeed236a70fff90d960a2158c80",
+    "tests/test_offline.py": "c78c3595b947a37fff25268158d698725e31d5cc4368f6704cc155d69c862366",
+    "tests/test_onedrive.py": "bfa6c4cc296a18f72c96de7605d578b3ebbdb2f4bf6a9c6c4cbb65836da0bc60",
+    "examples/config.toml": "c1776e4ad853872a61c69b2cbd2c1c777f51cfdac7576ab419efe5eb051de650",
+    "examples/desktop-account.json": "80aa7d4fa9d50bbc9f2c444c2557358100588736965da729432dedf54dc6aa41",
+    "examples/offline.json": "1fbe79ac8e94f7241efc54392f23d3a682b146cb09f972683f8288d21a7d57b0",
+    "examples/transport.conf": "3f97acbdd610271d6cb90333d7f30cd18d870719440d93d20e5e2bfc1c16f8c2",
+    "pyproject.toml": "956cc8d8968358d18b83b5603fea356c2ce5bcb1490dd5f8de1b578c07ae7de1",
+    "MANIFEST.in": "3fd1d4cfe47ecffb3b6fdf946543f1d1248fb1b1deb662b95b0d6e26f5614d72"
+  }
+}

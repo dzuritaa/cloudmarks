@@ -1,0 +1,258 @@
+{
+  "date": "2026-10-20",
+  "milestone": "M4",
+  "scope": "Explicit read-only change tracking, durable download jobs and bounded folder intent; M2 remains status-only",
+  "automated": {
+    "total_tests": 184,
+    "m4_new_tests": 35,
+    "python": {
+      "3.14.4": {
+        "passed": true,
+        "seconds": 4.738,
+        "resource_warnings": 0
+      },
+      "3.11.16": {
+        "passed": true,
+        "seconds": 4.777,
+        "resource_warnings": 0
+      }
+    },
+    "selected_ntfs3": {
+      "passed": true,
+      "unique_store_controller_checks": 29,
+      "metadata_graph_only_checks_on_ordinary_temp": 6,
+      "batches": [
+        {
+          "tests": 31,
+          "seconds": 165.927,
+          "note": "25 store/controller tests on NTFS3; 6 Graph-only tests in ordinary temp"
+        },
+        {
+          "tests": 3,
+          "seconds": 25.589,
+          "note": "additional preservation cases on NTFS3"
+        },
+        {
+          "tests": 2,
+          "seconds": 18.377,
+          "note": "new current-publication reuse case and repeat of affected folder/direct pin case on NTFS3"
+        }
+      ]
+    }
+  },
+  "account": {
+    "passed": true,
+    "record": "account.public.json",
+    "note": "New isolated store/config/view and unique cloud fixture folder. Production transport remains GET/download only. Test-only harness creates/updates/renames/deletes exactly its own fixtures. Three unresolved preservation cases intentionally remain retained."
+  },
+  "desktop": {
+    "passed": true,
+    "record": "desktop-regression.json",
+    "native": "Nautilus 50 isolated Xvfb/Bubblewrap session",
+    "scope": "M2 status-only file regression, not a new folder UI/action surface",
+    "max_main_loop_gap_seconds": 0.157
+  },
+  "packaging": {
+    "wheel_and_sdist_built": true,
+    "isolated_installed_wheel_import_cli_demo_and_m4_help": true,
+    "note": "Final evidence/docs inclusion checked in final rebuilt sdist. No release published.",
+    "isolated_installed_wheel_tests": {
+      "passed": true,
+      "total": 184,
+      "seconds": 4.781,
+      "python": "3.11.16",
+      "checkout_import_excluded": true
+    }
+  },
+  "checks": {
+    "ruff": true,
+    "format": true,
+    "compileall": true
+  },
+  "matrix": [
+    {
+      "case": "remote revision / clean local copy",
+      "expected_result": "explicit fresh-ID refresh queues update; worker publishes verified version and retains prior bytes",
+      "validation": "automated + dedicated OneDrive"
+    },
+    {
+      "case": "unchanged revision / clean local copy",
+      "expected_result": "fresh server checksum permits reuse; no download or publication",
+      "validation": "automated + NTFS3"
+    },
+    {
+      "case": "local edit / remote edit",
+      "expected_result": "original object, modified visible file and verified remote candidate all retained; job blocked",
+      "validation": "automated + NTFS3 + dedicated OneDrive"
+    },
+    {
+      "case": "explicit dirty state",
+      "expected_result": "matching visible bytes do not authorize replacement; preserve separate candidate",
+      "validation": "automated + NTFS3"
+    },
+    {
+      "case": "local rename",
+      "expected_result": "renamed raw-store file retained; missing managed path not silently recreated",
+      "validation": "automated + NTFS3"
+    },
+    {
+      "case": "remote rename",
+      "expected_result": "stable ID found at new path; original local path and remote candidate retained; online union blocked",
+      "validation": "automated + NTFS3 + dedicated OneDrive"
+    },
+    {
+      "case": "local deletion",
+      "expected_result": "missing publication stays missing; original object and remote candidate retained",
+      "validation": "automated + NTFS3"
+    },
+    {
+      "case": "remote deletion / inaccessible stable ID",
+      "expected_result": "account/root rechecked; absence marked ambiguous; no eviction, path reuse or remote cleanup",
+      "validation": "automated + NTFS3 + dedicated OneDrive deletion fixture"
+    },
+    {
+      "case": "remote path reused by different identity",
+      "expected_result": "queued stable identity unchanged; replacement not hydrated over original",
+      "validation": "automated + NTFS3"
+    },
+    {
+      "case": "move outside allowed root",
+      "expected_result": "scope verification fails; no deletion inferred and no bytes overwritten",
+      "validation": "automated + NTFS3"
+    },
+    {
+      "case": "failed account/root / 403 / 429 / 503",
+      "expected_result": "no deletion inference from failed metadata or unavailable root",
+      "validation": "automated"
+    },
+    {
+      "case": "remote candidate changes during transfer",
+      "expected_result": "candidate not indexed as complete; prior data/partial retained for retry",
+      "validation": "automated + NTFS3"
+    },
+    {
+      "case": "remote conflict candidate changes with same eTag",
+      "expected_result": "fresh checksum defeats reuse; both indexed candidates retained",
+      "validation": "automated + NTFS3"
+    },
+    {
+      "case": "process termination / restart",
+      "expected_result": "durable running job becomes pending; resume explicitly in a new process",
+      "validation": "automated + NTFS3"
+    },
+    {
+      "case": "cloud connection loss / restored worker process",
+      "expected_result": "error intent retained; fresh worker completes after rejecting proxy removed",
+      "validation": "automated + NTFS3 + dedicated OneDrive"
+    },
+    {
+      "case": "disk absent / volume check restored",
+      "expected_result": "guard stops before consuming queued intent; explicit resume completes after restored proof",
+      "validation": "injected automated + NTFS3; no hardware unplug"
+    },
+    {
+      "case": "cancellation",
+      "expected_result": "pending job and old publication survive; explicit resume succeeds",
+      "validation": "automated + NTFS3"
+    },
+    {
+      "case": "insufficient conflict budget",
+      "expected_result": "old bytes and issue retained; candidate capture retried after budget restored",
+      "validation": "automated + NTFS3"
+    },
+    {
+      "case": "folder incomplete/changed manifest",
+      "expected_result": "two bounded matching scans required; failed/partial metadata commits roll back",
+      "validation": "automated + NTFS3"
+    },
+    {
+      "case": "folder listing omission",
+      "expected_result": "existing snapshot retained; omission alone never becomes deletion",
+      "validation": "automated + NTFS3"
+    },
+    {
+      "case": "overlapping folder and direct pin intent",
+      "expected_result": "unpin removes only its source; downloaded bytes and other sources survive",
+      "validation": "automated + NTFS3"
+    },
+    {
+      "case": "aggregate freshness/completeness/read path",
+      "expected_result": "all recorded file paths verified; expired, missing or changed coverage unknown",
+      "validation": "automated + NTFS3 + dedicated OneDrive offline mounts"
+    },
+    {
+      "case": "status-only helper / read-only reports",
+      "expected_result": "read-only SQLite does not recover jobs; status socket rejects action operations",
+      "validation": "automated + native Files regression"
+    },
+    {
+      "case": "physical network disconnect / disk unplug / full logout",
+      "expected_result": "not performed; required before daily deployment",
+      "validation": "pending operational acceptance"
+    }
+  ],
+  "remaining": [
+    "Physical network disconnect/reconnect",
+    "Hardware disk unplug/replug",
+    "Full logout/login and service lifecycle",
+    "Conflict repair/resolve workflow (currently preserve/report/block)",
+    "Automatic cloud watcher, mounted updates and empty-folder catalog",
+    "M5 CI, release packaging, license and daily deployment",
+    "Offline editing/uploads/two-way sync require separate decision"
+  ],
+  "environment_preserved": {
+    "m3_retained_pin_and_schema_2_unchanged": true,
+    "daily_test_mount_active_unchanged": true,
+    "no_daily_extension_or_cloudmarks_service": true,
+    "no_personal_account_reconnection": true,
+    "no_system_package_install": true,
+    "experimental_views_helpers_stopped": true,
+    "no_commit_or_push": true
+  },
+  "source_sha256": {
+    "MANIFEST.in": "3fd1d4cfe47ecffb3b6fdf946543f1d1248fb1b1deb662b95b0d6e26f5614d72",
+    "cloudmarks/__init__.py": "4aa0bab531aadf28e2394d5fae9cc825959611a92e3dea7c4152b9f6231fcade",
+    "cloudmarks/__main__.py": "d283c23e0a1a30cb1ee4f42481d7df10017f4b62549c272bc033c116a35f89c5",
+    "cloudmarks/config.py": "44844cc1ff9b2527db6c6bbebdec95cb8b2ba78fa26716818103ab1fcf536919",
+    "cloudmarks/desktop.py": "9d6694d8254b1a8d78ef902140bcd2bb9cb8fcf57456f0b27d7f7c3ebffa4aaa",
+    "cloudmarks/engine.py": "e224fafb15a97aba821dad9e1dc014315fe21905ce6e580082f7ffd35ca6f758",
+    "cloudmarks/fixture.py": "aaf8eb4a563750a058cdf84ed298ddf8d7c601673f52b266c276c9af1c231347",
+    "cloudmarks/fixture_session.py": "1634ec498a2d3aeab8cb40f3920cbfc6a69b9e3b6ad1cd48fb3d523aaf939d12",
+    "cloudmarks/helper.py": "2651b5bc016dc0d6c3464d075137938593a03aa8bead2b5cfc58fea1a9e4065e",
+    "cloudmarks/icons/hicolor/index.theme": "300cd8a1a61c1d0678854905d013ee3be00c361e003ae33e0bbccfb4135226d0",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-cloud.svg": "31823202fd51957c5e52c42a94124c3bc246ba4d7405c83f53867a793b00a419",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-error.svg": "feba97419fe765fd33239fc58221aefafdc3672745589ffc46300ef0244cf78d",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-local.svg": "f1c26a8c5376d35d0663cc685e2c59e303dd6a55b3f84550e78f7fb8472b3bd0",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-pin.svg": "3a28627a2cb22a7cb5e2c7e510f3b8a1a17029a5b22b3babd1e8429dc3f12a83",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-transfer.svg": "2e40ec1b8e28f26562e2505d590bde9aaeeb1db086c360eb3ab2ffc443b65f5b",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-unknown.svg": "7d24889bc1c5a6c7e77cdd450d73209a3018159b3bdd4461d0747878dbe40c8f",
+    "cloudmarks/install.py": "9bce3c65ee18faebc8356e11d8ec750367cb363e5772b05fa4a64d6f42b656bb",
+    "cloudmarks/ipc.py": "b5e644c4b7cc23b9d8d72882675ad7ade7e78d289dccc2518fe8e3d44d84048f",
+    "cloudmarks/model.py": "eea938ad3153660e02c2905f5e56d938bc380098718eb819f175006b92acc520",
+    "cloudmarks/nautilus_extension.py": "375aa042d8a0b93290bf43f8be29a7e5564ff9c57456257b7f7cccc5a3da5493",
+    "cloudmarks/offline.py": "3b26951f37dad60d8fe9bad27f576402591d16816c2c58fea6e7e3bb559917fa",
+    "cloudmarks/offline_cli.py": "d5d9694a2763e5f834e93bd5fe61cd71d6eb44327fda83eed672142e46eb1bfd",
+    "cloudmarks/offline_config.py": "4b403e6a5e9df8612816a278cb05b837e76bd2157a4b8fa291891d3971c41cec",
+    "cloudmarks/onedrive.py": "557dd18cf25601d11fb073139128fbcc853830d56e544f4619e749bff9c6656b",
+    "cloudmarks/paths.py": "492ea8e8a5a13f06a9978ac411f40c193cde706d79d4931819b19688c210a58c",
+    "cloudmarks/state.py": "35d812030d3617abcf1de5cc03ea93ec8e98ba5edefbe0fe124a2b8bb640baa6",
+    "cloudmarks/tracking.py": "c0bec61a9f781a667994a46f72a4695554982fdb04e5714cc4b7a93507a2eb47",
+    "cloudmarks/view.py": "a0606031296251f595c4a66874232a1032d4e50fb1c6b93921ed3b0abd38bc2b",
+    "examples/config.toml": "c1776e4ad853872a61c69b2cbd2c1c777f51cfdac7576ab419efe5eb051de650",
+    "examples/desktop-account.json": "80aa7d4fa9d50bbc9f2c444c2557358100588736965da729432dedf54dc6aa41",
+    "examples/offline.json": "1fbe79ac8e94f7241efc54392f23d3a682b146cb09f972683f8288d21a7d57b0",
+    "examples/transport.conf": "3f97acbdd610271d6cb90333d7f30cd18d870719440d93d20e5e2bfc1c16f8c2",
+    "pyproject.toml": "956cc8d8968358d18b83b5603fea356c2ce5bcb1490dd5f8de1b578c07ae7de1",
+    "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/desktop/run_account_readonly.py": "cf790c613695c1a27becbe44a7a8dfb6a6b92738833f4627c8b1cbc13ae306ba",
+    "tests/desktop/run_isolated.py": "4ac5cb5aa486d277bf844148bc5057a0564d0d4ef3441157a53e00acd665a68b",
+    "tests/integration/run_offline.py": "851a0cc54f0a63d100ff46777170a347419b6842bec641b7b7a427b24f22043e",
+    "tests/integration/run_tracking.py": "9416a02573eb91e4a74bed5ae318f9a378d3ed37d161dc3ef62b015fcde3100c",
+    "tests/test_core.py": "64c2e4fa68920c6bea4dd44b44a5accc5628045b69a4e627fbe49089e4c6cebe",
+    "tests/test_desktop.py": "267bcb050ad51a176286636bc45dc4b10ec286a8776a76007f9a485fd3468586",
+    "tests/test_nautilus_adapter.py": "2f702158ad8487805e0aab0e631c5269ddbdfeeed236a70fff90d960a2158c80",
+    "tests/test_offline.py": "c78c3595b947a37fff25268158d698725e31d5cc4368f6704cc155d69c862366",
+    "tests/test_onedrive.py": "86ab1e2aa1784d3696ebbb2cc49b3a7b8ac9ddea25b55bf28e3715c15f21793e",
+    "tests/test_tracking.py": "5ee0ab36604051755ec1e335f3587bc05e5478e98147dd7087c3fb503e4ce4cf"
+  }
+}

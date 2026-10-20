@@ -1,0 +1,444 @@
+{"case":"live","event":"changed","seconds":0.204,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":0.205,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":0.205,"name":"07-refresh.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":0.205,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":0.205,"name":"05-error.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":0.205,"name":"04-transfer.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":0.205,"name":"03-pinned.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":0.205,"name":"02-local.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":0.205,"name":"01-cloud.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":0.305,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":0.405,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":0.405,"name":"07-refresh.txt","label":"Saved locally (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"live","event":"changed","seconds":0.405,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"changed","seconds":0.405,"name":"05-error.txt","label":"Needs attention (fixture) \u2014 Artificial failed download; no cloud request was made"}
+{"case":"live","event":"changed","seconds":0.405,"name":"04-transfer.txt","label":"Downloading (fixture) \u2014 A tracked download is active"}
+{"case":"live","event":"changed","seconds":0.405,"name":"03-pinned.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"live","event":"changed","seconds":0.405,"name":"02-local.txt","label":"Saved locally (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"live","event":"changed","seconds":0.406,"name":"01-cloud.txt","label":"Cloud only (fixture) \u2014 Known remote file; no verified local copy"}
+{"case":"live","event":"heartbeat","seconds":0.505,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"heartbeat","seconds":1.007,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":1.308,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":1.308,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":1.308,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":1.508,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":1.508,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":1.508,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"heartbeat","seconds":1.508,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"heartbeat","seconds":2.008,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":2.309,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":2.309,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":2.309,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"heartbeat","seconds":2.509,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":2.61,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":2.61,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":2.61,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"heartbeat","seconds":3.011,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":3.311,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":3.311,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":3.311,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":3.511,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":3.511,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":3.511,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"heartbeat","seconds":3.512,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"heartbeat","seconds":4.013,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":4.313,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":4.313,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":4.314,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"heartbeat","seconds":4.514,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":4.614,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":4.614,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":4.614,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"heartbeat","seconds":5.016,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":5.316,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":5.316,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":5.317,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":5.517,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":5.517,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":5.517,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"heartbeat","seconds":5.517,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"heartbeat","seconds":6.018,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":6.319,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":6.32,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":6.32,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"heartbeat","seconds":6.52,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":6.62,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":6.621,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":6.621,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"heartbeat","seconds":7.022,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":7.423,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":7.423,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":7.423,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":7.523,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":7.523,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":7.524,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"heartbeat","seconds":7.524,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"heartbeat","seconds":8.024,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":8.425,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":8.425,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":8.425,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"heartbeat","seconds":8.525,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":8.726,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":8.726,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":8.726,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"heartbeat","seconds":9.026,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":9.528,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":9.528,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":9.528,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"heartbeat","seconds":9.528,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"heartbeat","seconds":10.029,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":10.13,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":10.13,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":10.13,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"heartbeat","seconds":10.531,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":10.631,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":10.631,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":10.631,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":10.932,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":10.932,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":10.932,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"heartbeat","seconds":11.032,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"heartbeat","seconds":11.534,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":11.735,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":11.735,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":11.735,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":11.835,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":11.835,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":11.835,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"heartbeat","seconds":12.036,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":12.538,"name":"07-refresh.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"live","event":"heartbeat","seconds":12.538,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":12.739,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":12.739,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":12.739,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":12.839,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":12.839,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":12.839,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"heartbeat","seconds":13.039,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"heartbeat","seconds":13.541,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":13.741,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":13.741,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":13.741,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":13.841,"name":"07-refresh.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":13.841,"name":"05-error.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":13.841,"name":"04-transfer.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":13.841,"name":"03-pinned.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":13.842,"name":"02-local.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":13.842,"name":"01-cloud.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"heartbeat","seconds":14.041,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"heartbeat","seconds":14.542,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"heartbeat","seconds":15.043,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":15.444,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":15.444,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":15.444,"name":"07-refresh.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"live","event":"changed","seconds":15.444,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"changed","seconds":15.444,"name":"05-error.txt","label":"Needs attention (fixture) \u2014 Artificial failed download; no cloud request was made"}
+{"case":"live","event":"changed","seconds":15.444,"name":"04-transfer.txt","label":"Downloading (fixture) \u2014 A tracked download is active"}
+{"case":"live","event":"changed","seconds":15.444,"name":"03-pinned.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"live","event":"changed","seconds":15.444,"name":"02-local.txt","label":"Saved locally (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"live","event":"changed","seconds":15.444,"name":"01-cloud.txt","label":"Cloud only (fixture) \u2014 Known remote file; no verified local copy"}
+{"case":"live","event":"heartbeat","seconds":15.544,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"heartbeat","seconds":16.044,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":16.245,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":16.245,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":16.245,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"heartbeat","seconds":16.546,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":16.645,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":16.646,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":16.646,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"heartbeat","seconds":17.046,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":17.347,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":17.347,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":17.347,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":17.547,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":17.547,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"live","event":"changed","seconds":17.547,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"live","event":"heartbeat","seconds":17.548,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":17.848,"name":"07-refresh.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":17.848,"name":"05-error.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":17.848,"name":"04-transfer.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":17.848,"name":"03-pinned.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":17.848,"name":"02-local.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":17.849,"name":"01-cloud.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"heartbeat","seconds":18.049,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":18.35,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":18.35,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"changed","seconds":18.35,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"live","event":"heartbeat","seconds":18.55,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"heartbeat","seconds":19.051,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"heartbeat","seconds":19.552,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"heartbeat","seconds":20.053,"seen":9,"max_gap_seconds":0.1037}
+{"case":"live","event":"changed","seconds":20.253,"name":"08-no-observation.txt","label":""}
+{"case":"live","event":"changed","seconds":20.253,"name":"Large folder","label":""}
+{"case":"live","event":"changed","seconds":20.253,"name":"07-refresh.txt","label":""}
+{"case":"live","event":"changed","seconds":20.253,"name":"06-unknown.txt","label":""}
+{"case":"live","event":"changed","seconds":20.253,"name":"05-error.txt","label":""}
+{"case":"live","event":"changed","seconds":20.253,"name":"04-transfer.txt","label":""}
+{"case":"live","event":"changed","seconds":20.253,"name":"03-pinned.txt","label":""}
+{"case":"live","event":"changed","seconds":20.254,"name":"02-local.txt","label":""}
+{"case":"live","event":"changed","seconds":20.254,"name":"01-cloud.txt","label":""}
+{"case":"live","event":"heartbeat","seconds":20.554,"seen":9,"max_gap_seconds":0.1037}
+{"case":"icon-small-light","event":"changed","seconds":0.201,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":0.201,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":0.201,"name":"07-refresh.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":0.201,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":0.201,"name":"05-error.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":0.201,"name":"04-transfer.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":0.201,"name":"03-pinned.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":0.201,"name":"02-local.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":0.201,"name":"01-cloud.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":0.301,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-small-light","event":"changed","seconds":0.401,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-small-light","event":"changed","seconds":0.401,"name":"07-refresh.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"icon-small-light","event":"changed","seconds":0.401,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":0.401,"name":"05-error.txt","label":"Needs attention (fixture) \u2014 Artificial failed download; no cloud request was made"}
+{"case":"icon-small-light","event":"changed","seconds":0.401,"name":"04-transfer.txt","label":"Needs attention (fixture) \u2014 Transfer interrupted by restart"}
+{"case":"icon-small-light","event":"changed","seconds":0.401,"name":"03-pinned.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"icon-small-light","event":"changed","seconds":0.401,"name":"02-local.txt","label":"Saved locally (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"icon-small-light","event":"changed","seconds":0.401,"name":"01-cloud.txt","label":"Cloud only (fixture) \u2014 Known remote file; no verified local copy"}
+{"case":"icon-small-light","event":"heartbeat","seconds":0.501,"seen":9,"max_gap_seconds":0.1003}
+{"case":"icon-small-light","event":"heartbeat","seconds":1.002,"seen":9,"max_gap_seconds":0.1005}
+{"case":"icon-small-light","event":"changed","seconds":1.202,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":1.302,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":1.303,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":1.403,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-small-light","event":"changed","seconds":1.403,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-small-light","event":"changed","seconds":1.403,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"icon-small-light","event":"heartbeat","seconds":1.503,"seen":9,"max_gap_seconds":0.1005}
+{"case":"icon-small-light","event":"heartbeat","seconds":2.004,"seen":9,"max_gap_seconds":0.1005}
+{"case":"icon-small-light","event":"changed","seconds":2.304,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":2.304,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-light","event":"changed","seconds":2.304,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":0.201,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":0.201,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":0.201,"name":"07-refresh.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":0.201,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":0.201,"name":"05-error.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":0.202,"name":"04-transfer.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":0.202,"name":"03-pinned.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":0.202,"name":"02-local.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":0.202,"name":"01-cloud.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":0.301,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-small-dark","event":"changed","seconds":0.301,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-small-dark","event":"changed","seconds":0.401,"name":"07-refresh.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"icon-small-dark","event":"changed","seconds":0.401,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":0.401,"name":"05-error.txt","label":"Needs attention (fixture) \u2014 Artificial failed download; no cloud request was made"}
+{"case":"icon-small-dark","event":"changed","seconds":0.401,"name":"04-transfer.txt","label":"Needs attention (fixture) \u2014 Transfer interrupted by restart"}
+{"case":"icon-small-dark","event":"changed","seconds":0.401,"name":"03-pinned.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"icon-small-dark","event":"changed","seconds":0.401,"name":"02-local.txt","label":"Saved locally (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"icon-small-dark","event":"changed","seconds":0.401,"name":"01-cloud.txt","label":"Cloud only (fixture) \u2014 Known remote file; no verified local copy"}
+{"case":"icon-small-dark","event":"heartbeat","seconds":0.501,"seen":9,"max_gap_seconds":0.1004}
+{"case":"icon-small-dark","event":"heartbeat","seconds":1.003,"seen":9,"max_gap_seconds":0.1005}
+{"case":"icon-small-dark","event":"changed","seconds":1.203,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":1.204,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":1.303,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":1.404,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-small-dark","event":"changed","seconds":1.404,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-small-dark","event":"changed","seconds":1.404,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"icon-small-dark","event":"heartbeat","seconds":1.505,"seen":9,"max_gap_seconds":0.1007}
+{"case":"icon-small-dark","event":"heartbeat","seconds":2.006,"seen":9,"max_gap_seconds":0.1007}
+{"case":"icon-small-dark","event":"changed","seconds":2.206,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":2.207,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-small-dark","event":"changed","seconds":2.207,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":0.201,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-large-light","event":"changed","seconds":0.201,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":0.201,"name":"07-refresh.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":0.201,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":0.202,"name":"05-error.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":0.202,"name":"04-transfer.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":0.202,"name":"03-pinned.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":0.202,"name":"02-local.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":0.202,"name":"01-cloud.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":0.401,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-large-light","event":"changed","seconds":0.401,"name":"07-refresh.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"icon-large-light","event":"changed","seconds":0.401,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":0.401,"name":"05-error.txt","label":"Needs attention (fixture) \u2014 Artificial failed download; no cloud request was made"}
+{"case":"icon-large-light","event":"changed","seconds":0.401,"name":"04-transfer.txt","label":"Needs attention (fixture) \u2014 Transfer interrupted by restart"}
+{"case":"icon-large-light","event":"changed","seconds":0.402,"name":"03-pinned.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"icon-large-light","event":"changed","seconds":0.402,"name":"02-local.txt","label":"Saved locally (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"icon-large-light","event":"changed","seconds":0.501,"name":"01-cloud.txt","label":"Cloud only (fixture) \u2014 Known remote file; no verified local copy"}
+{"case":"icon-large-light","event":"heartbeat","seconds":0.501,"seen":9,"max_gap_seconds":0.1004}
+{"case":"icon-large-light","event":"heartbeat","seconds":1.002,"seen":9,"max_gap_seconds":0.1004}
+{"case":"icon-large-light","event":"changed","seconds":1.202,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":1.202,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":1.202,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":1.403,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-large-light","event":"changed","seconds":1.403,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-large-light","event":"changed","seconds":1.403,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"icon-large-light","event":"heartbeat","seconds":1.503,"seen":9,"max_gap_seconds":0.1004}
+{"case":"icon-large-light","event":"heartbeat","seconds":2.004,"seen":9,"max_gap_seconds":0.1005}
+{"case":"icon-large-light","event":"changed","seconds":2.204,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":2.204,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":2.204,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-light","event":"changed","seconds":2.304,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-large-light","event":"changed","seconds":2.304,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-large-light","event":"changed","seconds":2.304,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"icon-large-dark","event":"changed","seconds":0.201,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-dark","event":"changed","seconds":0.201,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-dark","event":"changed","seconds":0.201,"name":"07-refresh.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-dark","event":"changed","seconds":0.201,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-dark","event":"changed","seconds":0.201,"name":"05-error.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-dark","event":"changed","seconds":0.201,"name":"04-transfer.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-dark","event":"changed","seconds":0.201,"name":"03-pinned.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-dark","event":"changed","seconds":0.201,"name":"02-local.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-dark","event":"changed","seconds":0.201,"name":"01-cloud.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-dark","event":"changed","seconds":0.301,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-large-dark","event":"changed","seconds":0.401,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-large-dark","event":"changed","seconds":0.401,"name":"07-refresh.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"icon-large-dark","event":"changed","seconds":0.401,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"icon-large-dark","event":"changed","seconds":0.401,"name":"05-error.txt","label":"Needs attention (fixture) \u2014 Artificial failed download; no cloud request was made"}
+{"case":"icon-large-dark","event":"changed","seconds":0.401,"name":"04-transfer.txt","label":"Needs attention (fixture) \u2014 Transfer interrupted by restart"}
+{"case":"icon-large-dark","event":"changed","seconds":0.401,"name":"03-pinned.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"icon-large-dark","event":"changed","seconds":0.401,"name":"02-local.txt","label":"Saved locally (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"icon-large-dark","event":"changed","seconds":0.401,"name":"01-cloud.txt","label":"Cloud only (fixture) \u2014 Known remote file; no verified local copy"}
+{"case":"icon-large-dark","event":"heartbeat","seconds":0.501,"seen":9,"max_gap_seconds":0.1004}
+{"case":"icon-large-dark","event":"heartbeat","seconds":1.003,"seen":9,"max_gap_seconds":0.1008}
+{"case":"icon-large-dark","event":"changed","seconds":1.203,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-dark","event":"changed","seconds":1.303,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"icon-large-dark","event":"heartbeat","seconds":1.504,"seen":9,"max_gap_seconds":0.1008}
+{"case":"icon-large-dark","event":"heartbeat","seconds":2.005,"seen":9,"max_gap_seconds":0.1008}
+{"case":"icon-large-dark","event":"changed","seconds":2.205,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-dark","event":"changed","seconds":2.206,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"icon-large-dark","event":"changed","seconds":2.206,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":0.202,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":0.202,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":0.203,"name":"07-refresh.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":0.203,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":0.203,"name":"05-error.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":0.203,"name":"04-transfer.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":0.203,"name":"03-pinned.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":0.203,"name":"02-local.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":0.203,"name":"01-cloud.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":0.302,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-small-light","event":"changed","seconds":0.402,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-small-light","event":"changed","seconds":0.402,"name":"07-refresh.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"list-small-light","event":"changed","seconds":0.402,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"list-small-light","event":"changed","seconds":0.402,"name":"05-error.txt","label":"Needs attention (fixture) \u2014 Artificial failed download; no cloud request was made"}
+{"case":"list-small-light","event":"changed","seconds":0.402,"name":"04-transfer.txt","label":"Needs attention (fixture) \u2014 Transfer interrupted by restart"}
+{"case":"list-small-light","event":"changed","seconds":0.403,"name":"03-pinned.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"list-small-light","event":"changed","seconds":0.403,"name":"02-local.txt","label":"Saved locally (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"list-small-light","event":"changed","seconds":0.403,"name":"01-cloud.txt","label":"Cloud only (fixture) \u2014 Known remote file; no verified local copy"}
+{"case":"list-small-light","event":"heartbeat","seconds":0.503,"seen":9,"max_gap_seconds":0.1014}
+{"case":"list-small-light","event":"heartbeat","seconds":1.004,"seen":9,"max_gap_seconds":0.1014}
+{"case":"list-small-light","event":"changed","seconds":1.305,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":1.305,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":1.305,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":1.506,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-small-light","event":"changed","seconds":1.506,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-small-light","event":"changed","seconds":1.506,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"list-small-light","event":"heartbeat","seconds":1.506,"seen":9,"max_gap_seconds":0.1014}
+{"case":"list-small-light","event":"heartbeat","seconds":2.007,"seen":9,"max_gap_seconds":0.1014}
+{"case":"list-small-light","event":"changed","seconds":2.308,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":2.308,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-light","event":"changed","seconds":2.308,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-dark","event":"changed","seconds":0.205,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-dark","event":"changed","seconds":0.205,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-dark","event":"changed","seconds":0.205,"name":"07-refresh.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-dark","event":"changed","seconds":0.206,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-dark","event":"changed","seconds":0.206,"name":"05-error.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-dark","event":"changed","seconds":0.206,"name":"04-transfer.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-dark","event":"changed","seconds":0.206,"name":"03-pinned.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-dark","event":"changed","seconds":0.206,"name":"02-local.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-dark","event":"changed","seconds":0.206,"name":"01-cloud.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-dark","event":"changed","seconds":0.306,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-small-dark","event":"changed","seconds":0.406,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-small-dark","event":"changed","seconds":0.406,"name":"07-refresh.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"list-small-dark","event":"changed","seconds":0.406,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"list-small-dark","event":"changed","seconds":0.406,"name":"05-error.txt","label":"Needs attention (fixture) \u2014 Artificial failed download; no cloud request was made"}
+{"case":"list-small-dark","event":"changed","seconds":0.406,"name":"04-transfer.txt","label":"Needs attention (fixture) \u2014 Transfer interrupted by restart"}
+{"case":"list-small-dark","event":"changed","seconds":0.406,"name":"03-pinned.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"list-small-dark","event":"changed","seconds":0.406,"name":"02-local.txt","label":"Saved locally (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"list-small-dark","event":"changed","seconds":0.406,"name":"01-cloud.txt","label":"Cloud only (fixture) \u2014 Known remote file; no verified local copy"}
+{"case":"list-small-dark","event":"heartbeat","seconds":0.506,"seen":9,"max_gap_seconds":0.1048}
+{"case":"list-small-dark","event":"heartbeat","seconds":1.008,"seen":9,"max_gap_seconds":0.1048}
+{"case":"list-small-dark","event":"changed","seconds":1.308,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-dark","event":"changed","seconds":1.308,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-dark","event":"changed","seconds":1.308,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-small-dark","event":"changed","seconds":1.408,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-small-dark","event":"changed","seconds":1.408,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-small-dark","event":"changed","seconds":1.408,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"list-small-dark","event":"heartbeat","seconds":1.508,"seen":9,"max_gap_seconds":0.1048}
+{"case":"list-small-dark","event":"heartbeat","seconds":2.009,"seen":9,"max_gap_seconds":0.1048}
+{"case":"list-large-light","event":"changed","seconds":0.201,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-light","event":"changed","seconds":0.201,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-light","event":"changed","seconds":0.201,"name":"07-refresh.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-light","event":"changed","seconds":0.202,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-light","event":"changed","seconds":0.202,"name":"05-error.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-light","event":"changed","seconds":0.202,"name":"04-transfer.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-light","event":"changed","seconds":0.202,"name":"03-pinned.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-light","event":"changed","seconds":0.202,"name":"02-local.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-light","event":"changed","seconds":0.202,"name":"01-cloud.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-light","event":"changed","seconds":0.301,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-large-light","event":"changed","seconds":0.502,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-large-light","event":"changed","seconds":0.502,"name":"07-refresh.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"list-large-light","event":"changed","seconds":0.502,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"list-large-light","event":"changed","seconds":0.502,"name":"05-error.txt","label":"Needs attention (fixture) \u2014 Artificial failed download; no cloud request was made"}
+{"case":"list-large-light","event":"changed","seconds":0.502,"name":"04-transfer.txt","label":"Needs attention (fixture) \u2014 Transfer interrupted by restart"}
+{"case":"list-large-light","event":"changed","seconds":0.502,"name":"03-pinned.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"list-large-light","event":"changed","seconds":0.502,"name":"02-local.txt","label":"Saved locally (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"list-large-light","event":"changed","seconds":0.502,"name":"01-cloud.txt","label":"Cloud only (fixture) \u2014 Known remote file; no verified local copy"}
+{"case":"list-large-light","event":"heartbeat","seconds":0.503,"seen":9,"max_gap_seconds":0.1005}
+{"case":"list-large-light","event":"heartbeat","seconds":1.003,"seen":9,"max_gap_seconds":0.1005}
+{"case":"list-large-light","event":"changed","seconds":1.304,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-light","event":"changed","seconds":1.304,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-light","event":"changed","seconds":1.304,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-light","event":"changed","seconds":1.403,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-large-light","event":"changed","seconds":1.503,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-large-light","event":"changed","seconds":1.503,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"list-large-light","event":"heartbeat","seconds":1.504,"seen":9,"max_gap_seconds":0.1005}
+{"case":"list-large-light","event":"heartbeat","seconds":2.004,"seen":9,"max_gap_seconds":0.1005}
+{"case":"list-large-light","event":"changed","seconds":2.104,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-dark","event":"changed","seconds":0.201,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-dark","event":"changed","seconds":0.201,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-dark","event":"changed","seconds":0.201,"name":"07-refresh.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-dark","event":"changed","seconds":0.202,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-dark","event":"changed","seconds":0.202,"name":"05-error.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-dark","event":"changed","seconds":0.202,"name":"04-transfer.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-dark","event":"changed","seconds":0.202,"name":"03-pinned.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-dark","event":"changed","seconds":0.202,"name":"02-local.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-dark","event":"changed","seconds":0.202,"name":"01-cloud.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-dark","event":"changed","seconds":0.301,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-large-dark","event":"changed","seconds":0.301,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-large-dark","event":"changed","seconds":0.301,"name":"07-refresh.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"list-large-dark","event":"changed","seconds":0.301,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"list-large-dark","event":"changed","seconds":0.301,"name":"05-error.txt","label":"Needs attention (fixture) \u2014 Artificial failed download; no cloud request was made"}
+{"case":"list-large-dark","event":"changed","seconds":0.301,"name":"04-transfer.txt","label":"Needs attention (fixture) \u2014 Transfer interrupted by restart"}
+{"case":"list-large-dark","event":"changed","seconds":0.301,"name":"03-pinned.txt","label":"Kept offline (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"list-large-dark","event":"changed","seconds":0.301,"name":"02-local.txt","label":"Saved locally (fixture) \u2014 Complete local bytes, revision and offline read path verified"}
+{"case":"list-large-dark","event":"changed","seconds":0.302,"name":"01-cloud.txt","label":"Cloud only (fixture) \u2014 Known remote file; no verified local copy"}
+{"case":"list-large-dark","event":"heartbeat","seconds":0.502,"seen":9,"max_gap_seconds":0.1006}
+{"case":"list-large-dark","event":"heartbeat","seconds":1.004,"seen":9,"max_gap_seconds":0.1006}
+{"case":"list-large-dark","event":"changed","seconds":1.305,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-dark","event":"changed","seconds":1.305,"name":"Large folder","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-dark","event":"changed","seconds":1.306,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"list-large-dark","event":"changed","seconds":1.405,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-large-dark","event":"changed","seconds":1.506,"name":"Large folder","label":"Needs checking (fixture) \u2014 No verified observation for this path"}
+{"case":"list-large-dark","event":"changed","seconds":1.506,"name":"06-unknown.txt","label":"Needs checking (fixture) \u2014 Remote observation needs checking"}
+{"case":"list-large-dark","event":"heartbeat","seconds":1.506,"seen":9,"max_gap_seconds":0.1006}
+{"case":"list-large-dark","event":"heartbeat","seconds":2.008,"seen":9,"max_gap_seconds":0.1006}
+{"case":"list-large-dark","event":"changed","seconds":2.108,"name":"08-no-observation.txt","label":"Needs checking (fixture) \u2014 Helper unavailable or evidence needs checking"}
+{"case":"large","event":"heartbeat","seconds":0.628,"seen":2000,"max_gap_seconds":0.2177}
+{"case":"large","event":"heartbeat","seconds":1.13,"seen":2000,"max_gap_seconds":0.2177}
+{"case":"large","event":"heartbeat","seconds":1.635,"seen":2000,"max_gap_seconds":0.2177}
+{"case":"large","event":"heartbeat","seconds":2.129,"seen":2000,"max_gap_seconds":0.2177}
+{"case":"large","event":"heartbeat","seconds":2.636,"seen":2000,"max_gap_seconds":0.2177}
+{"case":"large","event":"heartbeat","seconds":3.131,"seen":2000,"max_gap_seconds":0.2177}
+{"case":"large","event":"heartbeat","seconds":3.632,"seen":2000,"max_gap_seconds":0.2177}
+{"case":"large","event":"heartbeat","seconds":4.139,"seen":2000,"max_gap_seconds":0.2177}
+{"case":"large","event":"heartbeat","seconds":4.633,"seen":2000,"max_gap_seconds":0.2177}
+{"case":"unrelated","event":"changed","seconds":0.1,"name":"unmanaged.txt","label":""}
+{"case":"unrelated","event":"heartbeat","seconds":0.501,"seen":1,"max_gap_seconds":0.1002}
+{"case":"unrelated","event":"heartbeat","seconds":1.001,"seen":1,"max_gap_seconds":0.1003}
+{"case":"unrelated","event":"heartbeat","seconds":1.502,"seen":1,"max_gap_seconds":0.1004}
+{"case":"uninstalled","event":"changed","seconds":0.203,"name":"08-no-observation.txt","label":""}
+{"case":"uninstalled","event":"changed","seconds":0.203,"name":"Large folder","label":""}
+{"case":"uninstalled","event":"changed","seconds":0.203,"name":"07-refresh.txt","label":""}
+{"case":"uninstalled","event":"changed","seconds":0.203,"name":"06-unknown.txt","label":""}
+{"case":"uninstalled","event":"changed","seconds":0.203,"name":"05-error.txt","label":""}
+{"case":"uninstalled","event":"changed","seconds":0.203,"name":"04-transfer.txt","label":""}
+{"case":"uninstalled","event":"changed","seconds":0.203,"name":"03-pinned.txt","label":""}
+{"case":"uninstalled","event":"changed","seconds":0.203,"name":"02-local.txt","label":""}
+{"case":"uninstalled","event":"changed","seconds":0.203,"name":"01-cloud.txt","label":""}
+{"case":"uninstalled","event":"heartbeat","seconds":0.504,"seen":9,"max_gap_seconds":0.1023}
+{"case":"uninstalled","event":"heartbeat","seconds":1.005,"seen":9,"max_gap_seconds":0.1023}
+{"case":"uninstalled","event":"heartbeat","seconds":1.507,"seen":9,"max_gap_seconds":0.1023}

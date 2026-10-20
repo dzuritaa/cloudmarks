@@ -1,0 +1,9 @@
+{
+  "emblem-downloads": true,
+  "emblem-default": true,
+  "emblem-synchronizing": true,
+  "emblem-important": true,
+  "emblem-dialog-question": true,
+  "emblem-urgent": true,
+  "emblem-readonly": true
+}

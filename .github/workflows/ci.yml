@@ -1,0 +1,69 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install '.[dev]'
+      - run: python -m ruff check cloudmarks tests spikes scripts
+      - run: python -m ruff format --check cloudmarks tests spikes scripts
+      - run: python -W error::ResourceWarning -m unittest discover -s tests -q
+      - run: python -m compileall -q cloudmarks tests spikes scripts
+      - run: python scripts/check_docs.py
+
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      SOURCE_DATE_EPOCH: '1792454400'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.11'
+      - run: python -m pip install '.[dev]'
+      - run: python -m build
+      - run: python -m twine check --strict dist/*.whl dist/*.tar.gz
+      - run: python scripts/check_dist.py dist
+      - name: Test wheel outside checkout
+        run: python scripts/test_installed.py dist/*.whl
+      - name: Rebuild from source distribution
+        run: |
+          python -m pip wheel --no-deps --wheel-dir rebuilt dist/*.tar.gz
+          python scripts/compare_wheels.py dist/*.whl rebuilt/*.whl
+      - if: hashFiles('LICENSE') != ''
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: cloudmarks-distributions
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14

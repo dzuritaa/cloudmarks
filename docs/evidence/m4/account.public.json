@@ -1,0 +1,18 @@
+{
+  "scope": "new unique disposable folder in the verified dedicated test root",
+  "created_files": 3,
+  "remote_updates": 2,
+  "remote_renames": 1,
+  "remote_file_deletions_with_etag_precondition": 1,
+  "production_transport_remote_writes": false,
+  "rejecting_proxy_jobs_recovered_in_fresh_process": true,
+  "clean_update_preserved_previous_object": true,
+  "local_remote_conflict_preserved_three_versions": true,
+  "rename_retained_original_path_and_remote_candidate": true,
+  "remote_disappearance_retained_snapshot": true,
+  "offline_mount_restarts_with_verified_folder_state": 2,
+  "offline_view_write_rejected_EROFS": true,
+  "remaining_conflicts_for_explicit_review": 3,
+  "physical_network_disconnect_or_logout_or_disk_unplug_tested": false,
+  "views_stopped": true
+}

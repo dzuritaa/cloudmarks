@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "core_config": "/private/cloudmarks-test/core.toml",
+  "rclone_config": "/private/cloudmarks-test/transport.conf",
+  "rclone": "/absolute/path/to/rclone",
+  "visible_root": "/private/cloudmarks-test/view",
+  "expected_email": "dedicated-test-account@example.invalid",
+  "budget_bytes": 268435456,
+  "min_free_bytes": 21474836480,
+  "storage_mount_uuid": "replace-with-selected-filesystem-uuid",
+  "storage_mount_target": "/selected-data-disk"
+}

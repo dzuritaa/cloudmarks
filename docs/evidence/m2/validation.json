@@ -1,0 +1,108 @@
+{
+  "date": "2026-10-20",
+  "milestone": "M2",
+  "scope": "artificial local fixtures; no real cloud integration",
+  "automated": {
+    "tests": 101,
+    "python": {
+      "3.14.4": {
+        "result": "passed",
+        "seconds": 2.677
+      },
+      "3.11.16": {
+        "result": "passed",
+        "seconds": 2.656
+      }
+    },
+    "lint": "ruff 0.17.1 passed",
+    "format": "passed",
+    "compileall": "passed",
+    "resource_warnings": "none",
+    "callback_stress_files": 10000
+  },
+  "desktop": {
+    "nautilus": "50.2.2",
+    "nautilus_python": "4.1.0",
+    "python": "3.14.4",
+    "gtk": "4",
+    "session": "private network-disabled Bubblewrap/DBus/Xvfb; software renderer",
+    "cases": [
+      "icon-small-light",
+      "icon-small-dark",
+      "icon-large-light",
+      "icon-large-dark",
+      "list-small-light",
+      "list-small-dark",
+      "list-large-light",
+      "list-large-dark"
+    ],
+    "large_folder": {
+      "observed_entries": 2000,
+      "max_main_loop_gap_seconds": 0.2177,
+      "over_capacity_policy": "unknown; at most 512 tracked"
+    },
+    "checks": {
+      "fixture_only": true,
+      "uninstall_before_first_enable": true,
+      "hung_helper_recovers_without_navigation": true,
+      "live_transition_without_navigation": true,
+      "helper_loss_clears_green": true,
+      "disable_clears_loaded_extension": true,
+      "unrelated_unbadged": true,
+      "uninstall_restores_baseline": true
+    }
+  },
+  "packaging": {
+    "sdist": "built locally",
+    "wheel": "built and installed in a separate Python 3.11 environment",
+    "cli": "demo, help and check-config passed",
+    "assets": "all six bundled SVGs and icon theme included",
+    "published": false
+  },
+  "boundaries": {
+    "daily_extension_installed": false,
+    "daily_files_restarted": false,
+    "system_packages_installed": false,
+    "cloudmarks_service_enabled": false,
+    "existing_test_mount_service": "active",
+    "cloud_access_by_m2": false,
+    "physical_disk_network_recovery_tested_by_m2": false
+  },
+  "limitations": [
+    "fixture-only account/root/read-path proof",
+    "512 tracked entries; overflow stays unknown",
+    "8 MiB request-time verification cap",
+    "brief unknown transitions during delayed evidence renewal",
+    "user readability and screen-reader review pending",
+    "real transport and offline actions are M3 work"
+  ],
+  "privacy": "Only artificial basenames/statuses and temporary fixture breadcrumbs; no account identifiers or tokens.",
+  "source_sha256": {
+    "cloudmarks/__init__.py": "4aa0bab531aadf28e2394d5fae9cc825959611a92e3dea7c4152b9f6231fcade",
+    "cloudmarks/__main__.py": "3685476ceec4eadb7a25259a0860e5785770f933667bebadf8142e2fdec63458",
+    "cloudmarks/config.py": "44844cc1ff9b2527db6c6bbebdec95cb8b2ba78fa26716818103ab1fcf536919",
+    "cloudmarks/desktop.py": "9d6694d8254b1a8d78ef902140bcd2bb9cb8fcf57456f0b27d7f7c3ebffa4aaa",
+    "cloudmarks/engine.py": "50bff97d822c7da6f59e1370c89b7b6bef0f4c82e56146acd55e900273bb13d0",
+    "cloudmarks/fixture.py": "aaf8eb4a563750a058cdf84ed298ddf8d7c601673f52b266c276c9af1c231347",
+    "cloudmarks/fixture_session.py": "1634ec498a2d3aeab8cb40f3920cbfc6a69b9e3b6ad1cd48fb3d523aaf939d12",
+    "cloudmarks/helper.py": "2c6a3875accf921599c8b7dd20cf012acf354a96341543d19495b00c9ab5ea9d",
+    "cloudmarks/icons/hicolor/index.theme": "300cd8a1a61c1d0678854905d013ee3be00c361e003ae33e0bbccfb4135226d0",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-cloud.svg": "31823202fd51957c5e52c42a94124c3bc246ba4d7405c83f53867a793b00a419",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-error.svg": "feba97419fe765fd33239fc58221aefafdc3672745589ffc46300ef0244cf78d",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-local.svg": "f1c26a8c5376d35d0663cc685e2c59e303dd6a55b3f84550e78f7fb8472b3bd0",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-pin.svg": "3a28627a2cb22a7cb5e2c7e510f3b8a1a17029a5b22b3babd1e8429dc3f12a83",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-transfer.svg": "2e40ec1b8e28f26562e2505d590bde9aaeeb1db086c360eb3ab2ffc443b65f5b",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-unknown.svg": "7d24889bc1c5a6c7e77cdd450d73209a3018159b3bdd4461d0747878dbe40c8f",
+    "cloudmarks/install.py": "9bce3c65ee18faebc8356e11d8ec750367cb363e5772b05fa4a64d6f42b656bb",
+    "cloudmarks/ipc.py": "166fc3284423a917edcf14f8804d95b3714287cd0e466ea1a7242803928f3a2a",
+    "cloudmarks/model.py": "eea938ad3153660e02c2905f5e56d938bc380098718eb819f175006b92acc520",
+    "cloudmarks/nautilus_extension.py": "ded8f343b3719c1eec705c3e0e05e5ca63bbe296279ab7c1027da8870e3a20a4",
+    "cloudmarks/paths.py": "f36c840b13e9a40715ea50b8d5dcc6774d5857e0d26420108d6b0e478ebb8b9f",
+    "cloudmarks/state.py": "451bdfc703a0b137a750f72aa87da1c3568eb0a5f639e69093019012c5d3e76b",
+    "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/desktop/run_isolated.py": "4ac5cb5aa486d277bf844148bc5057a0564d0d4ef3441157a53e00acd665a68b",
+    "tests/test_core.py": "64c2e4fa68920c6bea4dd44b44a5accc5628045b69a4e627fbe49089e4c6cebe",
+    "tests/test_desktop.py": "267bcb050ad51a176286636bc45dc4b10ec286a8776a76007f9a485fd3468586",
+    "tests/test_nautilus_adapter.py": "2f702158ad8487805e0aab0e631c5269ddbdfeeed236a70fff90d960a2158c80"
+  }
+}

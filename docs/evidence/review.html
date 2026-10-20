@@ -1,0 +1,89 @@
+<div id="cloudmarks-evidence-review">
+  <style>
+    #cloudmarks-evidence-review { color: var(--foreground); font-family: inherit; }
+    #cloudmarks-evidence-review .review-controls { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; margin-bottom: 12px; }
+    #cloudmarks-evidence-review .review-controls label { display: grid; gap: 4px; }
+    #cloudmarks-evidence-review figure { margin: 0; }
+    #cloudmarks-evidence-review img { display: block; width: 100%; height: auto; }
+    #cloudmarks-evidence-review img[hidden] { display: none; }
+    #cloudmarks-evidence-review figcaption { margin-top: 8px; color: var(--muted-foreground); }
+    #cloudmarks-evidence-review .review-checks { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; }
+  </style>
+  <div class="review-controls">
+    <label class="form-label">Files view
+      <select class="form-select" data-control="view" aria-label="Files view">
+        <option value="list" selected>List + status text</option>
+        <option value="icon">Icons</option>
+      </select>
+    </label>
+    <label class="form-label">Zoom
+      <select class="form-select" data-control="zoom" aria-label="Zoom">
+        <option value="small" selected>Small</option>
+        <option value="large">Large</option>
+      </select>
+    </label>
+    <label class="form-label">Appearance
+      <select class="form-select" data-control="style" aria-label="Appearance">
+        <option value="dark" selected>Dark</option>
+        <option value="light">Light</option>
+      </select>
+    </label>
+  </div>
+  <figure>
+    <img hidden data-case="icon-small-light" src="m0/badges/icon-small-light.png" alt="Real Nautilus icon view, small zoom, light style. Six fixture status badges and one unmanaged item without a badge.">
+    <img hidden data-case="icon-small-dark" src="m0/badges/icon-small-dark.png" alt="Real Nautilus icon view, small zoom, dark style. Six fixture status badges and one unmanaged item without a badge.">
+    <img hidden data-case="icon-large-light" src="m0/badges/icon-large-light.png" alt="Real Nautilus icon view, large zoom, light style. Cloud-only, local, transfer, error, unknown and refreshed fixture badges.">
+    <img hidden data-case="icon-large-dark" src="m0/badges/icon-large-dark.png" alt="Real Nautilus icon view, large zoom, dark style. Cloud-only, local, transfer, error, unknown and refreshed fixture badges.">
+    <img hidden data-case="list-small-light" src="m0/badges/list-small-light.png" alt="Real Nautilus list view with a text status column, small zoom, light style. The unmanaged item has no status badge or text.">
+    <img data-case="list-small-dark" src="m0/badges/list-small-dark.png" alt="Real Nautilus list view with a text status column, small zoom, dark style. States read cloud only, saved locally, downloading, error, needs checking and after refresh.">
+    <img hidden data-case="list-large-light" src="m0/badges/list-large-light.png" alt="Real Nautilus list view, large zoom, light style, with fixture emblems and text status.">
+    <img hidden data-case="list-large-dark" src="m0/badges/list-large-dark.png" alt="Real Nautilus list view, large zoom, dark style, with fixture emblems and text status.">
+    <figcaption aria-live="polite">Nautilus 50 · List view · Small · Dark · Hard-coded fixtures</figcaption>
+  </figure>
+  <div class="review-checks" aria-label="Verification results">
+    <span>62 tests passed</span>
+    <span>Python 3.11 + 3.14</span>
+    <span>NTFS3 checked</span>
+    <span>2 simulated offline restarts</span>
+  </div>
+  <script>
+    (() => {
+      const root = document.getElementById('cloudmarks-evidence-review');
+      const controls = Object.fromEntries([...root.querySelectorAll('[data-control]')].map(el => [el.dataset.control, el]));
+      const images = [...root.querySelectorAll('[data-case]')];
+      const caption = root.querySelector('figcaption');
+      const defaults = { view: 'list', zoom: 'small', style: 'dark' };
+      function apply(state) {
+        for (const key of Object.keys(defaults)) {
+          const value = state && state[key];
+          controls[key].value = [...controls[key].options].some(option => option.value === value) ? value : defaults[key];
+        }
+        update(false);
+      }
+      function update(save) {
+        const state = Object.fromEntries(Object.entries(controls).map(([key, el]) => [key, el.value]));
+        const name = `${state.view}-${state.zoom}-${state.style}`;
+        images.forEach(img => { img.hidden = img.dataset.case !== name; });
+        caption.textContent = `Nautilus 50 · ${state.view === 'list' ? 'List view' : 'Icon view'} · ${state.zoom === 'small' ? 'Small' : 'Large'} · ${state.style === 'dark' ? 'Dark' : 'Light'} · Hard-coded fixtures`;
+        if (save && window.openai && window.openai.setWidgetState) {
+          window.openai.setWidgetState({ modelContent: state, privateContent: null }).catch(() => {});
+        }
+      }
+      Object.values(controls).forEach(el => el.addEventListener('change', () => update(true)));
+      window.addEventListener('openai:set_globals', event => {
+        const globals = event.detail && event.detail.globals;
+        if (globals && Object.prototype.hasOwnProperty.call(globals, 'widgetState')) apply(globals.widgetState && globals.widgetState.modelContent);
+      });
+      const saved = window.openai && window.openai.widgetState;
+      apply(saved && saved.modelContent);
+      // Verify every selector combination without persisting synthetic state.
+      for (const img of images) {
+        const [view, zoom, style] = img.dataset.case.split('-');
+        apply({view, zoom, style});
+        if (images.filter(image => !image.hidden).length !== 1 || img.hidden) throw new Error('Gallery selection failed');
+      }
+      apply(saved && saved.modelContent);
+      console.log('Verified eight gallery selections.');
+    })();
+  </script>
+</div>

@@ -23,6 +23,10 @@ rclone.conf
 refresh_token
 *.sqlite3
 *.sqlite3-*
+*.sqlite3.lock
 *.log
 .cache/
 .local/
+
+# Local package-rebuild outputs
+rebuilt/

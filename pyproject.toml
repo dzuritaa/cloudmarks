@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools==84.2.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cloudmarks"
+version = "0.1.0a1"
+description = "Verified offline-file state for GNOME Files"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = []
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: X11 Applications :: Gnome",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+
+[project.urls]
+Repository = "https://github.com/dzuritaa/cloudmarks"
+Issues = "https://github.com/dzuritaa/cloudmarks/issues"
+
+[project.optional-dependencies]
+dev = ["build==1.6.1", "ruff==0.17.1", "twine==7.0.0"]
+
+[project.scripts]
+cloudmarks = "cloudmarks.__main__:main"
+
+[tool.setuptools]
+packages = ["cloudmarks"]
+include-package-data = false
+
+[tool.setuptools.package-data]
+cloudmarks = ["icons/hicolor/index.theme", "icons/hicolor/scalable/emblems/*.svg"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP"]

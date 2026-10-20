@@ -1,0 +1,176 @@
+{
+  "date": "2026-10-20",
+  "milestone": "M5",
+  "version": "0.1.0a1",
+  "status": "Prepublication snapshot: MIT-licensed candidate locally validated; hosted exact-source results and publication recorded separately after completion",
+  "license_selected": true,
+  "license_file_present": true,
+  "repository_access": {
+    "pull": true,
+    "push": false,
+    "source_committed_or_pushed": false,
+    "tag_created": false,
+    "git_transport_dry_run_passed": true,
+    "git_ref_created_by_dry_run": false,
+    "note": "API reports pull=true/push=false; Git transport passed dry-run. Actual source/workflow push and release publication remain untested."
+  },
+  "hosted_ci_executed": false,
+  "draft_release_created": false,
+  "published": false,
+  "automated": {
+    "total_tests": 190,
+    "new_release_checks": 6,
+    "python": {
+      "3.11.16": {
+        "passed": true,
+        "seconds": 4.911
+      },
+      "3.12.14": {
+        "passed": true,
+        "seconds": 4.891
+      },
+      "3.13.15": {
+        "passed": true,
+        "seconds": 4.692
+      },
+      "3.14.4": {
+        "passed": true,
+        "seconds": 4.836
+      }
+    },
+    "resource_warnings": 0,
+    "account_credentials_required": false
+  },
+  "packaging": {
+    "wheel_sdist_build": true,
+    "pinned_backend": "setuptools==84.2.0",
+    "twine_strict": true,
+    "source_package_assets_workflows_examples_docs_inventory": true,
+    "installed_wheel_tests": {
+      "passed": true,
+      "tests": 190,
+      "python": "3.11.16",
+      "seconds": 4.677,
+      "checkout_imports_excluded": true,
+      "final_rebuild_repeat_seconds": 4.789
+    },
+    "sdist_rebuild_same_wheel_payload": true,
+    "sha256sums_generated": true,
+    "release_gate_rejects_unlicensed_candidate": true,
+    "note": "MIT selected by owner. Licensed wheel and source archive pass strict metadata and release-content checks; hosted exact-source validation/publication pending.",
+    "release_gate_passes_licensed_candidate": true
+  },
+  "ci": {
+    "matrix": [
+      "3.11",
+      "3.12",
+      "3.13",
+      "3.14"
+    ],
+    "runner": "ubuntu-24.04",
+    "actionlint_version": "1.7.12",
+    "actionlint_passed": true,
+    "action_commits_verified_from_official_tags": true,
+    "default_permissions": "contents: read",
+    "manual_tag_workflow_creates": "experimental prerelease",
+    "cloud_or_desktop_runners_in_ci": false,
+    "artifact_upload_requires_license_file": true,
+    "release_trigger": "deliberate v* tag push or manual run on a matching tag",
+    "ordinary_branch_push_publishes": false
+  },
+  "operations": {
+    "install_upgrade_disable_uninstall_recovery_docs": true,
+    "compatibility_docs": true,
+    "optional_status_helper_unit_syntax_passed": true,
+    "helper_unit_installed_or_enabled": false,
+    "unit_note": "Host systemd emitted an unrelated existing-unit warning; CloudMarks unit validation exited 0. Full login lifecycle is not tested.",
+    "upgrade_rollback": "upgrade.public.json"
+  },
+  "manual_desktop": {
+    "new_scene_run_in_m5": false,
+    "latest_m4_regression": "../m4/desktop-regression.json",
+    "note": "M5 changes release/version/tooling/docs, not Nautilus callbacks. Existing 8-case/2000-entry evidence remains historical; no new hardware/daily acceptance claimed."
+  },
+  "unchanged": {
+    "m2_status_only": true,
+    "m3_schema_2_pin_retained": true,
+    "m4_three_preserved_issues_retained": true,
+    "existing_test_mount_active": true,
+    "no_personal_account_reconnection": true,
+    "no_system_package_install": true,
+    "no_daily_files_restart": true,
+    "no_new_cloud_mutations": true,
+    "no_commit_push_tag_or_publication": true
+  },
+  "remaining_release_gates": [
+    "Review/commit/push actual implementation and M5 files (remote HEAD currently tracks only historical docs)",
+    "Hosted CI for exact source/tag",
+    "Owner draft prerelease review/publication",
+    "Verify actual Git source/workflow push and release-publication route; API and Git transport credentials differ"
+  ],
+  "remaining_daily_use_acceptance": [
+    "Physical network loss/reconnection",
+    "Hardware disk unplug/replug",
+    "Full logout/login and optional helper/view lifecycle",
+    "Larger real files, readability and accessibility",
+    "Reviewed conflict repair workflow"
+  ],
+  "source_sha256": {
+    ".github/workflows/ci.yml": "c5a7e406dd73ec057fb8130cd265678967ca4e59f132b8af68062c7f4de5bf47",
+    ".github/workflows/release.yml": "aaed50b5e972ce0a34e3ff6ade5aba5479ad01630acfee64a81d613d9c9352ce",
+    "LICENSE": "ee4f026502ae5debe8760c26997a1882e58dcb828056c715f347a6f106c78680",
+    "MANIFEST.in": "313e5ce49208f39b204df6f0d7d1e94b1aab6c15d0164bb2c5d3d8fa6608fbad",
+    "cloudmarks/__init__.py": "8e225f7ae1a6620558966e347a322cb51edab2964154690e673b65dae8d05eb3",
+    "cloudmarks/__main__.py": "694a1ede72fe693ba2750cfe56fa96f89b3dad98e6198657551f558b157a32c4",
+    "cloudmarks/config.py": "44844cc1ff9b2527db6c6bbebdec95cb8b2ba78fa26716818103ab1fcf536919",
+    "cloudmarks/desktop.py": "9d6694d8254b1a8d78ef902140bcd2bb9cb8fcf57456f0b27d7f7c3ebffa4aaa",
+    "cloudmarks/engine.py": "e224fafb15a97aba821dad9e1dc014315fe21905ce6e580082f7ffd35ca6f758",
+    "cloudmarks/fixture.py": "aaf8eb4a563750a058cdf84ed298ddf8d7c601673f52b266c276c9af1c231347",
+    "cloudmarks/fixture_session.py": "1634ec498a2d3aeab8cb40f3920cbfc6a69b9e3b6ad1cd48fb3d523aaf939d12",
+    "cloudmarks/helper.py": "2651b5bc016dc0d6c3464d075137938593a03aa8bead2b5cfc58fea1a9e4065e",
+    "cloudmarks/icons/hicolor/index.theme": "300cd8a1a61c1d0678854905d013ee3be00c361e003ae33e0bbccfb4135226d0",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-cloud.svg": "31823202fd51957c5e52c42a94124c3bc246ba4d7405c83f53867a793b00a419",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-error.svg": "feba97419fe765fd33239fc58221aefafdc3672745589ffc46300ef0244cf78d",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-local.svg": "f1c26a8c5376d35d0663cc685e2c59e303dd6a55b3f84550e78f7fb8472b3bd0",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-pin.svg": "3a28627a2cb22a7cb5e2c7e510f3b8a1a17029a5b22b3babd1e8429dc3f12a83",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-transfer.svg": "2e40ec1b8e28f26562e2505d590bde9aaeeb1db086c360eb3ab2ffc443b65f5b",
+    "cloudmarks/icons/hicolor/scalable/emblems/cloudmarks-unknown.svg": "7d24889bc1c5a6c7e77cdd450d73209a3018159b3bdd4461d0747878dbe40c8f",
+    "cloudmarks/install.py": "9bce3c65ee18faebc8356e11d8ec750367cb363e5772b05fa4a64d6f42b656bb",
+    "cloudmarks/ipc.py": "b5e644c4b7cc23b9d8d72882675ad7ade7e78d289dccc2518fe8e3d44d84048f",
+    "cloudmarks/model.py": "eea938ad3153660e02c2905f5e56d938bc380098718eb819f175006b92acc520",
+    "cloudmarks/nautilus_extension.py": "375aa042d8a0b93290bf43f8be29a7e5564ff9c57456257b7f7cccc5a3da5493",
+    "cloudmarks/offline.py": "3b26951f37dad60d8fe9bad27f576402591d16816c2c58fea6e7e3bb559917fa",
+    "cloudmarks/offline_cli.py": "d5d9694a2763e5f834e93bd5fe61cd71d6eb44327fda83eed672142e46eb1bfd",
+    "cloudmarks/offline_config.py": "4b403e6a5e9df8612816a278cb05b837e76bd2157a4b8fa291891d3971c41cec",
+    "cloudmarks/onedrive.py": "557dd18cf25601d11fb073139128fbcc853830d56e544f4619e749bff9c6656b",
+    "cloudmarks/paths.py": "492ea8e8a5a13f06a9978ac411f40c193cde706d79d4931819b19688c210a58c",
+    "cloudmarks/state.py": "35d812030d3617abcf1de5cc03ea93ec8e98ba5edefbe0fe124a2b8bb640baa6",
+    "cloudmarks/tracking.py": "c0bec61a9f781a667994a46f72a4695554982fdb04e5714cc4b7a93507a2eb47",
+    "cloudmarks/view.py": "a0606031296251f595c4a66874232a1032d4e50fb1c6b93921ed3b0abd38bc2b",
+    "examples/cloudmarks-status.service": "b85ac8141a3b36874d36afabb6c1be2432ac57e2b1809bd9e81ec8f97ad7476c",
+    "examples/config.toml": "c1776e4ad853872a61c69b2cbd2c1c777f51cfdac7576ab419efe5eb051de650",
+    "examples/desktop-account.json": "80aa7d4fa9d50bbc9f2c444c2557358100588736965da729432dedf54dc6aa41",
+    "examples/offline.json": "1fbe79ac8e94f7241efc54392f23d3a682b146cb09f972683f8288d21a7d57b0",
+    "examples/transport.conf": "3f97acbdd610271d6cb90333d7f30cd18d870719440d93d20e5e2bfc1c16f8c2",
+    "pyproject.toml": "c4808864881460e463d32e09b908e47d007e09fba1c3eab717d948bb2e914faa",
+    "scripts/check_dist.py": "82250a5d7ec9ec06cfec14be40f12b272f8cd1679758e7183f389f50cf03ea5f",
+    "scripts/check_docs.py": "3360bb6f62637c44103c0f957de0f6797f580019a90f70b19777aa0fe9b6effe",
+    "scripts/compare_wheels.py": "529936d0d1830be569a7ecd49bc4a5f8864aaaecc8538201d88ecbbe82cbdd19",
+    "scripts/test_installed.py": "7cf8097a442f06fe3a4192e0eb652b0e62fc4bb2d3d9a4d32fd8cb7bd4b96147",
+    "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/desktop/README.md": "07b97980c1c0e513bb82706fc7e20a791bc43fcc6dd652f0c4741ab9c6b7dfb3",
+    "tests/desktop/run_account_readonly.py": "cf790c613695c1a27becbe44a7a8dfb6a6b92738833f4627c8b1cbc13ae306ba",
+    "tests/desktop/run_isolated.py": "4ac5cb5aa486d277bf844148bc5057a0564d0d4ef3441157a53e00acd665a68b",
+    "tests/integration/README.md": "fef25e703dc112b115e80d9527c7cd5c307871d2f8998d5e9fc609b020e0bdb6",
+    "tests/integration/run_offline.py": "851a0cc54f0a63d100ff46777170a347419b6842bec641b7b7a427b24f22043e",
+    "tests/integration/run_tracking.py": "9416a02573eb91e4a74bed5ae318f9a378d3ed37d161dc3ef62b015fcde3100c",
+    "tests/test_core.py": "64c2e4fa68920c6bea4dd44b44a5accc5628045b69a4e627fbe49089e4c6cebe",
+    "tests/test_desktop.py": "267bcb050ad51a176286636bc45dc4b10ec286a8776a76007f9a485fd3468586",
+    "tests/test_nautilus_adapter.py": "2f702158ad8487805e0aab0e631c5269ddbdfeeed236a70fff90d960a2158c80",
+    "tests/test_offline.py": "c78c3595b947a37fff25268158d698725e31d5cc4368f6704cc155d69c862366",
+    "tests/test_onedrive.py": "86ab1e2aa1784d3696ebbb2cc49b3a7b8ac9ddea25b55bf28e3715c15f21793e",
+    "tests/test_release.py": "d442ab2246a51b19b8ee07cc59f9ed883a3a5c97852ccb9d1ec674c6166d56a1",
+    "tests/test_tracking.py": "5ee0ab36604051755ec1e335f3587bc05e5478e98147dd7087c3fb503e4ce4cf"
+  },
+  "license": "MIT"
+}

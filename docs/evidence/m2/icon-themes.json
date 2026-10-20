@@ -1,0 +1,18 @@
+{
+  "Yaru": {
+    "cloudmarks-cloud": true,
+    "cloudmarks-local": true,
+    "cloudmarks-pin": true,
+    "cloudmarks-transfer": true,
+    "cloudmarks-error": true,
+    "cloudmarks-unknown": true
+  },
+  "Adwaita": {
+    "cloudmarks-cloud": true,
+    "cloudmarks-local": true,
+    "cloudmarks-pin": true,
+    "cloudmarks-transfer": true,
+    "cloudmarks-error": true,
+    "cloudmarks-unknown": true
+  }
+}
