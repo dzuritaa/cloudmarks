@@ -142,6 +142,10 @@ class OfflineController:
                     self.rollback_publication(root, identity, payload)
                 elif payload.get("action") == "evict":
                     self.rollback_eviction(root, identity, payload)
+                elif payload.get("action") == "archive":
+                    from .recovery import rollback_archive
+
+                    rollback_archive(self, root, identity, payload)
                 else:
                     raise IntegrityError("Unknown recovery intent; preserve all data")
                 with self.store.transaction() as connection:

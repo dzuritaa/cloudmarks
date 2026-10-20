@@ -45,6 +45,8 @@ See [M3 controls, real-account evidence, setup and limits](docs/m3-offline-contr
 
 See [M4 change tracking, durable jobs, conflict review and folder intent](docs/m4-change-tracking.md) for the current controls and limits.
 
+The unreleased [M6 hardening workflow](docs/m6-hardening.md) adds explicit conflict archival/export, same-identity retry, larger-file verification and a read-only health report. It prepares a separate supervised trial; physical and user acceptance remain open.
+
 ## Development principles
 
 - Never label a file available offline unless a complete local copy exists.

@@ -1,0 +1,113 @@
+{
+  "milestone": "M6",
+  "version": "0.1.0a2.dev0",
+  "validated_at_utc": "2026-10-20T16:58:39.587208+00:00",
+  "status": "Software hardening and isolated trial passed; supervised physical and user acceptance pending.",
+  "published": false,
+  "schema": 4,
+  "features": [
+    "Measured conflict archives with crash rollback",
+    "Private no-overwrite export",
+    "Same-identity fresh retry",
+    "Explicit large-file full verification with short-lived read-only proof",
+    "Sanitized read-only doctor"
+  ],
+  "unit_tests": {
+    "total": 214,
+    "new_hardening_tests": 24,
+    "resource_warnings_are_errors": true,
+    "python_matrix": {
+      "3.11": {
+        "tests": 214,
+        "passed": true
+      },
+      "3.12": {
+        "tests": 214,
+        "passed": true
+      },
+      "3.13": {
+        "tests": 214,
+        "passed": true
+      },
+      "3.14": {
+        "tests": 214,
+        "passed": true
+      }
+    }
+  },
+  "storage_tests": {
+    "filesystem": "NTFS3 on selected data disk",
+    "hardening_suite": "24 tests passed on NTFS3",
+    "simulated_io_and_database_failures": true,
+    "abrupt_process_death_boundaries": true,
+    "tests": 24,
+    "elapsed_seconds": 173.586,
+    "final_path_disappearance_race_test_passed": true
+  },
+  "real_account": {
+    "result": "account.public.json",
+    "three_conflicts_archived_and_exported": true,
+    "live_identities_retried": 2,
+    "large_file_bytes": 16777216,
+    "server_checksum": "quickXorHash",
+    "offline_mounts": 2,
+    "helper_lookups": 40,
+    "helper_max_seconds": 0.0044,
+    "helper_content_hashing_disabled_during_checks": true
+  },
+  "desktop": {
+    "regression_result": "desktop-regression.json",
+    "account_result": "account-desktop.public.json",
+    "real_account_screenshot": "account-readonly.png",
+    "display_cases": 8,
+    "folder_entries": 2000,
+    "max_main_loop_gap_seconds": 0.1531,
+    "actual_files_large_file_badge": "kept_offline",
+    "adapter_and_ipc_read_only": true
+  },
+  "preservation": {
+    "m3_m4_store_and_database_byte_digests_unchanged": true,
+    "daily_mount_active": true,
+    "host_extension_deployment_absent": true,
+    "personal_use_onedrive_reconnected": false,
+    "trial_mount_and_helper_stopped": true
+  },
+  "packaging": {
+    "status": "passed",
+    "development_version_only": true,
+    "release_0_1_0a1_unchanged": true,
+    "strict_metadata": true,
+    "wheel_and_sdist_inventory": true,
+    "installed_wheel_tests": 214,
+    "source_rebuild_wheel_payload_match": true
+  },
+  "repository": {
+    "required_account": "dzuritaa",
+    "cli_identity_verified": true,
+    "git_transport_identity_verified": true,
+    "work_account_preserved": true,
+    "hosted_ci": "Not run when this local validation snapshot was written; consult the main commit checks."
+  },
+  "remaining_acceptance": [
+    "Physical network loss and restoration",
+    "Disk maintenance/removable-volume disconnect and reconnect",
+    "Full logout and login",
+    "User readability, accessibility and repair-workflow review"
+  ],
+  "physical_disconnect_logout_tested": false,
+  "daily_desktop_changed": false,
+  "notes": [
+    "An early NTFS test assumed proof TTL alone controlled freshness. The assertion was corrected to isolate remote metadata expiry from proof expiry; both expire independently.",
+    "The M6 trial used a new profile and new uniquely owned cloud folder. Production transport remains GET/download only.",
+    "The occupied-name fixture creation guard returned 409 and the existing large file identity/revision/checksum stayed unchanged."
+  ],
+  "privacy_check": "Changed text checked against actual private M3/M4/M6 account, email, disk and profile values; no matches.",
+  "checks": {
+    "ruff_lint": true,
+    "ruff_format": true,
+    "compilation": true,
+    "documentation_links_and_evidence_json": true,
+    "workflow_actionlint": true,
+    "git_diff_whitespace": true
+  }
+}

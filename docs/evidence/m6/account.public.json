@@ -1,0 +1,55 @@
+{
+  "milestone": "M6",
+  "archives_exported_and_verified": 3,
+  "live_conflicts_retried": 2,
+  "unavailable_file_retired_locally": 1,
+  "retained_versions_preserved": true,
+  "remaining_issues": 0,
+  "large_file_bytes": 16777216,
+  "large_file_server_checksum": "quickXorHash",
+  "offline_mount_scenes": [
+    {
+      "explicit_full_hash": true,
+      "bytes_read_sha256_matched": true,
+      "helper_lookups": 20,
+      "helper_max_seconds": 0.0041,
+      "helper_rehashed_content": false,
+      "helper_changed_database": false,
+      "badge": "kept_offline",
+      "write_rejected_EROFS": true
+    },
+    {
+      "explicit_full_hash": false,
+      "bytes_read_sha256_matched": true,
+      "helper_lookups": 20,
+      "helper_max_seconds": 0.0044,
+      "helper_rehashed_content": false,
+      "helper_changed_database": false,
+      "badge": "kept_offline",
+      "write_rejected_EROFS": true
+    }
+  ],
+  "health": {
+    "schema": 4,
+    "storage": "verified",
+    "view": "unmounted",
+    "counts": {
+      "files": 4,
+      "copies": 3,
+      "publications": 0,
+      "jobs": 3,
+      "issues": 0,
+      "archives": 3
+    },
+    "free_bytes": 356934934528,
+    "reserve_satisfied": true,
+    "attention_files": 0,
+    "unfinished_jobs": 0,
+    "ready_for_trial": true
+  },
+  "m3_m4_bytes_unchanged": true,
+  "views_stopped": true,
+  "physical_disconnect_logout_tested": false,
+  "daily_desktop_changed": false,
+  "fixture_creation_refuses_occupied_name": true
+}

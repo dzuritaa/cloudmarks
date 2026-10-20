@@ -3,16 +3,19 @@
 import math
 import time
 
-from .model import FileStatus, IntegrityError, State
+from .model import FileStatus, IntegrityError, State, VerificationRequired
 from .paths import SecureRoot
 
 
 class StatusEngine:
-    def __init__(self, config, store, *, read_path=None, clock=time.time):
+    def __init__(self, config, store, *, read_path=None, verify_copy=None, clock=time.time):
         self.config = config
         self.store = store
         self.read_path = read_path or (lambda remote, copy: False)
         self.clock = clock
+        self.verify_copy = verify_copy or (
+            lambda root, remote, copy: root.verify(copy.object_path, copy.size, copy.sha256)
+        )
 
     def status(self, identity):
         try:
@@ -52,7 +55,7 @@ class StatusEngine:
                     or (remote.sha256 is not None and copy.sha256 != remote.sha256)
                 ):
                     return FileStatus(State.UNKNOWN, "Local snapshot is not the observed remote version")
-                verified_fingerprint = root.verify(copy.object_path, copy.size, copy.sha256)
+                verified_fingerprint = self.verify_copy(root, remote, copy)
                 if not self.read_path(remote, copy):
                     return FileStatus(State.UNKNOWN, "Supported offline open path is not verified")
                 root.revalidate(self.config.volume_id)
@@ -74,6 +77,10 @@ class StatusEngine:
                     State.KEPT_OFFLINE if current["pinned"] else State.SAVED_LOCALLY,
                     "Complete local bytes, revision and offline read path verified",
                 )
+        except VerificationRequired:
+            return FileStatus(
+                State.UNKNOWN, "Verification evidence expired or missing; run offline verify for this file"
+            )
         except IntegrityError:
             return FileStatus(State.ERROR, "Local content changed or failed verification; preserve it")
         except Exception:

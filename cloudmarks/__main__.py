@@ -153,6 +153,11 @@ def main():
             load_config(args.path)
             print("Configuration version 1 is valid; storage and account connectivity were not checked.")
     except KeyboardInterrupt:
+        if args.command == "offline":
+            parser.exit(
+                130,
+                "Offline command interrupted; retained data and any incomplete export remain available.\n",
+            )
         parser.exit(0, "Fixture helper stopped. No mount or desktop process was changed.\n")
     except (CloudMarksError, OSError) as error:
         parser.exit(1, f"CloudMarks: {error}\n")

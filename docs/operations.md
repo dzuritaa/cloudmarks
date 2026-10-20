@@ -1,6 +1,8 @@
 # Install and operate the experimental viewer
 
-CloudMarks 0.1.0a1 is a release candidate for disposable test data. It supports
+CloudMarks 0.1.0a1 is the published experimental prerelease for disposable test data.
+The current checkout develops 0.1.0a2.dev0; see [M6 hardening](m6-hardening.md)
+for new archive/export, verification and health commands. It supports
 read-only offline viewing and explicit CLI controls. It does not edit, upload,
 merge, automatically watch OneDrive, update mounted trees or supply context-menu
 actions. Before daily use, complete the physical reconnect/logout checks in the
@@ -63,7 +65,8 @@ cloudmarks offline --config /private/offline.json init
 ```
 
 For an existing bound store, stop its view and run `recover` instead of `init`.
-The first state writer upgrades schema 1/2 to 3. Back up a consistent store/state/
+The development writer upgrades schemas 1–3 to 4; the published 0.1.0a1 writer
+upgrades schemas 1/2 to 3. Back up a consistent store/state/
 configuration bundle before upgrading; read-only helper startup does not migrate.
 The M4 conflict-test store deliberately contains issues and modified raw files;
 use a clean independent profile for viewing tests.
@@ -199,7 +202,8 @@ new schema: it refuses unknown schemas. There is no automatic schema downgrade.
 If a schema rollback is necessary, restore the whole stopped backup bundle at its
 original bound paths after separately preserving any newer local bytes, pin/job
 intent and conflict candidates. Never restore an old DB over a newer live store.
-No earlier public version is assumed to support schema 3.
+The published 0.1.0a1 supports schema 3, but refuses schema 4. Development
+0.1.0a2.dev0 supports schemas 1–4 for reading and upgrades them to 4 when writing.
 
 ## Uninstall
 
@@ -226,7 +230,7 @@ cloudmarks`. Remove the optional unit file you explicitly installed and run
 | No badges | Check enabled settings, exact visible root, matching loader/API and a fresh Files process. Check helper status/socket ownership; do not restart unrelated mounts. |
 | Unknown after time passes | Remote evidence expired. Unmount; explicitly refresh/resume or rescan the folder. A retained snapshot can still be readable. |
 | Helper absent or hung | Status expires to unknown. Stop only this helper, check the disk, restart it. Browsing never triggers transfers. |
-| Unsupported state schema | Use the matching/newer CLI; run recover unmounted for schema 1/2. Do not edit the schema version or downgrade the DB manually. |
+| Unsupported state schema | Use the matching/newer CLI; run matching recover unmounted to migrate supported older schemas. Do not edit the schema version or downgrade the DB manually. |
 | Writer already active | Stop/wait for that CloudMarks control process. Do not delete the lock to bypass a live writer. |
 | Mount refuses online start | A retained revision/path/checksum changed. Inspect jobs/conflicts, preserve versions and update or review explicitly. |
 | Disk absent/wrong marker/binding | Reconnect the expected filesystem at its original mountpoint; verify UUID/device/marker. Do not initialize over existing data or manufacture a new binding. |

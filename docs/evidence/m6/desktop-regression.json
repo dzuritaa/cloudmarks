@@ -1,0 +1,35 @@
+{
+  "fixture_only": true,
+  "folder_size": 2000,
+  "cases": [
+    "icon-small-light",
+    "icon-small-dark",
+    "icon-large-light",
+    "icon-large-dark",
+    "list-small-light",
+    "list-small-dark",
+    "list-large-light",
+    "list-large-dark"
+  ],
+  "uninstall_before_first_enable": true,
+  "initial_states": {
+    "01-cloud.txt": "cloud_only",
+    "02-local.txt": "saved_locally",
+    "03-pinned.txt": "kept_offline",
+    "04-transfer.txt": "transferring",
+    "05-error.txt": "error",
+    "06-unknown.txt": "unknown",
+    "07-refresh.txt": "saved_locally"
+  },
+  "hung_helper_recovers_without_navigation": true,
+  "live_transition_without_navigation": true,
+  "helper_loss_clears_green": true,
+  "disable_clears_loaded_extension": true,
+  "large_folder": {
+    "observed_entries": 2000,
+    "max_main_loop_gap_seconds": 0.1531,
+    "over_capacity_policy": "unknown; at most 512 tracked"
+  },
+  "unrelated_unbadged": true,
+  "uninstall_restores_baseline": true
+}

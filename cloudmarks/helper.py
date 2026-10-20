@@ -1,6 +1,7 @@
 """Single-owner local status service. IPC exposes no transfer or state writes."""
 
 import fcntl
+import json
 import os
 import socket
 import stat
@@ -18,6 +19,8 @@ MAX_VERIFY_BYTES = 8 * 1024 * 1024
 
 
 class StatusService:
+    supports_large_files = False
+
     def __init__(self, settings, store):
         self.settings, self.store = settings, store
         self.config = store.config
@@ -52,7 +55,7 @@ class StatusService:
         remote = self.store.remote(identity)
         if remote.relative_path != path:
             return result
-        if remote.size > MAX_VERIFY_BYTES:
+        if remote.size > MAX_VERIFY_BYTES and not self.supports_large_files:
             result["reason"] = "Prototype verification size limit; needs checking"
             return result
         status = self.engine.status(identity)
@@ -189,20 +192,40 @@ def run(settings):
 class OfflineStatusService(StatusService):
     """Read-only account status: no transport construction or credential reads."""
 
+    supports_large_files = True
+
     def __init__(self, settings, store, offline):
-        from .view import prove_view
+        from .verification import status_engine
 
         self.settings, self.store, self.config = settings, store, store.config
         if settings["visible_root"] != offline["visible_root"]:
             raise ConfigurationError("Desktop and offline view roots disagree")
-        self.engine = StatusEngine(
-            store.config,
-            store,
-            read_path=lambda remote, copy: prove_view(store.config, offline, remote, copy),
-        )
+        self.engine = status_engine(store.config, store, offline)
 
     def lookup(self, path):
         result = super().lookup(path)
+        if result["state"] in ("kept_offline", "saved_locally"):
+            # The status lease must not outlive explicit large-file proof.
+            row = self.store.connection.execute(
+                "SELECT item_id,size FROM files WHERE drive_id=? AND path_key=?",
+                (self.config.expected_drive_id, self.config.path_key(path)),
+            ).fetchone()
+            if row and row["size"] > MAX_VERIFY_BYTES:
+                from .verification import PROOF_SECONDS
+
+                proof = self.store.connection.execute(
+                    "SELECT payload FROM verifications WHERE drive_id=? AND item_id=?",
+                    (self.config.expected_drive_id, row["item_id"]),
+                ).fetchone()
+                remaining = (
+                    0
+                    if proof is None
+                    else PROOF_SECONDS - (time.time() - json.loads(proof[0])["verified_at"])
+                )
+                if remaining <= 0:
+                    result.update(state="unknown", reason="Verification evidence expired; run offline verify")
+                else:
+                    result["valid_for_ms"] = max(1, min(result["valid_for_ms"], int(remaining * 1000)))
         if result["state"] == "transferring":
             # An interrupted writer cannot remain active merely because the
             # display helper deliberately never writes recovery state.

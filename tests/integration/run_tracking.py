@@ -73,7 +73,10 @@ class DisposableCloud:
         for name in ("update.txt", "conflict.txt", "delete.txt"):
             value = self.request(
                 "PUT",
-                self.item_route(self.folder) + ":/" + name + ":/content",
+                self.item_route(self.folder)
+                + ":/"
+                + name
+                + ":/content?@microsoft.graph.conflictBehavior=fail",
                 ("M4 original " + name + "\n").encode() * 100,
                 binary=True,
             )

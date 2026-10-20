@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Real M3 status through the unchanged read-only M2 adapter, in isolated Files.
 
-Requires explicit private M3 config and one existing disposable root-level file.
+Requires explicit private M3 config and one existing disposable file.
 Keeps that file using the CLI/controller, mounts a no-network offline view, and
 mirrors it read-only into the desktop sandbox. Never writes/deletes cloud data.
 """
@@ -33,6 +33,7 @@ def inside(args):
 
     work = args.work
     alias = work / "CloudMarks read-only test"
+    scene_directory = alias / json.loads((work / "scene.json").read_text())["directory"]
     install.install(work / "mirror-settings.json")
     install.set_enabled(True)
     _, _, _, launcher, _ = install.inventory()
@@ -56,7 +57,7 @@ def inside(args):
     }
     with (work / "nautilus.stderr").open("w") as stderr:
         app = subprocess.Popen(
-            ["nautilus", "--new-window", str(alias)], env=env, stdout=stderr, stderr=stderr
+            ["nautilus", "--new-window", str(scene_directory)], env=env, stdout=stderr, stderr=stderr
         )
         try:
             deadline = time.monotonic() + 10
@@ -73,7 +74,7 @@ def inside(args):
             time.sleep(0.3)
             windows = subprocess.check_output(["xwininfo", "-root", "-tree"], text=True)
             for line in windows.splitlines():
-                if '"CloudMarks read-only test"' in line:
+                if json.dumps(scene_directory.name) in line:
                     match = re.search(r"(\d+)x(\d+)\+(-?\d+)\+(-?\d+)", line)
                     if match:
                         width, height, x, y = map(int, match.groups())
@@ -140,8 +141,7 @@ def main():
     from cloudmarks.state import ReadStore, StateStore
     from cloudmarks.view import mount
 
-    if len(relative_parts(args.path)) != 1:
-        raise SystemExit("This desktop scene requires a root-level disposable file")
+    relative_parts(args.path)
     work = Path(remaining[remaining.index("--work") + 1]).absolute()
     work.mkdir(mode=0o700)
     runtime = work / "host-runtime"
@@ -162,7 +162,10 @@ def main():
     }
     mirror = dict(actual, visible_root=str(alias))
     write_new(work / "mirror-settings.json", json_bytes(mirror))
-    write_new(work / "scene.json", json_bytes({"name": args.path}))
+    write_new(
+        work / "scene.json",
+        json_bytes({"name": Path(args.path).name, "directory": str(Path(args.path).parent)}),
+    )
     stop = threading.Event()
     ready_mount = threading.Event()
     ready_helper = threading.Event()
@@ -204,6 +207,10 @@ def main():
     try:
         threads[0].start()
         assert ready_mount.wait(20) and not errors
+        from cloudmarks.verification import verify
+
+        with StateStore(config) as store:
+            verify(OfflineController(config, store, None, settings), args.path)
         threads[1].start()
         assert ready_helper.wait(5) and not errors
         subprocess.run = bind_view

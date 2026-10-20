@@ -35,3 +35,28 @@ The conflicted snapshots and remaining cloud fixtures are deliberately retained
 for review. The result JSON is sanitized; the companion fixture record and
 configuration stay private. It does not simulate full logout or physically unplug
 the data disk/network, and it does not install anything in the daily desktop.
+
+## M6 archive and larger-file trial
+
+Create a separate M6 profile and run `run_tracking.py` there first; do not use a
+historical M3/M4 store. `run_hardening.py --config /private/offline.json --result
+/private/result.json` requires that new `.cloudmarks-m6-*` profile, its owned
+fixture record and private `baseline.private.json` mapping original-store file
+paths to SHA-256 digests. The runner deliberately refuses unrelated profiles.
+
+It archives/exports all three recorded conflicts, checks every exported checksum,
+queues the two live identities and retires the unavailable file locally. The
+only additional cloud mutation is a new 16 MiB `large.bin` in the prerequisite's
+owned folder. It validates scoped identity/ancestry and the server checksum,
+checks two offline mounts, read-only enforcement and 40 helper lookups with byte
+hashing disabled. It confirms helper DB bytes and the original profile baselines
+are unchanged. Archives, exports, cloud fixtures and the clean trial store remain
+available for review. The result is sanitized; logs/config/receipts remain private.
+
+See [M6 hardening](../../docs/m6-hardening.md) for reproduction, private handoff
+and the remaining supervised physical/user acceptance checks. The test-only
+writer is never imported by the production CLI or helper.
+
+Fixture-creation PUTs request `@microsoft.graph.conflictBehavior=fail` in the URL
+to refuse an unexpected occupant, following the [Graph driveItem instance attribute
+contract](https://learn.microsoft.com/en-us/graph/api/resources/driveitem?view=graph-rest-1.0#instance-attributes).

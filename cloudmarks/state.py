@@ -13,7 +13,7 @@ from urllib.parse import quote
 from .model import ConfigurationError, LocalCopy, RemoteFile, ScopeError, StorageError
 from .paths import open_absolute_directory
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 class StateStore:
@@ -71,7 +71,7 @@ class StateStore:
             self.connection.execute("PRAGMA synchronous=FULL")
             self.connection.execute("PRAGMA journal_mode=DELETE")
             version = self.connection.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1, 2, SCHEMA_VERSION):
+            if version not in (0, 1, 2, 3, SCHEMA_VERSION):
                 raise ConfigurationError("Unsupported state schema; explicit migration is required")
             if version == 0:
                 self._create_schema()
@@ -143,6 +143,19 @@ class StateStore:
                         size INTEGER NOT NULL, sha256 TEXT NOT NULL, created_at REAL NOT NULL
                     );
                     PRAGMA user_version=3;
+                    COMMIT;
+                """)
+            if version in (0, 1, 2, 3):
+                self.connection.executescript("""
+                    BEGIN IMMEDIATE;
+                    CREATE TABLE IF NOT EXISTS archives (
+                        archive_id TEXT PRIMARY KEY, payload TEXT NOT NULL
+                    );
+                    CREATE TABLE IF NOT EXISTS verifications (
+                        drive_id TEXT NOT NULL, item_id TEXT NOT NULL, payload TEXT NOT NULL,
+                        PRIMARY KEY(drive_id,item_id)
+                    );
+                    PRAGMA user_version=4;
                     COMMIT;
                 """)
             # A durable job is retried explicitly, never from the display helper.
@@ -436,7 +449,7 @@ class ReadStore(StateStore):
                 timeout=0.1,
             )
             self.connection.row_factory = sqlite3.Row
-            if self.connection.execute("PRAGMA user_version").fetchone()[0] not in (1, 2, SCHEMA_VERSION):
+            if self.connection.execute("PRAGMA user_version").fetchone()[0] not in (1, 2, 3, SCHEMA_VERSION):
                 raise ConfigurationError("Unsupported read-only state schema")
             binding = self.connection.execute(
                 "SELECT drive_id,root_id,volume_id,storage_root,case_sensitive FROM binding"

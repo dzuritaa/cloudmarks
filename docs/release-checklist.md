@@ -64,8 +64,12 @@ These remain open even if an experimental prerelease is published:
 - [ ] Physically lose/restore network access during a disposable download/read.
 - [ ] Disconnect/reconnect the actual content disk and verify expected UUID, marker and binding.
 - [ ] Full logout/login, optional helper lifecycle and deliberate view restart.
-- [ ] Larger real-file and accessibility/readability review at the user's normal settings.
-- [ ] A reviewed repair workflow for conflicts; currently preserve/report/block.
+- [x] M6 development: 16 MiB real-file server checksum, two offline mounts and bounded read-only helper checks. This is not part of the immutable 0.1.0a1 assets.
+- [x] M6 development: explicit archive/export and same-identity conflict retry, including interruption recovery tests.
+- [ ] Accessibility/readability and repair-workflow review with the user at their normal settings.
+
+The [M6 trial guide](m6-hardening.md) records the development workflow and keeps
+physical/user acceptance separate from software checks.
 
 Save work and backups before tests that interrupt the desktop or storage. Do not
 simulate these by unplugging an active disk/session autonomously. No daily mount

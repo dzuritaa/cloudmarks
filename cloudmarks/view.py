@@ -25,7 +25,7 @@ def device_name(config):
     return "cloudmarks-" + hashlib.sha256(config.volume_id.encode()).hexdigest()[:24]
 
 
-def prove_view(config, settings, remote, copy):
+def attest_view(config, settings):
     check_volume(config, settings)
     record = read_private_json(config.state_path.parent / "view.json")
     current = mounted_view(settings)
@@ -38,6 +38,12 @@ def prove_view(config, settings, remote, copy):
         or record.get("storage") != str(config.storage_root)
         or record.get("volume") != config.volume_id
     ):
+        return False
+    return True
+
+
+def prove_view(config, settings, remote, copy):
+    if not attest_view(config, settings):
         return False
     # Verify the durable local winner. Do not open a union/cloud path from a
     # badge request: even a read could hydrate data if the local winner vanished.

@@ -230,3 +230,37 @@ the original daily test mount remains intact, and no daily extension/service was
 enabled. Physical reconnect/logout, larger-file/readability/accessibility and a
 reviewed conflict-repair workflow remain acceptance work before daily use. M5's
 experimental release is delivered; it does not close those operational gates.
+
+## M6 — hardening and isolated supervised-trial preparation
+
+Development version 0.1.0a2.dev0 adds measured conflict archives, private
+no-overwrite export, optional same-identity fresh retry, explicit large-file
+verification and sanitized read-only health inspection. Schema 4 adds archive
+receipts and short-lived verification proof. Read-only startup accepts schemas
+1–4 without migration; writers upgrade supported old schemas transactionally.
+Published 0.1.0a1 assets are unchanged and its writer refuses schema 4.
+
+The new 24-test hardening matrix covers modified/missing/corrupt versions,
+rename/path collision, cancellation, symlink refusal, SQL failure, abrupt death
+before/after commit, private export, proof expiry/tampering and read-only CLI
+behavior. The full suite is 214 tests, passing locally on Python 3.11–3.14.
+Native isolated Files passed all eight display cases and the 2,000-entry case
+(maximum main-loop gap 0.1531 s). A real dedicated-account 16 MiB fixture displayed
+Kept offline through the unchanged read-only adapter.
+
+A new independent M6 profile recreated three conflicts, archived/exported and
+checked every retained version, retried two live identities and retired the
+unavailable entry locally. Two no-network offline mounts read the 16 MiB file
+with matching checksums and rejected writes with EROFS. Forty helper checks with
+byte hashing disabled took at most 0.0044 s and left database bytes unchanged.
+M3/M4 database/content digests still match their pre-trial baselines. No daily
+extension/service was installed; the daily test mount stayed active. All M6
+views/helpers stopped normally. Private config, receipts and logs remain outside
+Git; the private M6 handoff is under ~/.config/cloudmarks-test/m6-work.json.
+
+See [M6 workflow and supervised checklist](m6-hardening.md) and its
+[sanitized evidence](evidence/m6/validation.json). Physical network/disk loss,
+full logout/login and the user's readability/accessibility/repair review remain
+open. The selected disk holds the repository and other data, so unplug testing
+requires a maintenance window or a separate removable trial volume. M6 prepares
+this session without interrupting active storage or desktop work.

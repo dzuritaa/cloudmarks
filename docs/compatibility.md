@@ -1,6 +1,6 @@
 # Compatibility and validation boundaries
 
-The initial candidate is `0.1.0a1`. This is an experimental disposable-data viewer,
+The published initial prerelease is `0.1.0a1`; the checkout develops `0.1.0a2.dev0`. This is an experimental disposable-data viewer,
 not a production replacement for Windows Files On-Demand. MIT licensing and publication
 status are tracked in the [release checklist](release-checklist.md).
 
@@ -22,17 +22,20 @@ CI uses Ubuntu 24.04 for credential-free Python core/packaging only. The native
 adapter needs matching system GI packages; a successful CLI wheel install does
 not supply them.
 
-Content verification costs are bounded in the display helper: files over 8 MiB
-show unknown; folder aggregates require their own complete fresh manifest and at
+Content verification costs are bounded in the display helper. In 0.1.0a1, files
+over 8 MiB show unknown. M6 development adds explicit full hashing and short-lived
+fingerprint evidence for larger account files; see [the workflow](m6-hardening.md).
+Folder aggregates require their own complete fresh manifest and at
 most 64 files / 8 MiB. Recursive intent is limited to 128 entries including the
-folder. Larger real-file operational tests remain open. An offline view contains
+folder. M6 larger-file operational results are recorded separately. An offline view contains
 retained local content, not every cloud placeholder; empty directory publication
 is absent. Metadata freshness expires even while a snapshot remains readable.
 
 Online mount preflight supports 1–128 retained files and checks them explicitly.
 All local content controls require that experimental view unmounted. There is no
 hot update/eviction, automatic watcher, upload, edit or merge support. Conflict
-handling preserves and blocks; repair needs a separately reviewed workflow.
+handling preserves and blocks; development M6 adds explicit archive/export and
+same-identity retry, with no merge or cloud writes.
 
 [M3 evidence](evidence/m3/validation.json), [M4 evidence](evidence/m4/validation.json)
 and [M5 release validation](evidence/m5/validation.json) state their exact scope.

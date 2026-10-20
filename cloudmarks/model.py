@@ -26,6 +26,10 @@ class IntegrityError(CloudMarksError):
     pass
 
 
+class VerificationRequired(CloudMarksError):
+    pass
+
+
 def text(value, name):
     if not isinstance(value, str) or not value or value != value.strip() or len(value) > 1024:
         raise ConfigurationError(f"{name} must be nonempty, bounded text without surrounding whitespace")

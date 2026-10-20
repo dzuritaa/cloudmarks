@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.0a2.dev0 — unreleased
+
+- Explicit conflict retirement archives measured local/original/remote versions;
+  optional same-identity retry and private no-overwrite export preserve recovery.
+- Explicit full verification gives larger files short-lived read-only helper
+  evidence, avoiding repeated byte hashing in status requests.
+- Read-only sanitized health reports, schema 4 migration and an isolated M6 trial
+  extend operational coverage. Physical reconnect/logout and user UI acceptance
+  remain pending; the published 0.1.0a1 release is unchanged.
+
 ## 0.1.0a1 — 2026-10-20 — experimental prerelease
 
 Initial experimental read-only offline viewer for a scoped dedicated OneDrive
