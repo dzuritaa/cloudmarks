@@ -2,6 +2,18 @@
 
 Status: proposed implementation plan; no extension or transfer helper is installed.
 
+## Validation account setup
+
+Account isolation is configured and the dedicated test OneDrive mount is active. All CloudMarks cloud validation and integration tests will use the user's separate Microsoft test account, initially empty and reserved for disposable test data.
+
+- The test account email and verified drive identifier are stored in private local configuration, outside this public repository.
+- The personal account has been disconnected from Ubuntu's OneDrive mounts and Online Accounts; its saved local connection credentials were removed without deleting cloud files.
+- Test credentials, mount, cache, and service configuration are separate from the retired personal connection. The test mount checks its configured drive identity and rejects the recorded personal drive identifier.
+- The test mount currently uses files on demand with a writes cache. It does not download the whole account or provide the project's planned permanent offline controls.
+- Cloud tests must use disposable files in the allowed test area. The helper's test-root enforcement and the CloudMarks extension remain implementation work; an active mount is not evidence those milestones are complete.
+
+Do not reconnect the personal account for project validation. Any later account switch requires an explicit configuration change and renewed identity verification.
+
 ## Outcome
 
 In GNOME Files, show whether a OneDrive file is cloud-only, saved locally, transferring, or in an error state. Eventually offer **Keep offline** and **Free up local space** without confusing removal of a local copy with deletion from OneDrive.

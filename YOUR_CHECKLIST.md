@@ -1,11 +1,19 @@
 # What you need to do
 
+## Current account setup
+
+The separate Microsoft test account is now authenticated, its drive identity is verified, and its test mount is active. The account email and drive identifier are kept in private local configuration rather than this public checklist.
+
+Your personal OneDrive account is disconnected from Ubuntu. Use only the test account and disposable files for CloudMarks validation. No additional sign-in is needed unless the test connection expires or is deliberately reset.
+
+The test folder uses files on demand; it is not downloading the whole account. This account setup does not install CloudMarks or complete its offline-storage milestones.
+
 ## Right now
 
 Nothing needs to be installed to begin development. The first work uses fake files and a test backend. Keep using your existing OneDrive connection normally.
 
 - Read [the plan](PLAN.md), especially the offline-storage feasibility gate. The existing mount streams content; a badge alone cannot create Windows-style offline behavior.
-- Make sure you can sign in to the separate, otherwise empty Microsoft account. When cloud integration is ready, sign in yourself through Microsoft's browser page, selecting the test account explicitly. Passwords, tokens, and recovery codes must not be sent in chat or committed to Git.
+- Keep access to the connected test Microsoft account. If reauthentication is required later, sign in yourself through Microsoft's browser page and select that test account explicitly. Passwords, tokens, and recovery codes must not be sent in chat or committed to Git.
 - Have a few disposable documents or pictures available for later testing. A test folder will be configured inside that separate account; do not provide important files or shared folders from your personal account as test data.
 
 ## Before testing the extension on your desktop
