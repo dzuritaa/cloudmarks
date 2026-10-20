@@ -2,7 +2,7 @@
   "date": "2026-10-20",
   "milestone": "M5",
   "version": "0.1.0a1",
-  "status": "Prepublication snapshot: MIT-licensed candidate locally validated; hosted exact-source results and publication recorded separately after completion",
+  "status": "MIT-licensed candidate committed and locally validated; GitHub rejected source push because OAuth credential lacks workflow scope; hosted CI/publication blocked",
   "license_selected": true,
   "license_file_present": true,
   "repository_access": {
@@ -12,7 +12,13 @@
     "tag_created": false,
     "git_transport_dry_run_passed": true,
     "git_ref_created_by_dry_run": false,
-    "note": "API reports pull=true/push=false; Git transport passed dry-run. Actual source/workflow push and release publication remain untested."
+    "note": "Git dry-run passed but did not prove workflow-file authorization. Actual main ref update was rejected; no remote branch/tag/release was created.",
+    "local_source_commit": "e167f04",
+    "source_committed_locally": true,
+    "source_pushed": false,
+    "actual_push_attempted": true,
+    "actual_push_succeeded": false,
+    "push_rejection": "OAuth App lacks workflow scope required to create/update .github/workflows/ci.yml"
   },
   "hosted_ci_executed": false,
   "draft_release_created": false,
@@ -52,7 +58,8 @@
       "python": "3.11.16",
       "seconds": 4.677,
       "checkout_imports_excluded": true,
-      "final_rebuild_repeat_seconds": 4.789
+      "final_rebuild_repeat_seconds": 4.789,
+      "licensed_candidate_seconds": 4.976
     },
     "sdist_rebuild_same_wheel_payload": true,
     "sha256sums_generated": true,
@@ -100,13 +107,15 @@
     "no_system_package_install": true,
     "no_daily_files_restart": true,
     "no_new_cloud_mutations": true,
-    "no_commit_push_tag_or_publication": true
+    "no_commit_push_tag_or_publication": false,
+    "no_remote_source_push_tag_or_publication": true,
+    "no_daily_deployment_or_cloud_changes": true
   },
   "remaining_release_gates": [
-    "Review/commit/push actual implementation and M5 files (remote HEAD currently tracks only historical docs)",
-    "Hosted CI for exact source/tag",
-    "Owner draft prerelease review/publication",
-    "Verify actual Git source/workflow push and release-publication route; API and Git transport credentials differ"
+    "Reauthorize the GitHub connection with permission to write repository workflows (workflow scope); never send credentials in chat",
+    "Push the reviewed local source commits including the CI files",
+    "Hosted CI for the exact source/version tag",
+    "Publish experimental prerelease using the deliberate matching version tag after validation"
   ],
   "remaining_daily_use_acceptance": [
     "Physical network loss/reconnection",

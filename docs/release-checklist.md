@@ -15,16 +15,23 @@ physical acceptance into a production-safety claim.
 - [x] Optional status-only helper unit template; no automatic view/download service.
 - [x] MIT selected by the owner and applied to LICENSE plus SPDX package metadata.
 - [x] Candidate checks and validation record finalized (licensed local candidate validation).
-- [ ] Source changes reviewed, committed and pushed to the intended repository.
+- [x] Licensed source reviewed and committed locally.
+- [ ] Source commits pushed to the intended repository.
 - [ ] Hosted CI succeeds for that exact committed/tagged source.
 - [ ] The deliberate release tag publishes validated assets/notes/checksums as an experimental prerelease.
 
-The owner selected MIT. LICENSE and SPDX package metadata now agree. `check_dist.py --release` and the manual release workflow
-refuse an unlicensed candidate. The current GitHub API identity reports pull=true/push=false. Separately, Git
-transport passed a push dry-run; no ref was created. Actual source/workflow push
-and API/manual release operations have not been attempted. Do not assume those
-interfaces share credentials or permissions; verify the intended publication
-route before publishing. No credentials belong in chat.
+The owner selected MIT. LICENSE and SPDX package metadata now agree, and the
+licensed distributions pass the release gate. The implementation and CI files
+are committed locally. The actual push was rejected by GitHub:
+
+> refusing to allow an OAuth App to create or update workflow without workflow scope
+
+The earlier Git dry-run succeeded but did not verify authorization for workflow
+changes. The current credential must be reauthorized with repository workflow
+write permission (`workflow` scope) before pushing these commits. Do that through
+the local GitHub connection/authentication flow; never send tokens in chat.
+No remote branch, tag, hosted CI run or release was created. Removing CI files to
+bypass this authorization check is not the release procedure.
 
 ## Prepare and publish after the gates
 

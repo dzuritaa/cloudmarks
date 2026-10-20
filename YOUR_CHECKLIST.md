@@ -124,10 +124,11 @@ The `0.1.0a1` candidate now has CI, package checks, compatibility information an
 status-helper service is only a template; it was not installed or enabled. M2
 remains read-only and your working mount is preserved.
 
-The owner selected MIT; LICENSE and package metadata now match. The GitHub API
-connection reports read access without push permission, while
-Git transport passed a push dry-run. Actual source/workflow push and publication
-are still untested; verify the intended owner publication route before publishing. Do not send passwords or tokens in chat. Review
-[the release gates](docs/release-checklist.md) and candidate notes before a tag or
-public prerelease is created. Physical reconnect/logout and daily-use acceptance
+The owner selected MIT; LICENSE and package metadata now match, and the licensed
+source is committed locally. GitHub rejected the actual push because the OAuth
+credential lacks `workflow` scope for the CI files. Reauthorize the local GitHub
+connection with permission to write workflows; do not send tokens in chat. Then
+push the prepared commits and complete the hosted/tagged checks in the
+[release checklist](docs/release-checklist.md). No remote release was created.
+Physical reconnect/logout and daily-use acceptance
 are still pending; they were not replaced by package/CI checks.

@@ -179,8 +179,9 @@ Implemented for the read-only viewing scope at the user’s request: see [M4 beh
 Candidate `0.1.0a1` now includes credential-free CI, package/rebuild checks,
 compatibility and operating/upgrade/recovery guides, optional status-helper unit
 and a tag-only experimental-prerelease workflow. See [M5 gates](docs/release-checklist.md)
-and [validation](docs/evidence/m5/validation.json). MIT is selected and applied; the current GitHub API reports no push permission, while Git transport passed a dry-run; actual push/publication is untested. No commit, tag,
-hosted CI run or public release is claimed. Physical daily-use acceptance remains
+and [validation](docs/evidence/m5/validation.json). MIT is selected and applied; the current GitHub API reports no push permission, while Git transport passed a dry-run; actual push/publication is untested. The licensed source is committed locally; GitHub rejected its push because the
+OAuth credential lacks workflow scope. No remote tag, hosted CI run or public
+release exists. Physical daily-use acceptance remains
 separate from experimental packaging.
 
 - Document supported Ubuntu/Nautilus/rclone versions and tested filesystems.

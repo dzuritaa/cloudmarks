@@ -170,3 +170,18 @@ tracks only historical docs, so publishing a tag at that HEAD would omit the
 implementation. A release must include the reviewed implementation and M5 files.
 See [M5 validation](evidence/m5/validation.json) for local run results and the
 remaining gates. No real account/daily desktop was altered for M5.
+
+
+## MIT decision and concrete publication blocker
+
+The owner selected MIT. LICENSE and SPDX metadata are applied. The licensed
+candidate passed all 190 local tests, installed-wheel tests, strict package
+metadata and the release-content gate. Commit e167f04 contains the complete
+implementation and CI/release files. A normal push of main was rejected by GitHub
+because the OAuth credential lacks workflow scope for .github/workflows/ci.yml.
+The earlier successful dry-run did not establish workflow write authorization.
+No remote ref/tag/release was created and no hosted CI ran. Reauthorize the local
+GitHub connection with workflow write permission, then push the existing commits;
+do not strip the workflows to bypass the permission requirement. M3/M4 stores,
+the daily mount and desktop were not changed. The release checklist and M5 record
+now capture this actual failure rather than treating publication as complete.
