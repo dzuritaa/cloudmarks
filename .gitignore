@@ -1,0 +1,28 @@
+# Python and development environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build outputs
+build/
+dist/
+*.egg-info/
+
+# Local credentials, state, and user data
+.env
+.env.*
+!.env.example
+secrets/
+credentials/
+rclone.conf
+refresh_token
+*.sqlite3
+*.sqlite3-*
+*.log
+.cache/
+.local/
