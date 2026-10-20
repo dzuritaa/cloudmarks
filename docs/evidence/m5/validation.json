@@ -2,31 +2,34 @@
   "date": "2026-10-20",
   "milestone": "M5",
   "version": "0.1.0a1",
-  "status": "MIT-licensed candidate committed and locally validated; GitHub rejected source push because OAuth credential lacks workflow scope; hosted CI/publication blocked",
+  "status": "MIT-licensed source pushed to main; hosted Python/package CI passed; experimental version-tag publication pending",
   "license_selected": true,
   "license_file_present": true,
   "repository_access": {
     "pull": true,
     "push": true,
-    "source_committed_or_pushed": false,
+    "source_committed_or_pushed": true,
     "tag_created": false,
     "git_transport_dry_run_passed": true,
     "git_ref_created_by_dry_run": false,
-    "note": "The CLI had been globally active on the work account for read-only API queries; it is now verified as dzuritaa. Git credentials and the two release-preparation commit authors were already personal. The personal OAuth credential still lacks workflow scope; no remote ref/tag/release was created.",
+    "note": "Personal-account workflow reauthorization completed. CLI and Git identities verified dzuritaa; workflow scope verified. Main push and hosted CI succeeded.",
     "local_source_commit": "e167f04",
     "source_committed_locally": true,
-    "source_pushed": false,
+    "source_pushed": true,
     "actual_push_attempted": true,
-    "actual_push_succeeded": false,
-    "push_rejection": "OAuth App lacks workflow scope required to create/update .github/workflows/ci.yml",
+    "actual_push_succeeded": true,
     "personal_identity_verified": "dzuritaa",
     "git_credential_identity_verified": "dzuritaa",
     "local_commits_personal_noreply_verified": true,
     "cli_switched_to_personal": true,
     "work_login_preserved": true,
-    "admin": true
+    "admin": true,
+    "workflow_scope_verified": true,
+    "reauthorized_personal_account": "dzuritaa",
+    "personal_push_confirmed": true,
+    "previous_push_rejection": "OAuth App lacks workflow scope required to create/update .github/workflows/ci.yml"
   },
-  "hosted_ci_executed": false,
+  "hosted_ci_executed": true,
   "draft_release_created": false,
   "published": false,
   "automated": {
@@ -114,14 +117,12 @@
     "no_daily_files_restart": true,
     "no_new_cloud_mutations": true,
     "no_commit_push_tag_or_publication": false,
-    "no_remote_source_push_tag_or_publication": true,
+    "no_remote_source_push_tag_or_publication": false,
     "no_daily_deployment_or_cloud_changes": true
   },
   "remaining_release_gates": [
-    "Reauthorize the GitHub connection with permission to write repository workflows (workflow scope); never send credentials in chat",
-    "Push the reviewed local source commits including the CI files",
-    "Hosted CI for the exact source/version tag",
-    "Publish experimental prerelease using the deliberate matching version tag after validation"
+    "Push deliberate matching v0.1.0a1 tag after updated release handoff passes CI",
+    "Tag pipeline validates exact source and publishes experimental prerelease"
   ],
   "remaining_daily_use_acceptance": [
     "Physical network loss/reconnection",
@@ -187,5 +188,19 @@
     "tests/test_release.py": "d442ab2246a51b19b8ee07cc59f9ed883a3a5c97852ccb9d1ec674c6166d56a1",
     "tests/test_tracking.py": "5ee0ab36604051755ec1e335f3587bc05e5478e98147dd7087c3fb503e4ce4cf"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "hosted_ci": {
+    "run_id": 39450706558,
+    "url": "https://github.com/dzuritaa/cloudmarks/actions/runs/39450706558",
+    "head_sha": "cfaaf18f3b51f5857e9946beff321bf6025cb399",
+    "conclusion": "success",
+    "jobs": [
+      "tests (3.11)",
+      "tests (3.12)",
+      "tests (3.13)",
+      "tests (3.14)",
+      "package"
+    ],
+    "scope": "Hosted main baseline; tag publication workflow revalidates the exact tagged revision."
+  }
 }

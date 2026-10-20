@@ -16,23 +16,16 @@ physical acceptance into a production-safety claim.
 - [x] MIT selected by the owner and applied to LICENSE plus SPDX package metadata.
 - [x] Candidate checks and validation record finalized (licensed local candidate validation).
 - [x] Licensed source reviewed and committed locally.
-- [ ] Source commits pushed to the intended repository.
-- [ ] Hosted CI succeeds for that exact committed/tagged source.
+- [x] Source commits pushed to personal repository dzuritaa/cloudmarks main.
+- [x] Hosted main CI passes; tag workflow revalidates the exact tagged source.
 - [ ] The deliberate release tag publishes validated assets/notes/checksums as an experimental prerelease.
 
-The owner selected MIT. LICENSE and SPDX package metadata now agree, and the
-licensed distributions pass the release gate. The implementation and CI files
-are committed locally. The actual push was rejected by GitHub:
-
-> refusing to allow an OAuth App to create or update workflow without workflow scope
-
-The earlier Git dry-run succeeded but did not verify authorization for workflow
-changes. The GitHub CLI is now verified as personal account dzuritaa; Git credentials
-and commit authors were already personal. The personal credential must be
-reauthorized with repository workflow write permission (`workflow` scope) before pushing these commits. Do that through
-the local GitHub connection/authentication flow; never send tokens in chat.
-No remote branch, tag, hosted CI run or release was created. Removing CI files to
-bypass this authorization check is not the release procedure.
+MIT is applied to LICENSE and SPDX package metadata. Both CLI and Git
+credentials were verified as personal account dzuritaa. Personal-account workflow
+reauthorization resolved the earlier scope rejection. Main is pushed and
+[hosted Python 3.11–3.14/package CI passed](https://github.com/dzuritaa/cloudmarks/actions/runs/39450706558).
+The deliberate version tag and experimental prerelease remain the final release
+steps. Physical operational acceptance remains separate and open.
 
 ## Prepare and publish after the gates
 

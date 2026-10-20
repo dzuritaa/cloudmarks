@@ -5,8 +5,8 @@ experimental individual-file controls are implemented. M2 remains read-only;
 M3 actions are separate explicit CLI commands. Nothing is installed in the daily
 desktop. M4 now adds explicit read-only change checks, durable download jobs, conflict
 snapshots and bounded recursive intent. M5 now prepares the 0.1.0a1 candidate, CI, package checks and operating guides.
-Hosted CI/publication and physical
-reconnect/logout acceptance remain open.
+Personal-account main push and hosted CI now pass; prerelease publication and
+physical reconnect/logout acceptance remain open.
 
 ## Start here
 
@@ -198,3 +198,15 @@ personal GitHub noreply author email. No work repository was changed. The work
 account's saved login remains intact. AGENTS.md now records the required account
 and verification rule. The outstanding workflow-scope rejection belongs to the
 personal OAuth credential; do not reauthorize or broaden the work credential.
+
+
+## Personal main push and hosted CI
+
+Personal-account workflow reauthorization completed. CLI and Git credential
+identity checks both returned dzuritaa, with workflow scope present. Main pushed
+successfully to dzuritaa/cloudmarks. Hosted Validate run 39450706558 passed all
+four Python jobs and the package/installed-wheel/source-rebuild job. The previous
+scope rejection is resolved. The next deliberate v0.1.0a1 tag revalidates exact
+source and publishes the already authorized experimental prerelease. Physical
+network/disk/logout and daily-use checks remain pending; no daily desktop or
+cloud fixture was changed by this publication work.

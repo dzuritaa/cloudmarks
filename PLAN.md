@@ -1,6 +1,6 @@
 # CloudMarks project plan
 
-Status: M0–M3 implemented; M4 read-only change tracking, durable download recovery and bounded folder intent implemented. Physical reconnect/logout acceptance remains open; M5 candidate engineering is prepared; hosted CI/publication and operational acceptance remain open. No daily-desktop extension or CloudMarks service is installed.
+Status: M0–M3 implemented; M4 read-only change tracking, durable download recovery and bounded folder intent implemented. Physical reconnect/logout acceptance remains open; M5 candidate engineering is prepared; version-tag publication and operational acceptance remain open; main hosted CI passes. No daily-desktop extension or CloudMarks service is installed.
 
 ## Recorded M0 outcome
 
@@ -179,10 +179,10 @@ Implemented for the read-only viewing scope at the user’s request: see [M4 beh
 Candidate `0.1.0a1` now includes credential-free CI, package/rebuild checks,
 compatibility and operating/upgrade/recovery guides, optional status-helper unit
 and a tag-only experimental-prerelease workflow. See [M5 gates](docs/release-checklist.md)
-and [validation](docs/evidence/m5/validation.json). MIT is selected and applied; the current GitHub API reports no push permission, while Git transport passed a dry-run; actual push/publication is untested. The licensed source is committed locally; GitHub rejected its push because the
-OAuth credential lacks workflow scope. No remote tag, hosted CI run or public
-release exists. Physical daily-use acceptance remains
-separate from experimental packaging.
+and [validation](docs/evidence/m5/validation.json). MIT is selected and applied. Personal-account workflow reauthorization is
+complete, main is pushed and hosted CI passes. The version-tag pipeline is the
+remaining publication step. Physical daily-use acceptance remains separate from
+experimental packaging.
 
 - Document supported Ubuntu/Nautilus/rclone versions and tested filesystems.
 - Supply install, upgrade, disable, uninstall, troubleshooting, and recovery instructions.
