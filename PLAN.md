@@ -44,7 +44,9 @@ Folders must not receive a green check merely because the folder itself exists. 
 
 ### M0 — Offline feasibility and design decision
 
-- Create a local fixture tree and a disposable remote test area, separately configured from real files.
+- Create a local fixture tree and a disposable remote test area in a dedicated, otherwise empty Microsoft account.
+- Give the test account its own credential configuration, remote name, mount, cache, state store, and user service. Do not reuse the personal account's tokens or default rclone configuration.
+- Before any cloud test, verify the authenticated drive identity against the explicitly configured test drive and enforce the allowed test root. Refuse a mismatch or a missing identity; never fall back to the personal account. Keep real account and drive identifiers out of Git.
 - Investigate supported rclone status/retention controls and the actual read path for complete cached files.
 - Compare possible offline storage approaches, including filesystem limitations and local-space accounting. Check that complete files open through the same user-visible path with networking unavailable.
 - Specify how remote edits, local edits, deletions, and disk removal affect each state.
@@ -104,7 +106,7 @@ Requires the M0 backend decision and successful offline tests.
 ## Development and deployment boundaries
 
 - Start with fixture-only work and read-only badges. Keep production OneDrive integration disabled by default in development builds.
-- Use a dedicated test remote/root and disposable files for integration tests. Enforce the allowed root in the helper, not just in menu visibility.
+- Use the dedicated empty Microsoft account, a test remote/root, and disposable files for integration tests. Enforce both the expected drive identity and the allowed root in the helper, not just in menu visibility. Keep test services and storage separate from the working personal OneDrive connection.
 - Do not use a general destructive sync command for cache management. Do not add a cloud-delete feature in the initial release.
 - An unprivileged extension still has access to the user's files; running without root does not eliminate data-loss risk.
 - Install extension code for the current user. System packages may require a separate administrator step; never replace GNOME, the kernel, boot settings, or filesystem drivers for this project.

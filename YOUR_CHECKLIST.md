@@ -5,7 +5,8 @@
 Nothing needs to be installed to begin development. The first work uses fake files and a test backend. Keep using your existing OneDrive connection normally.
 
 - Read [the plan](PLAN.md), especially the offline-storage feasibility gate. The existing mount streams content; a badge alone cannot create Windows-style offline behavior.
-- Have a few disposable documents or pictures available for later testing. A separate cloud test folder will be configured when cloud integration is ready; do not provide important files as test data.
+- Make sure you can sign in to the separate, otherwise empty Microsoft account. When cloud integration is ready, sign in yourself through Microsoft's browser page, selecting the test account explicitly. Passwords, tokens, and recovery codes must not be sent in chat or committed to Git.
+- Have a few disposable documents or pictures available for later testing. A test folder will be configured inside that separate account; do not provide important files or shared folders from your personal account as test data.
 
 ## Before testing the extension on your desktop
 
@@ -20,7 +21,7 @@ Timeshift and other backup programs are not installed or configured by this plan
 
 - Save a private backup of the current OneDrive mount service, configuration, and relevant Files settings before integration changes. Credential-bearing backups stay outside this public repository with restrictive permissions.
 - Build tests, installation, disable, and uninstall procedures before enabling the extension.
-- Use fixture data first, then restrict any cloud tests to the disposable area.
+- Use fixture data first, then restrict cloud tests to the disposable area in the separate Microsoft account. Use independent credentials, mount, cache, state, and service configuration, and verify the test drive identity before enabling cloud operations.
 - Keep file content on the selected data disk and verify storage limits before enabling offline downloads.
 - Leave the current connection in place until a tested replacement or integration is ready.
 
