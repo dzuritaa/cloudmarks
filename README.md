@@ -4,7 +4,7 @@ Cloud and offline status badges for GNOME Files, starting with OneDrive through 
 
 ## Project status
 
-M0–M4 are implemented experimentally for read-only offline viewing. M4 adds explicit change checks, durable retryable downloads, preserved conflict versions and bounded folder pins. M2 remains a status-only adapter. M5 supplies the experimental `0.1.0a1` build, CI, package validation and operating guides under MIT; nothing is installed in the daily desktop.
+M0–M4 are implemented experimentally for read-only offline viewing. M4 adds explicit change checks, durable retryable downloads, preserved conflict versions and bounded folder pins. M2 remains a status-only adapter. [M5’s experimental `0.1.0a1` release](https://github.com/dzuritaa/cloudmarks/releases/tag/v0.1.0a1) is published under MIT with passing hosted CI, package validation and operating guides; nothing is installed in the daily desktop.
 
 See the [project plan](PLAN.md) for milestones and acceptance criteria, and
 [your setup checklist](YOUR_CHECKLIST.md) for the steps needed before desktop testing.

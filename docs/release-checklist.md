@@ -1,6 +1,6 @@
 # M5 release checklist
 
-The current local candidate is `0.1.0a1`; expected tag `v0.1.0a1`. M5 prepares a
+[Version 0.1.0a1 is published](https://github.com/dzuritaa/cloudmarks/releases/tag/v0.1.0a1) as an MIT-licensed experimental prerelease. The immutable source tag is `v0.1.0a1`. M5 prepares a
 shareable experimental package with clear limits. It does not turn pending
 physical acceptance into a production-safety claim.
 
@@ -17,15 +17,17 @@ physical acceptance into a production-safety claim.
 - [x] Candidate checks and validation record finalized (licensed local candidate validation).
 - [x] Licensed source reviewed and committed locally.
 - [x] Source commits pushed to personal repository dzuritaa/cloudmarks main.
-- [x] Hosted main CI passes; tag workflow revalidates the exact tagged source.
-- [ ] The deliberate release tag publishes validated assets/notes/checksums as an experimental prerelease.
+- [x] Hosted main and exact-tag CI passed.
+- [x] The deliberate release tag published validated assets/notes/checksums as an experimental prerelease.
 
 MIT is applied to LICENSE and SPDX package metadata. Both CLI and Git
 credentials were verified as personal account dzuritaa. Personal-account workflow
 reauthorization resolved the earlier scope rejection. Main is pushed and
 [hosted Python 3.11–3.14/package CI passed](https://github.com/dzuritaa/cloudmarks/actions/runs/39450706558).
-The deliberate version tag and experimental prerelease remain the final release
-steps. Physical operational acceptance remains separate and open.
+The [exact-tag release pipeline](https://github.com/dzuritaa/cloudmarks/actions/runs/39451141486) also passed and published the prerelease.
+The downloaded wheel and source archive matched SHA256SUMS and passed the
+license/source inventory checker. Physical operational acceptance remains
+separate and open.
 
 ## Prepare and publish after the gates
 

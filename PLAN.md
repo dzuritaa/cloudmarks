@@ -1,6 +1,6 @@
 # CloudMarks project plan
 
-Status: M0–M3 implemented; M4 read-only change tracking, durable download recovery and bounded folder intent implemented. Physical reconnect/logout acceptance remains open; M5 candidate engineering is prepared; version-tag publication and operational acceptance remain open; main hosted CI passes. No daily-desktop extension or CloudMarks service is installed.
+Status: M0–M5 experimental implementation and MIT prerelease v0.1.0a1 are delivered. Hosted CI and published-asset verification pass. Physical reconnect/logout and daily-use acceptance remain open; no daily-desktop extension or CloudMarks service is installed.
 
 ## Recorded M0 outcome
 
@@ -176,13 +176,12 @@ Implemented for the read-only viewing scope at the user’s request: see [M4 beh
 
 ### M5 — Shareable release
 
-Candidate `0.1.0a1` now includes credential-free CI, package/rebuild checks,
-compatibility and operating/upgrade/recovery guides, optional status-helper unit
-and a tag-only experimental-prerelease workflow. See [M5 gates](docs/release-checklist.md)
-and [validation](docs/evidence/m5/validation.json). MIT is selected and applied. Personal-account workflow reauthorization is
-complete, main is pushed and hosted CI passes. The version-tag pipeline is the
-remaining publication step. Physical daily-use acceptance remains separate from
-experimental packaging.
+[Experimental MIT prerelease v0.1.0a1](https://github.com/dzuritaa/cloudmarks/releases/tag/v0.1.0a1) is published. It includes
+credential-free CI, package/source-rebuild checks, compatibility and operating/
+upgrade/recovery guides, an optional status-helper unit and a tag-only release
+workflow. Main and exact-tag hosted CI passed; downloaded release checksums,
+license and source contents were independently verified. See [M5 evidence](docs/evidence/m5/validation.json).
+Physical daily-use acceptance remains separate and open.
 
 - Document supported Ubuntu/Nautilus/rclone versions and tested filesystems.
 - Supply install, upgrade, disable, uninstall, troubleshooting, and recovery instructions.

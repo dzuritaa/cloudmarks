@@ -2,17 +2,17 @@
   "date": "2026-10-20",
   "milestone": "M5",
   "version": "0.1.0a1",
-  "status": "MIT-licensed source pushed to main; hosted Python/package CI passed; experimental version-tag publication pending",
+  "status": "M5 experimental MIT prerelease published; hosted exact-tag CI and independent downloaded-asset verification passed. Physical daily-use acceptance remains open.",
   "license_selected": true,
   "license_file_present": true,
   "repository_access": {
     "pull": true,
     "push": true,
     "source_committed_or_pushed": true,
-    "tag_created": false,
+    "tag_created": true,
     "git_transport_dry_run_passed": true,
     "git_ref_created_by_dry_run": false,
-    "note": "Personal-account workflow reauthorization completed. CLI and Git identities verified dzuritaa; workflow scope verified. Main push and hosted CI succeeded.",
+    "note": "Personal dzuritaa CLI/Git identities and workflow scope verified. Main and deliberate version tag pushed; exact-tag pipeline published the experimental prerelease.",
     "local_source_commit": "e167f04",
     "source_committed_locally": true,
     "source_pushed": true,
@@ -27,11 +27,12 @@
     "workflow_scope_verified": true,
     "reauthorized_personal_account": "dzuritaa",
     "personal_push_confirmed": true,
-    "previous_push_rejection": "OAuth App lacks workflow scope required to create/update .github/workflows/ci.yml"
+    "previous_push_rejection": "OAuth App lacks workflow scope required to create/update .github/workflows/ci.yml",
+    "release_source_commit": "5a46b507f85ac1e2a6b8bb069fbb815219833c6f"
   },
   "hosted_ci_executed": true,
   "draft_release_created": false,
-  "published": false,
+  "published": true,
   "automated": {
     "total_tests": 190,
     "new_release_checks": 6,
@@ -120,10 +121,7 @@
     "no_remote_source_push_tag_or_publication": false,
     "no_daily_deployment_or_cloud_changes": true
   },
-  "remaining_release_gates": [
-    "Push deliberate matching v0.1.0a1 tag after updated release handoff passes CI",
-    "Tag pipeline validates exact source and publishes experimental prerelease"
-  ],
+  "remaining_release_gates": [],
   "remaining_daily_use_acceptance": [
     "Physical network loss/reconnection",
     "Hardware disk unplug/replug",
@@ -202,5 +200,33 @@
       "package"
     ],
     "scope": "Hosted main baseline; tag publication workflow revalidates the exact tagged revision."
+  },
+  "publication": {
+    "url": "https://github.com/dzuritaa/cloudmarks/releases/tag/v0.1.0a1",
+    "tag": "v0.1.0a1",
+    "source_commit": "5a46b507f85ac1e2a6b8bb069fbb815219833c6f",
+    "published_at": "2026-10-20T15:44:52Z",
+    "is_draft": false,
+    "is_prerelease": true,
+    "license": "MIT",
+    "pipeline_run": 39451141486,
+    "pipeline_url": "https://github.com/dzuritaa/cloudmarks/actions/runs/39451141486",
+    "pipeline_conclusion": "success",
+    "hosted_jobs": [
+      "validate / tests (3.11)",
+      "validate / tests (3.12)",
+      "validate / tests (3.13)",
+      "validate / tests (3.14)",
+      "validate / package",
+      "release"
+    ],
+    "downloaded_checksums_verified": true,
+    "downloaded_license_source_and_package_inventory_verified": true,
+    "assets": {
+      "cloudmarks-0.1.0a1-py3-none-any.whl": "c7447347e4f0abb19507e7cc4d8e17701c171ed32ced5ca59ce0261ba54fb933",
+      "cloudmarks-0.1.0a1.tar.gz": "7acffa1a268d9eb1b27095d5fd941b3b097310da2d365c31efb4c1b1b493883f"
+    },
+    "checksum_asset": "SHA256SUMS",
+    "published_to_pypi": false
   }
 }

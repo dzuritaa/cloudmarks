@@ -126,7 +126,7 @@ remains read-only and your working mount is preserved.
 
 MIT is selected and applied. Personal account dzuritaa is verified for both Git
 and the CLI, workflow authorization is complete, and main is pushed with hosted
-CI passing. Follow [the release checklist](docs/release-checklist.md) for the
-version-tag publication outcome. No work repository was changed.
+CI passing. See the [release checklist](docs/release-checklist.md) and the
+[published experimental MIT prerelease](https://github.com/dzuritaa/cloudmarks/releases/tag/v0.1.0a1) and verified assets. No work repository was changed.
 Physical reconnect/logout and daily-use acceptance
 are still pending; they were not replaced by package/CI checks.

@@ -1,12 +1,12 @@
-# CloudMarks handoff — M0 through M5 candidate
+# CloudMarks handoff — M0 through M5 experimental prerelease
 
 M0 feasibility, M1 status engine, M2 read-only Nautilus adapter and M3
 experimental individual-file controls are implemented. M2 remains read-only;
 M3 actions are separate explicit CLI commands. Nothing is installed in the daily
 desktop. M4 now adds explicit read-only change checks, durable download jobs, conflict
 snapshots and bounded recursive intent. M5 now prepares the 0.1.0a1 candidate, CI, package checks and operating guides.
-Personal-account main push and hosted CI now pass; prerelease publication and
-physical reconnect/logout acceptance remain open.
+Personal-account main push, exact-tag hosted CI and v0.1.0a1 publication now pass.
+Physical reconnect/logout and daily-use acceptance remain open.
 
 ## Start here
 
@@ -210,3 +210,23 @@ scope rejection is resolved. The next deliberate v0.1.0a1 tag revalidates exact
 source and publishes the already authorized experimental prerelease. Physical
 network/disk/logout and daily-use checks remain pending; no daily desktop or
 cloud fixture was changed by this publication work.
+
+
+## M5 delivered — experimental MIT prerelease
+
+Version v0.1.0a1 is published at
+https://github.com/dzuritaa/cloudmarks/releases/tag/v0.1.0a1
+from immutable source commit 5a46b507f85ac1e2a6b8bb069fbb815219833c6f.
+Release workflow 39451141486 passed all four Python jobs, package/installed-wheel/
+source-rebuild validation and publication. The wheel and source archive were
+independently downloaded; both checksums, MIT license and source inventories
+matched the tagged checkout. SHA256SUMS is the third release asset. Nothing was
+published to PyPI. The source archive's M5 JSON is a prepublication snapshot;
+the current main record adds the completed publication and verification results.
+
+All repository operations used personal dzuritaa credentials after correction;
+the saved work login and work repositories were preserved. M2 remains status-only,
+the original daily test mount remains intact, and no daily extension/service was
+enabled. Physical reconnect/logout, larger-file/readability/accessibility and a
+reviewed conflict-repair workflow remain acceptance work before daily use. M5's
+experimental release is delivered; it does not close those operational gates.

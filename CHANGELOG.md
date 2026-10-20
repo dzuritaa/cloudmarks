@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0a1 — experimental prerelease
+## 0.1.0a1 — 2026-10-20 — experimental prerelease
 
 Initial experimental read-only offline viewer for a scoped dedicated OneDrive
 test account. See [the release checklist](docs/release-checklist.md) for build gates and
