@@ -6,6 +6,9 @@ Cloud and offline status badges for GNOME Files, starting with OneDrive through 
 
 Initial project setup. The extension is not implemented yet.
 
+See the [project plan](PLAN.md) for milestones and acceptance criteria, and
+[your setup checklist](YOUR_CHECKLIST.md) for the steps needed before desktop testing.
+
 ## Planned first version
 
 - A Nautilus extension that displays cloud-only, saved locally, transferring, and error states.
