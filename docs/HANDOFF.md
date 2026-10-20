@@ -185,3 +185,16 @@ GitHub connection with workflow write permission, then push the existing commits
 do not strip the workflows to bypass the permission requirement. M3/M4 stores,
 the daily mount and desktop were not changed. The release checklist and M5 record
 now capture this actual failure rather than treating publication as complete.
+
+
+## Personal GitHub account correction
+
+The user requires the personal GitHub account dzuritaa for CloudMarks. The
+GitHub CLI had been active on the work account for read-only API queries; that
+was an identity-checking mistake. The active CLI account is now verified as
+dzuritaa. A separate credential identity audit confirmed Git's push credential
+was already dzuritaa, and both local preparation commits already used the
+personal GitHub noreply author email. No work repository was changed. The work
+account's saved login remains intact. AGENTS.md now records the required account
+and verification rule. The outstanding workflow-scope rejection belongs to the
+personal OAuth credential; do not reauthorize or broaden the work credential.

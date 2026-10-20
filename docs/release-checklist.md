@@ -27,8 +27,9 @@ are committed locally. The actual push was rejected by GitHub:
 > refusing to allow an OAuth App to create or update workflow without workflow scope
 
 The earlier Git dry-run succeeded but did not verify authorization for workflow
-changes. The current credential must be reauthorized with repository workflow
-write permission (`workflow` scope) before pushing these commits. Do that through
+changes. The GitHub CLI is now verified as personal account dzuritaa; Git credentials
+and commit authors were already personal. The personal credential must be
+reauthorized with repository workflow write permission (`workflow` scope) before pushing these commits. Do that through
 the local GitHub connection/authentication flow; never send tokens in chat.
 No remote branch, tag, hosted CI run or release was created. Removing CI files to
 bypass this authorization check is not the release procedure.
