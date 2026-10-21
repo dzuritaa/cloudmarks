@@ -14,6 +14,7 @@ from .ipc import LEASE_MS, MAX_BATCH, VERSION, encode, private_directory, receiv
 from .model import CloudMarksError, ConfigurationError, FileIdentity
 from .paths import SecureRoot, relative_parts
 from .state import StateStore
+from .telemetry import enabled, error_category, record
 
 MAX_VERIFY_BYTES = 8 * 1024 * 1024
 
@@ -96,6 +97,17 @@ class StatusService:
                 }
             else:
                 results[path] = self.lookup(path)
+        exhausted = sum(result["reason"] == "Helper work budget exhausted" for result in results.values())
+        if exhausted:
+            record("helper", "budget_exhausted", count=exhausted)
+        if enabled("debug"):
+            record(
+                "helper",
+                "request_completed",
+                level="debug",
+                count=len(paths),
+                elapsed_ms=max(0, (time.monotonic() - (deadline - 0.15)) * 1000),
+            )
         return {"version": VERSION, "results": results}
 
 
@@ -142,6 +154,7 @@ def serve(settings, store, *, stop=None, tick=None, ready=None, service=None):
         bound = os.stat(path.name, dir_fd=directory, follow_symlinks=False)
         listener.listen(8)
         listener.settimeout(0.1)
+        record("helper", "helper_started", mode=settings["mode"])
         if ready:
             ready()
         while not (stop and stop()):
@@ -157,8 +170,9 @@ def serve(settings, store, *, stop=None, tick=None, ready=None, service=None):
                         continue
                     response = service.handle(receive(connection))
                     connection.sendall(encode(response))
-                except (OSError, ValueError, TypeError, KeyError, CloudMarksError):
+                except (OSError, ValueError, TypeError, KeyError, CloudMarksError) as error:
                     # Close malformed requests without paths or raw private error text.
+                    record("helper", "request_rejected", error=error_category(error))
                     continue
     finally:
         if listener:
@@ -173,6 +187,7 @@ def serve(settings, store, *, stop=None, tick=None, ready=None, service=None):
         if lock is not None:
             os.close(lock)
         os.close(directory)
+        record("helper", "helper_stopped")
 
 
 def run(settings):

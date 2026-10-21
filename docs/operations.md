@@ -223,6 +223,44 @@ recovery. To remove just its Python package, use that venv's `python -m pip unin
 cloudmarks`. Remove the optional unit file you explicitly installed and run
 `systemctl --user daemon-reload`; never remove another service.
 
+## Diagnostic logging
+
+CloudMarks writes structured diagnostics to the local systemd journal under
+`cloudmarks-diagnostics`. Logging is on at the normal `info` level. Read or watch
+it with:
+
+```bash
+cloudmarks logs --since "1 hour ago"
+cloudmarks logs --follow
+```
+
+The messages cover command outcomes, helper/worker lifecycle, status changes,
+refresh latency, late/expired leases, IPC failures, mount lifecycle and transport
+error categories/HTTP status codes. Normal healthy status summaries occur at
+most every 30 seconds unless their state changes. Repeated identical event types
+are capped at ten per ten seconds per process. Journald manages rotation, disk
+limits and retention using the computer's existing settings; CloudMarks creates
+no separate growing log files. Availability after reboot depends on the host's
+journal persistence settings.
+
+Diagnostic messages allow only known event names, enum values and bounded
+numbers/booleans. They exclude file names/paths, account IDs/email, configuration,
+tokens, response bodies, file contents and raw exception/rclone text. Journal
+metadata still identifies the local process, service and machine. Existing raw
+service/terminal messages and historical private test reports are separate and
+can contain private paths; do not publish those without review.
+
+For extra request timing while reproducing a CLI/helper issue, start that process
+with `CLOUDMARKS_LOG_LEVEL=debug`. `CLOUDMARKS_LOG_LEVEL=off` disables diagnostics
+for that process and its children. The same privacy filter applies at every
+level. Logging uses nonblocking local journal sends; a missing/full/unavailable
+journal drops diagnostic events without changing file operations or status.
+Nautilus callbacks only queue bounded diagnostic notes for its isolated worker.
+Raw transport stderr remains suppressed rather than copied into these logs.
+
+`cloudmarks offline --config /private/offline.json doctor` is also available for
+a sanitized current health snapshot; it is not a historical log.
+
 ## Troubleshooting and recovery
 
 | Symptom | Action |

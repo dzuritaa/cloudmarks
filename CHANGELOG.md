@@ -2,6 +2,9 @@
 
 ## 0.1.0a2.dev0 — unreleased
 
+- Structured, privacy-filtered journal diagnostics cover desktop refresh/expiry,
+  helper/worker lifecycle, commands, mounts and transport failures. `cloudmarks
+  logs` reads or follows these events without exposing raw paths or credentials.
 - Nautilus performs status configuration/socket work in a separate Python
   process, preventing embedded-interpreter scheduling from consuming healthy
   status leases and flickering badges and column widths.

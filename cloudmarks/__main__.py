@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import subprocess
 import tempfile
 import time
 from pathlib import Path
@@ -13,6 +14,7 @@ from .fixture import FixtureBackend, FixtureController
 from .model import CloudMarksError, FileIdentity
 from .paths import MARKER
 from .state import StateStore
+from .telemetry import IDENTIFIER, error_category, record
 
 
 def demo():
@@ -65,6 +67,10 @@ def main():
     parser.add_argument("--version", action="version", version=f"CloudMarks {__version__}")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("demo", help="Run an entirely local, temporary fixture demonstration")
+    logs = commands.add_parser("logs", help="Read privacy-filtered CloudMarks diagnostics from the journal")
+    logs.add_argument("--since", default="today", help="Journal time range, e.g. '1 hour ago'")
+    logs.add_argument("--lines", type=int, default=200, help="Maximum recent entries, 1..10000")
+    logs.add_argument("--follow", action="store_true", help="Watch new diagnostic events")
     check = commands.add_parser("check-config", help="Validate TOML syntax and account/root settings only")
     check.add_argument("path", type=Path)
     service = commands.add_parser(
@@ -90,8 +96,30 @@ def main():
 
     configure(commands)
     args = parser.parse_args()
+    started = time.monotonic()
+    outcome = "ok"
+    context = {"command": args.command, "action": getattr(args, "action", None)}
+    if args.command != "logs":
+        record("cli", "command_started", **context)
     try:
-        if args.command == "offline":
+        if args.command == "logs":
+            if not 1 <= args.lines <= 10000:
+                parser.error("--lines must be between 1 and 10000")
+            command = [
+                "journalctl",
+                "--user",
+                "--identifier=" + IDENTIFIER,
+                "--no-pager",
+                "--output=short-iso-precise",
+                "--since",
+                args.since,
+                "-n",
+                str(args.lines),
+            ]
+            if args.follow:
+                command.append("--follow")
+            raise SystemExit(subprocess.call(command))
+        elif args.command == "offline":
             from .offline_cli import run
 
             run(args)
@@ -153,6 +181,7 @@ def main():
             load_config(args.path)
             print("Configuration version 1 is valid; storage and account connectivity were not checked.")
     except KeyboardInterrupt:
+        outcome = "interrupted"
         if args.command == "offline":
             parser.exit(
                 130,
@@ -160,7 +189,22 @@ def main():
             )
         parser.exit(0, "Fixture helper stopped. No mount or desktop process was changed.\n")
     except (CloudMarksError, OSError) as error:
+        outcome = "failed"
+        record("cli", "command_failed", error=error_category(error), **context)
         parser.exit(1, f"CloudMarks: {error}\n")
+    except Exception as error:
+        outcome = "failed"
+        record("cli", "command_failed", error=error_category(error), **context)
+        raise
+    finally:
+        if args.command != "logs":
+            record(
+                "cli",
+                "command_finished",
+                outcome=outcome,
+                elapsed_ms=(time.monotonic() - started) * 1000,
+                **context,
+            )
 
 
 if __name__ == "__main__":

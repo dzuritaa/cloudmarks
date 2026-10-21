@@ -243,6 +243,8 @@ class SocketTests(unittest.TestCase):
         self.assertEqual(event[0], "settings")
         self.assertEqual(event[1], self.settings)
         uri = (Path(self.settings["visible_root"]) / "03-pinned.txt").as_uri()
+        if worker_type is ProcessBackground:
+            worker.note("lease_expired", state="kept_offline", late_ms=25)
         issued = time.monotonic()
         worker.submit(uri)
         result = worker.outbox.get(timeout=2)

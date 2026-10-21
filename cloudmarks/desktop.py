@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 
 from .ipc import MAX_BATCH, UNKNOWN, load_settings, relative_uri, request
+from .telemetry import error_category, record
 
 MAX_TRACKED = 512
 MAX_WORKER_FRAME = 65536
@@ -24,6 +25,7 @@ class Background:
         self.settings_path = settings_path
         self.inbox = queue.Queue(MAX_TRACKED)
         self.outbox = queue.Queue(MAX_TRACKED * 2)
+        self.notes = queue.Queue(64)
         self.stopped = threading.Event()
         self.thread = threading.Thread(target=self.run, name="cloudmarks-status", daemon=True)
         self.thread.start()
@@ -46,10 +48,20 @@ class Background:
     def close(self):
         self.stopped.set()
 
+    def note(self, event, **fields):
+        """UI-safe: diagnostics use a bounded queue, never journal/file I/O."""
+        try:
+            self.notes.put_nowait({"diagnostic": event, "fields": fields})
+            return True
+        except queue.Full:
+            return False
+
     def run(self):
         current = None
         first = True
         next_settings = retry_at = 0
+        summary = None
+        next_summary = 0
         while not self.stopped.is_set():
             now = time.monotonic()
             if now >= next_settings:
@@ -61,6 +73,12 @@ class Background:
                     if self.emit(("settings", settings)):
                         current = settings
                         first = False
+                        record(
+                            "desktop",
+                            "settings_changed",
+                            available=settings is not None,
+                            enabled=bool(settings and settings["enabled"]),
+                        )
                     else:
                         # Keep retrying notification after the UI drains. Until
                         # then block old-scope requests rather than reuse it.
@@ -87,6 +105,21 @@ class Background:
                     retry_at = time.monotonic() + 1
             else:
                 results = {path: dict(UNKNOWN) for path in paths}
+            elapsed = (time.monotonic() - issued) * 1000
+            if elapsed >= 150:
+                record("desktop", "response_slow", elapsed_ms=elapsed, count=len(paths))
+            signature = tuple(sorted(result["state"] for result in results.values()))
+            if signature != summary or time.monotonic() >= next_summary:
+                record(
+                    "desktop",
+                    "status_summary",
+                    count=len(paths),
+                    elapsed_ms=elapsed,
+                    unknown_count=signature.count("unknown"),
+                    error_count=signature.count("error"),
+                    positive_count=sum(state in {"saved_locally", "kept_offline"} for state in signature),
+                )
+                summary, next_summary = signature, time.monotonic() + 30
             for uri in batch:
                 result = results.get(mapped.get(uri), dict(UNKNOWN))
                 self.emit(("status", key, uri, issued + result["valid_for_ms"] / 1000, result))
@@ -121,12 +154,18 @@ class ProcessBackground(Background):
                 stderr=subprocess.DEVNULL,
                 bufsize=0,
             )
+            record("bridge", "worker_started")
             incoming = bytearray()
             while not self.stopped.is_set() and process.poll() is None:
                 batch = []
                 for _ in range(MAX_BATCH):
                     try:
                         batch.append(self.inbox.get_nowait())
+                    except queue.Empty:
+                        break
+                for _ in range(MAX_BATCH):
+                    try:
+                        batch.append(self.notes.get_nowait())
                     except queue.Empty:
                         break
                 if batch:
@@ -156,8 +195,8 @@ class ProcessBackground(Background):
                         self.emit(tuple(event))
                     if len(incoming) > MAX_WORKER_FRAME:
                         raise ValueError("Worker frame exceeded its bound")
-        except (OSError, ValueError, TypeError, IndexError):
-            pass  # Losing the worker clears settings and all positive evidence.
+        except (OSError, ValueError, TypeError, IndexError) as error:
+            record("bridge", "worker_failed", level="warning", error=error_category(error))
         finally:
             self.emit(("settings", None))
             if process:
@@ -172,6 +211,7 @@ class ProcessBackground(Background):
                     except subprocess.TimeoutExpired:
                         process.kill()
                         process.wait()
+                record("bridge", "worker_stopped", exit_code=process.returncode)
 
 
 def pipe_worker(settings_path):
@@ -196,9 +236,14 @@ def pipe_worker(settings_path):
             if len(line.encode()) > MAX_WORKER_FRAME or not line.endswith("\n"):
                 break
             uri = json.loads(line)
-            if not isinstance(uri, str) or len(uri) > 16384:
+            if isinstance(uri, dict) and set(uri) == {"diagnostic", "fields"}:
+                if not isinstance(uri["diagnostic"], str) or not isinstance(uri["fields"], dict):
+                    break
+                record("desktop", uri["diagnostic"], **uri["fields"])
+            elif isinstance(uri, str) and len(uri) <= 16384:
+                worker.submit(uri)
+            else:
                 break
-            worker.submit(uri)
     finally:
         worker.close()
         worker.thread.join(timeout=2)

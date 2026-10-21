@@ -130,6 +130,14 @@ class CloudMarksExtension(GObject.GObject, Nautilus.InfoProvider, Nautilus.Colum
                     previous = self.cache.get(uri)
                     fresh = (expires, result) if expires > now else (now + 0.5, UNKNOWN)
                     self.cache[uri] = fresh
+                    if expires <= now:
+                        self.background.note("response_late", late_ms=(now - expires) * 1000)
+                    if not previous or previous[1]["state"] != fresh[1]["state"]:
+                        self.background.note(
+                            "status_changed",
+                            state=fresh[1]["state"],
+                            previous_state=previous[1]["state"] if previous else "none",
+                        )
                     # Renew unchanged evidence silently. Nautilus clears extension
                     # attributes during invalidation, so repaint only changes or
                     # an occasional interest probe for releasing old locations.
@@ -142,6 +150,9 @@ class CloudMarksExtension(GObject.GObject, Nautilus.InfoProvider, Nautilus.Colum
                         changed.add(uri)
         for uri, (expires, cached_result) in list(self.cache.items()):
             if expires <= now:
+                self.background.note(
+                    "lease_expired", state=cached_result["state"], late_ms=(now - expires) * 1000
+                )
                 del self.cache[uri]
                 changed.add(uri)
             elif (
@@ -156,6 +167,7 @@ class CloudMarksExtension(GObject.GObject, Nautilus.InfoProvider, Nautilus.Colum
                     self.pending[uri] = now
         for uri, submitted in list(self.pending.items()):
             if now - submitted > 2:
+                self.background.note("pending_timeout", elapsed_ms=(now - submitted) * 1000)
                 self.pending.pop(uri)
                 changed.add(uri)
         for uri in changed:

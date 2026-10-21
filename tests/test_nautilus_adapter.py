@@ -19,6 +19,10 @@ class BackgroundFake:
     def __init__(self, path):
         self.outbox = queue.Queue()
         self.submitted = []
+        self.notes = []
+
+    def note(self, event, **fields):
+        self.notes.append((event, fields))
 
     def submit(self, uri):
         self.submitted.append(uri)
@@ -122,6 +126,7 @@ class AdapterTests(unittest.TestCase):
             self.adapter.drain()
         self.assertIn("Needs checking", file.attributes["cloudmarks_status"])
         self.assertGreaterEqual(file.invalidations, 2)
+        self.assertTrue(any(event == "lease_expired" for event, fields in self.adapter.background.notes))
 
     def test_late_response_cannot_restore_green(self):
         file = self.file()

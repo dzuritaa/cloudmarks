@@ -28,6 +28,9 @@ builds and [Actions](https://github.com/dzuritaa/cloudmarks/actions) for hosted
 validation. The project uses the [MIT license](LICENSE). Physical reconnect/logout
 acceptance remains open before daily use.
 
+Use `cloudmarks logs --follow` for privacy-filtered operational diagnostics;
+see [logging and retention](docs/operations.md#diagnostic-logging).
+
 ## Try the local status engine
 
 Requires Linux and Python 3.11+. No dependencies or account credentials are needed.

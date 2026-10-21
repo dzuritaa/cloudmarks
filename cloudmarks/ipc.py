@@ -11,6 +11,7 @@ from urllib.parse import unquote, urlsplit
 
 from .model import CloudMarksError, ConfigurationError
 from .paths import open_absolute_directory, relative_parts
+from .telemetry import error_category, record
 
 VERSION = 1
 MAX_FRAME = 16384
@@ -137,9 +138,14 @@ def same_user(connection):
 def request(socket_path, paths):
     """Blocking client for background workers only. Fail closed on every error."""
     fallback = {path: dict(UNKNOWN) for path in paths}
+
+    def failed(category):
+        record("ipc", "ipc_failed", error=category, count=len(paths))
+        return fallback
+
     try:
         if not 1 <= len(paths) <= MAX_BATCH or len(set(paths)) != len(paths):
-            return fallback
+            return failed("protocol")
         for path in paths:
             relative_parts(path)
         parent = private_directory(Path(socket_path).parent)
@@ -150,14 +156,14 @@ def request(socket_path, paths):
                 or info.st_uid != os.getuid()
                 or stat.S_IMODE(info.st_mode) & 0o077
             ):
-                return fallback
+                return failed("permissions")
         finally:
             os.close(parent)
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
             connection.settimeout(TIMEOUT)
             connection.connect(str(socket_path))
             if not same_user(connection):
-                return fallback
+                return failed("permissions")
             connection.sendall(encode({"version": VERSION, "op": "status", "paths": paths}))
             response = receive(connection)
         if (
@@ -168,7 +174,7 @@ def request(socket_path, paths):
             or not isinstance(response["results"], dict)
             or set(response["results"]) != set(paths)
         ):
-            return fallback
+            return failed("protocol")
         for result in response["results"].values():
             if (
                 not isinstance(result, dict)
@@ -180,7 +186,7 @@ def request(socket_path, paths):
                 or type(result["valid_for_ms"]) is not int
                 or not 1 <= result["valid_for_ms"] <= LEASE_MS
             ):
-                return fallback
+                return failed("protocol")
         return response["results"]
-    except (OSError, ValueError, TypeError, KeyError, CloudMarksError):
-        return fallback
+    except (OSError, ValueError, TypeError, KeyError, CloudMarksError) as error:
+        return failed(error_category(error))

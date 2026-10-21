@@ -21,6 +21,7 @@ from pathlib import Path
 from .ipc import private_directory
 from .model import ConfigurationError, IntegrityError, RemoteFile, ScopeError, StorageError, canonical_drive
 from .paths import relative_parts
+from .telemetry import error_category, record
 
 
 class RemoteMissing(StorageError):
@@ -203,6 +204,7 @@ class OneDrive:
         except urllib.error.HTTPError as error:
             code = error.code
             error.close()
+            record("transport", "metadata_failed", status_code=code)
             if code == 401 and not refreshed:
                 # Refresh only this experiment's credential copy via a GET-only
                 # rclone operation. Never reconnect or edit the daily remote.
@@ -219,6 +221,7 @@ class OneDrive:
                 raise RemoteMissing("Remote item is unavailable; preserve retained snapshots") from None
             raise StorageError("Remote metadata unavailable; retain local evidence") from None
         except (OSError, ValueError) as error:
+            record("transport", "metadata_failed", error=error_category(error))
             raise StorageError("Remote metadata unavailable; retain local evidence") from error
 
     def item(self, item_id):
@@ -467,6 +470,9 @@ class OneDrive:
                     yield block
             if process.wait(timeout=5):
                 raise StorageError("Transport did not complete; previous data was retained")
+        except Exception as error:
+            record("transport", "download_failed", error=error_category(error))
+            raise
         finally:
             if process.poll() is None:
                 process.terminate()

@@ -17,6 +17,7 @@ from .offline_config import check_volume, mounted_view, require_unmounted
 from .onedrive import OneDrive, checksum, clean_environment
 from .paths import SecureRoot, open_absolute_directory
 from .state import StateStore
+from .telemetry import error_category, record
 
 
 def device_name(config):
@@ -87,6 +88,9 @@ def refresh_online_probe(config, store, transport):
 
 
 def mount(config, settings, *, offline=False, ready=None, stop=lambda: False):
+    started = time.monotonic()
+    mode = "offline" if offline else "online"
+    record("view", "mount_starting", mode=mode)
     check_volume(config, settings)
     require_unmounted(settings)
     transport = OneDrive(config, settings)
@@ -187,18 +191,23 @@ def mount(config, settings, *, offline=False, ready=None, stop=lambda: False):
                     "offline": offline,
                 },
             )
+        record("view", "mount_ready", mode=mode, elapsed_ms=(time.monotonic() - started) * 1000)
         if ready:
             ready()
         while process.poll() is None and not stop():
             time.sleep(0.1)
         if process.poll() is not None and process.returncode != 0:
             raise StorageError("Experimental read-only view exited")
+    except Exception as error:
+        record("view", "mount_failed", mode=mode, error=error_category(error))
+        raise
     finally:
         # Only unmount the exact view this process created. A normal unmount
         # may refuse busy handles; no lazy/forced unmount or daily mount action.
         if process and mounted_view(settings) and mounted_view(settings)["source"] == device_name(config):
             result = subprocess.run(["fusermount3", "-u", str(view)], capture_output=True, timeout=10)
             if result.returncode:
+                record("view", "unmount_failed", mode=mode, exit_code=result.returncode)
                 raise StorageError("Experimental view is busy; close its open files and unmount it normally")
         if process and process.poll() is None:
             try:
@@ -208,3 +217,4 @@ def mount(config, settings, *, offline=False, ready=None, stop=lambda: False):
                 process.wait(timeout=5)
         if runtime_conf and not mounted_view(settings):
             runtime_conf.unlink(missing_ok=True)
+        record("view", "mount_stopped", mode=mode)
