@@ -14,7 +14,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from cloudmarks import install
-from cloudmarks.desktop import MAX_TRACKED, Background
+from cloudmarks.desktop import MAX_TRACKED, Background, ProcessBackground, settings_key
 from cloudmarks.fixture_session import create
 from cloudmarks.helper import MAX_VERIFY_BYTES, StatusService, serve
 from cloudmarks.ipc import (
@@ -225,21 +225,46 @@ class SocketTests(unittest.TestCase):
         self.assertEqual(self.query("02-local.txt")["02-local.txt"]["state"], "saved_locally")
 
     def test_worker_settings_changes_and_fail_closed_responses(self):
-        worker = Background(self.root / "session/desktop.json")
-        self.addCleanup(worker.close)
+        self.check_worker(Background)
+
+    def test_process_worker_preserves_leases_scope_and_disable_and_stops_cleanly(self):
+        self.check_worker(ProcessBackground)
+
+    def check_worker(self, worker_type):
+        worker = worker_type(self.root / "session/desktop.json")
+
+        def close():
+            worker.close()
+            worker.thread.join(timeout=5)
+            self.assertFalse(worker.thread.is_alive(), "Desktop worker failed to stop")
+
+        self.addCleanup(close)
         event = worker.outbox.get(timeout=2)
         self.assertEqual(event[0], "settings")
+        self.assertEqual(event[1], self.settings)
         uri = (Path(self.settings["visible_root"]) / "03-pinned.txt").as_uri()
+        issued = time.monotonic()
         worker.submit(uri)
         result = worker.outbox.get(timeout=2)
         self.assertEqual(result[0], "status")
+        self.assertEqual(result[1], settings_key(self.settings))
         self.assertEqual(result[-1]["state"], "kept_offline")
+        self.assertGreater(result[3], time.monotonic())
+        self.assertLessEqual(result[3], time.monotonic() + 1)
+        self.assertGreater(result[3], issued)
         changed = dict(self.settings, enabled=False)
         install.atomic_json(self.root / "session/desktop.json", changed)
         self.assertEqual(worker.outbox.get(timeout=2), ("settings", changed))
         worker.submit(uri)
         self.assertEqual(worker.outbox.get(timeout=2)[-1]["state"], "unknown")
         self.assertLessEqual(worker.inbox.maxsize, MAX_TRACKED)
+
+    def test_process_startup_failure_clears_settings(self):
+        with patch("cloudmarks.desktop.subprocess.Popen", side_effect=OSError("Unavailable")):
+            worker = ProcessBackground(self.root / "session/desktop.json")
+            self.assertEqual(worker.outbox.get(timeout=2), ("settings", None))
+            worker.thread.join(timeout=2)
+            self.assertFalse(worker.thread.is_alive())
 
     def test_socket_permissions_and_untrusted_peer_fail_closed(self):
         path = Path(self.settings["socket"])

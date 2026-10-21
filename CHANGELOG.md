@@ -2,6 +2,9 @@
 
 ## 0.1.0a2.dev0 — unreleased
 
+- Nautilus performs status configuration/socket work in a separate Python
+  process, preventing embedded-interpreter scheduling from consuming healthy
+  status leases and flickering badges and column widths.
 - Explicit conflict retirement archives measured local/original/remote versions;
   optional same-identity retry and private no-overwrite export preserve recovery.
 - Explicit full verification gives larger files short-lived read-only helper

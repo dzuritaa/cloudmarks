@@ -71,7 +71,14 @@ def inside(args):
                 if app.poll() is not None or time.monotonic() > deadline:
                     raise RuntimeError("Real account status did not reach the read-only adapter")
                 time.sleep(0.1)
-            time.sleep(0.3)
+            # A single correct frame missed the daily-desktop lease flicker.
+            # Observe several renewals and two four-second interest probes.
+            steady_deadline = time.monotonic() + 10
+            while time.monotonic() < steady_deadline:
+                record = json.loads((work / "status.json").read_text())
+                if record.get("lost_verified_status"):
+                    raise RuntimeError("Verified account status flickered during healthy renewal")
+                time.sleep(0.1)
             windows = subprocess.check_output(["xwininfo", "-root", "-tree"], text=True)
             for line in windows.splitlines():
                 if json.dumps(scene_directory.name) in line:
@@ -93,6 +100,8 @@ def inside(args):
                         "view": "no-network local-only mount mirrored read-only into isolated Files",
                         "adapter_actions": False,
                         "daily_desktop_changed": False,
+                        "steady_status_seconds": 10,
+                        "healthy_renewal_flicker": False,
                     },
                     indent=2,
                 )
@@ -109,13 +118,29 @@ OBSERVER = r"""import gi,json,os
 gi.require_version("Nautilus","4.1")
 from gi.repository import GObject,GLib,Nautilus
 class CloudMarksAccountObserver(GObject.GObject,Nautilus.InfoProvider):
+    def __init__(self):
+        super().__init__()
+        self.file=None
+        self.started=False
+        self.verified=False
+        self.lost=False
     def update_file_info(self,file):
         if file.get_name()==os.environ["CM_M3_NAME"]:
-            GLib.timeout_add(100,self.sample,file)
-    def sample(self,file):
-        label=file.get_string_attribute("cloudmarks_status") or ""
-        with open(os.environ["CM_M3_LOG"],"w") as stream: json.dump({"label":label},stream)
-        return False
+            self.file=file
+            if not self.started:
+                self.started=True
+                GLib.timeout_add(50,self.sample)
+    def sample(self):
+        label=self.file.get_string_attribute("cloudmarks_status") or ""
+        positive=label.startswith("Kept offline (test account, read-only)")
+        if self.verified and label and not positive:
+            self.lost=True
+        self.verified=self.verified or positive
+        temporary=os.environ["CM_M3_LOG"]+".tmp"
+        with open(temporary,"w") as stream:
+            json.dump({"label":label,"lost_verified_status":self.lost},stream)
+        os.replace(temporary,os.environ["CM_M3_LOG"])
+        return True
 """
 
 

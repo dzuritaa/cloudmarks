@@ -92,14 +92,14 @@ class AdapterTests(unittest.TestCase):
         self.adapter.update_file_info(file)
         return file
 
-    def deliver(self, file, state="saved_locally", *, expires=None):
+    def deliver(self, file, state="saved_locally", *, expires=None, valid_for_ms=1000):
         self.adapter.background.outbox.put(
             (
                 "status",
                 settings_key(self.settings),
                 file.uri,
                 expires or time.monotonic() + 1,
-                {"state": state, "reason": "Fixture evidence", "valid_for_ms": 1000},
+                {"state": state, "reason": "Fixture evidence", "valid_for_ms": valid_for_ms},
             )
         )
         self.adapter.drain()
@@ -151,6 +151,8 @@ class AdapterTests(unittest.TestCase):
         self.deliver(file)
         before = file.invalidations
         self.deliver(file)
+        self.assertEqual(file.invalidations, before)
+        self.deliver(file, valid_for_ms=800)
         self.assertEqual(file.invalidations, before)
         self.deliver(file, state="kept_offline")
         self.assertGreater(file.invalidations, before)

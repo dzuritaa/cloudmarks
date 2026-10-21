@@ -17,8 +17,10 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
 from gi.repository import Gdk, GLib, GObject, Gtk, Nautilus  # noqa: E402
 
-from .desktop import MAX_TRACKED, Background, settings_key  # noqa: E402
+from .desktop import MAX_TRACKED, ProcessBackground, settings_key  # noqa: E402
 from .ipc import UNKNOWN, relative_uri  # noqa: E402
+
+Background = ProcessBackground
 
 PRESENTATION = {
     "cloud_only": ("cloudmarks-cloud", "Cloud only"),
@@ -131,7 +133,12 @@ class CloudMarksExtension(GObject.GObject, Nautilus.InfoProvider, Nautilus.Colum
                     # Renew unchanged evidence silently. Nautilus clears extension
                     # attributes during invalidation, so repaint only changes or
                     # an occasional interest probe for releasing old locations.
-                    if not previous or previous[1] != fresh[1] or now - self.touched.get(uri, now) > 4:
+                    if (
+                        not previous
+                        or (previous[1]["state"], previous[1]["reason"])
+                        != (fresh[1]["state"], fresh[1]["reason"])
+                        or now - self.touched.get(uri, now) > 4
+                    ):
                         changed.add(uri)
         for uri, (expires, cached_result) in list(self.cache.items()):
             if expires <= now:

@@ -2,6 +2,13 @@
 
 Historical M2 result. [M3 now adds explicit CLI controls and version-2 test-account status](m3-offline-controls.md), while keeping this adapter read-only. The fixture-only guard below describes the original M2/version-1 configuration.
 
+The current development adapter runs configuration and status-socket work in a
+separate Python process, bridged through bounded in-memory UI queues. This fixes
+daily-desktop flicker caused by scheduling delays in Nautilus's embedded Python
+threads. Original one-second evidence deadlines and fail-closed behavior remain
+in force; changing only a lease duration no longer repaints unchanged status.
+The account desktop harness now checks ten seconds of continuous renewal.
+
 Date: 2026-10-20. M2 is implemented and validated against artificial local
 fixtures in an isolated GNOME Files session. Real OneDrive integration and
 individual-file offline actions remain M3 work. Nothing was installed into the
