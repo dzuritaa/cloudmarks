@@ -125,5 +125,7 @@ column and a real one-file test-account keep/free cycle. A busy open test window
 refused eviction before content changes. Free released the local selection while
 the cloud manifest, identities, revisions, sizes and authoritative checksums stayed
 identical. That real Free plus cloud comparison took 33.1 seconds on this machine.
-These checks do not establish large real-account performance or reboot acceptance
-of the new version.
+The owner subsequently confirmed successful automatic startup after reboot and
+Keep offline after closing a busy test-view tab, completing personal acceptance
+for this test-account trial. Large real-account performance and physical storage
+reconnection remain unvalidated.

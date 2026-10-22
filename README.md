@@ -6,6 +6,13 @@ This project was **vibe-coded** with AI assistance using Codex.
 
 ## Project status
 
+**Personal acceptance tests: passed (2026-10-22).** All personal tests for the
+current dedicated OneDrive test-account trial passed: uploads and cloud
+confirmation, Nautilus badges, Keep offline, Free local copy, automatic startup
+after reboot, and retry after closing a busy read-only view. The automated source
+and installed-wheel suites also passed, with **296 tests each**. See the
+[validation record](docs/evidence/m6/folder-controls-local.json) for scope and evidence.
+
 M0–M4 are implemented experimentally for read-only offline viewing. M4 adds explicit change checks, durable retryable downloads, preserved conflict versions and bounded folder pins. M2 remains a status-only adapter. [M5’s experimental `0.1.0a1` release](https://github.com/dzuritaa/cloudmarks/releases/tag/v0.1.0a1) is published under MIT with passing hosted CI, package validation and operating guides; the current development build has also been tested on the development machine with a dedicated OneDrive test account.
 
 See the [project plan](PLAN.md) for milestones and acceptance criteria, and
@@ -58,7 +65,7 @@ See [M3 controls, real-account evidence, setup and limits](docs/m3-offline-contr
 
 See [M4 change tracking, durable jobs, conflict review and folder intent](docs/m4-change-tracking.md) for the current controls and limits.
 
-The unreleased [M6 hardening workflow](docs/m6-hardening.md) adds explicit conflict archival/export, same-identity retry, larger-file verification and a read-only health report. It prepares a separate supervised trial; physical and user acceptance remain open.
+The unreleased [M6 hardening workflow](docs/m6-hardening.md) adds explicit conflict archival/export, same-identity retry, larger-file verification and a read-only health report. The dedicated test-account trial passed personal acceptance; physical storage reconnect and broader real-account validation remain open.
 
 ## Development principles
 
