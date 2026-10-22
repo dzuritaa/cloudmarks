@@ -2,6 +2,13 @@
 
 ## 0.1.0a2.dev0 — unreleased
 
+- Service mount guards refuse startup over pending local files and protect
+  stopped mountpoints against accidental local writes. Optional login startup
+  can resume a supervised test profile without relying on bookmark navigation.
+- Opt-in automatic status observation follows a scoped rclone upload queue and
+  bounded OneDrive catalog in background workers. Both test views receive badges;
+  pending uploads, fresh cloud confirmation and verified offline copies remain
+  distinct. Existing metadata-only desktop configurations remain supported.
 - Structured, privacy-filtered journal diagnostics cover desktop refresh/expiry,
   helper/worker lifecycle, commands, mounts and transport failures. `cloudmarks
   logs` reads or follows these events without exposing raw paths or credentials.

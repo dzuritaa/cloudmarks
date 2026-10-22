@@ -77,6 +77,12 @@ def main():
         "serve", help="Run the read-only fixture or test-account status helper (foreground)"
     )
     service.add_argument("--settings", type=Path, required=True)
+    guard = commands.add_parser(
+        "mount-guard", help="Prepare/protect explicit test mountpoints for user services"
+    )
+    guard.add_argument("--settings", type=Path, required=True)
+    guard.add_argument("--view", choices=("upload", "offline"), required=True)
+    guard.add_argument("--operation", choices=("prepare", "protect"), required=True)
     fixture = commands.add_parser("fixture-session", help="Create disposable fixtures and serve their status")
     fixture.add_argument(
         "--directory", type=Path, required=True, help="New absolute private directory (short path)"
@@ -139,6 +145,11 @@ def main():
             else:
                 install.set_enabled(args.command == "enable")
                 print(f"CloudMarks badges {args.command}d; mounts were not changed.")
+        elif args.command == "mount-guard":
+            from .ipc import load_settings
+            from .startup import run
+
+            print(json.dumps(run(load_settings(args.settings), args.view, args.operation)))
         elif args.command == "serve":
             from .helper import run
             from .ipc import load_settings

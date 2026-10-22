@@ -73,7 +73,7 @@ class StatusService:
     def handle(self, value):
         if (
             not isinstance(value, dict)
-            or set(value) != {"version", "op", "paths"}
+            or set(value) not in ({"version", "op", "paths"}, {"version", "op", "paths", "view"})
             or type(value["version"]) is not int
             or value["version"] != VERSION
             or value["op"] != "status"
@@ -81,6 +81,9 @@ class StatusService:
             or not 1 <= len(value["paths"]) <= MAX_BATCH
         ):
             raise ValueError("Invalid read-only status request")
+        view = value.get("view", "offline")
+        if view not in ("offline", "upload") or (view == "upload" and not getattr(self, "activity", None)):
+            raise ValueError("Unsupported status view")
         paths = value["paths"]
         for path in paths:
             relative_parts(path)
@@ -96,7 +99,9 @@ class StatusService:
                     "valid_for_ms": 500,
                 }
             else:
-                results[path] = self.lookup(path)
+                results[path] = (
+                    self.lookup_view(path, view) if getattr(self, "activity", None) else self.lookup(path)
+                )
         exhausted = sum(result["reason"] == "Helper work budget exhausted" for result in results.values())
         if exhausted:
             record("helper", "budget_exhausted", count=exhausted)
@@ -197,7 +202,17 @@ def run(settings):
 
         config, offline = load_offline(settings["core_config"])
         with ReadStore(config) as store:
-            serve(settings, store, service=OfflineStatusService(settings, store, offline))
+            activity = None
+            try:
+                if settings["version"] == 3:
+                    from .activity import Activity
+
+                    activity = Activity(config, offline, settings).start()
+                service = OfflineStatusService(settings, store, offline, activity=activity)
+                serve(settings, store, service=service)
+            finally:
+                if activity:
+                    activity.close()
         return
     config = load_config(settings["core_config"])
     with StateStore(config) as store:
@@ -209,13 +224,54 @@ class OfflineStatusService(StatusService):
 
     supports_large_files = True
 
-    def __init__(self, settings, store, offline):
+    def __init__(self, settings, store, offline, *, activity=None):
         from .verification import status_engine
 
+        self.activity = activity
+        if activity:
+            from .activity import ObservedStore
+
+            store = ObservedStore(store, activity)
         self.settings, self.store, self.config = settings, store, store.config
         if settings["visible_root"] != offline["visible_root"]:
             raise ConfigurationError("Desktop and offline view roots disagree")
         self.engine = status_engine(store.config, store, offline)
+
+    def lookup_view(self, path, view):
+        relative_parts(path)
+        remote, result = self.activity.evidence(path)
+        if remote is None:
+            return result
+        if remote.is_directory:
+            return self.activity.result("unknown", "Folder coverage requires an explicit offline manifest")
+        if view == "upload":
+            return result
+        row = self.store.connection.execute(
+            "SELECT item_id FROM files WHERE drive_id=? AND path_key=?",
+            (self.config.expected_drive_id, self.config.path_key(path)),
+        ).fetchone()
+        # A remote-only observation must never hide an older retained file at
+        # this path, including replacement identities and renamed publications.
+        from .activity import LIMIT
+
+        entries = self.store.connection.execute(
+            "SELECT item_id,relative_path FROM local_entries LIMIT ?", (LIMIT + 1,)
+        ).fetchall()
+        if len(entries) > LIMIT:
+            return self.activity.result("unknown", "Retained catalog exceeds the automatic observation limit")
+        entry = next(
+            (e for e in entries if self.config.path_key(e["relative_path"]) == self.config.path_key(path)),
+            None,
+        )
+        if entry and (entry["item_id"] != remote.identity.item_id or not row):
+            return self.activity.result(
+                "unknown", "Retained path differs from OneDrive; preserve the local copy"
+            )
+        if not row or row["item_id"] != remote.identity.item_id:
+            return result
+        checked = self.lookup(path)
+        checked["valid_for_ms"] = min(checked["valid_for_ms"], result["valid_for_ms"])
+        return checked
 
     def lookup(self, path):
         result = super().lookup(path)

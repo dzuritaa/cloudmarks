@@ -31,6 +31,11 @@ acceptance remains open before daily use.
 Use `cloudmarks logs --follow` for privacy-filtered operational diagnostics;
 see [logging and retention](docs/operations.md#diagnostic-logging).
 
+The unreleased [automatic status observer](docs/automatic-status.md) can show
+real upload progress in a separately configured writable test mount and discover
+cloud files automatically. It observes an external rclone upload mount; it does
+not add two-way sync or automatic offline downloads to the read-only viewer.
+
 ## Try the local status engine
 
 Requires Linux and Python 3.11+. No dependencies or account credentials are needed.

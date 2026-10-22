@@ -18,7 +18,7 @@ MAX_FRAME = 16384
 MAX_BATCH = 16
 TIMEOUT = 0.6
 LEASE_MS = 1000
-STATES = {"cloud_only", "saved_locally", "kept_offline", "transferring", "error", "unknown"}
+STATES = {"cloud_only", "saved_locally", "kept_offline", "transferring", "uploading", "error", "unknown"}
 UNKNOWN = {"state": "unknown", "reason": "Helper unavailable or evidence needs checking", "valid_for_ms": 500}
 
 
@@ -57,15 +57,19 @@ def read_private_json(path):
 
 
 def validate_settings(value):
+    base = {"version", "mode", "enabled", "visible_root", "core_config", "socket"}
+    automatic = isinstance(value, dict) and value.get("version") == 3
     if (
         not isinstance(value, dict)
-        or set(value) != {"version", "mode", "enabled", "visible_root", "core_config", "socket"}
+        or set(value) != base | ({"upload_root", "upload_config", "upload_socket"} if automatic else set())
         or type(value["version"]) is not int
-        or (value["version"], value["mode"]) not in ((1, "fixture"), (2, "onedrive"))
+        or (value["version"], value["mode"]) not in ((1, "fixture"), (2, "onedrive"), (3, "onedrive"))
         or type(value["enabled"]) is not bool
     ):
         raise ConfigurationError("Expected version 1 fixture or version 2 test-account desktop settings")
-    for key in ("visible_root", "core_config", "socket"):
+    for key in ("visible_root", "core_config", "socket") + (
+        ("upload_root", "upload_config", "upload_socket") if automatic else ()
+    ):
         item = value[key]
         if (
             not isinstance(item, str)
@@ -78,6 +82,10 @@ def validate_settings(value):
             raise ConfigurationError("Desktop paths must be canonical absolute non-root paths")
     if len(os.fsencode(value["socket"])) > 100:
         raise ConfigurationError("Local socket pathname is too long")
+    if automatic:
+        a, b = Path(value["visible_root"]), Path(value["upload_root"])
+        if a.is_relative_to(b) or b.is_relative_to(a) or len(os.fsencode(value["upload_socket"])) > 100:
+            raise ConfigurationError("Upload and offline roots must be separate; sockets must be bounded")
     return value
 
 
@@ -102,6 +110,15 @@ def relative_uri(uri, root):
         return relative
     except (ValueError, UnicodeError, CloudMarksError):
         return None
+
+
+def mapped_uri(uri, settings):
+    """Return a presentation view and relative path, without touching either mount."""
+    if settings:
+        for view, root in (("offline", settings["visible_root"]), ("upload", settings.get("upload_root"))):
+            if root and (path := relative_uri(uri, root)) is not None:
+                return view, path
+    return None
 
 
 def encode(value):
@@ -135,7 +152,7 @@ def same_user(connection):
     return uid == os.getuid()
 
 
-def request(socket_path, paths):
+def request(socket_path, paths, *, view="offline"):
     """Blocking client for background workers only. Fail closed on every error."""
     fallback = {path: dict(UNKNOWN) for path in paths}
 
@@ -144,7 +161,11 @@ def request(socket_path, paths):
         return fallback
 
     try:
-        if not 1 <= len(paths) <= MAX_BATCH or len(set(paths)) != len(paths):
+        if (
+            view not in ("offline", "upload")
+            or not 1 <= len(paths) <= MAX_BATCH
+            or len(set(paths)) != len(paths)
+        ):
             return failed("protocol")
         for path in paths:
             relative_parts(path)
@@ -164,7 +185,10 @@ def request(socket_path, paths):
             connection.connect(str(socket_path))
             if not same_user(connection):
                 return failed("permissions")
-            connection.sendall(encode({"version": VERSION, "op": "status", "paths": paths}))
+            frame = {"version": VERSION, "op": "status", "paths": paths}
+            if view != "offline":
+                frame["view"] = view
+            connection.sendall(encode(frame))
             response = receive(connection)
         if (
             not isinstance(response, dict)

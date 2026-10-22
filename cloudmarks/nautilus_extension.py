@@ -18,7 +18,7 @@ gi.require_version("Gdk", "4.0")
 from gi.repository import Gdk, GLib, GObject, Gtk, Nautilus  # noqa: E402
 
 from .desktop import MAX_TRACKED, ProcessBackground, settings_key  # noqa: E402
-from .ipc import UNKNOWN, relative_uri  # noqa: E402
+from .ipc import UNKNOWN, mapped_uri  # noqa: E402
 
 Background = ProcessBackground
 
@@ -27,6 +27,7 @@ PRESENTATION = {
     "saved_locally": ("cloudmarks-local", "Saved locally"),
     "kept_offline": ("cloudmarks-pin", "Kept offline"),
     "transferring": ("cloudmarks-transfer", "Downloading"),
+    "uploading": ("cloudmarks-transfer", "Uploading"),
     "error": ("cloudmarks-error", "Needs attention"),
     "unknown": ("cloudmarks-unknown", "Needs checking"),
 }
@@ -67,11 +68,7 @@ class CloudMarksExtension(GObject.GObject, Nautilus.InfoProvider, Nautilus.Colum
         ]
 
     def scoped(self, uri):
-        return bool(
-            self.settings
-            and self.settings["enabled"]
-            and relative_uri(uri, self.settings["visible_root"]) is not None
-        )
+        return bool(self.settings and self.settings["enabled"] and mapped_uri(uri, self.settings) is not None)
 
     def update_file_info(self, file):
         uri = file.get_uri()
@@ -95,7 +92,12 @@ class CloudMarksExtension(GObject.GObject, Nautilus.InfoProvider, Nautilus.Colum
             file.add_emblem(icon)
         elif self.fallback_icon:
             file.add_emblem(self.fallback_icon)
-        scope = "fixture" if self.settings["mode"] == "fixture" else "test account, read-only"
+        view, _ = mapped_uri(uri, self.settings)
+        scope = (
+            "fixture"
+            if self.settings["mode"] == "fixture"
+            else ("test account, uploads" if view == "upload" else "test account, read-only")
+        )
         file.add_string_attribute("cloudmarks_status", f"{label} ({scope}) — {result['reason']}")
         if uri in self.files and not cached and uri not in self.pending:
             if self.background.submit(uri):

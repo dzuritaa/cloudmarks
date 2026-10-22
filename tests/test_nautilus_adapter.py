@@ -185,6 +185,25 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(file.attributes, {})
         self.assertEqual(self.adapter.background.submitted, [])
 
+    def test_upload_scope_gets_its_own_status_and_does_no_io_in_callback(self):
+        self.settings = dict(self.settings, version=3, mode="onedrive", upload_root="/upload")
+        self.adapter.background.outbox.put(("settings", self.settings))
+        self.adapter.drain()
+        file = File("file:///upload/new.txt")
+        file.callback = self.adapter.update_file_info
+        with (
+            patch("socket.socket", side_effect=AssertionError("UI must not connect")),
+            patch("builtins.open", side_effect=AssertionError("UI must not open files")),
+        ):
+            self.adapter.update_file_info(file)
+        self.deliver(file, state="uploading")
+        self.assertIn("Uploading (test account, uploads)", file.attributes["cloudmarks_status"])
+        self.deliver(file, state="cloud_only")
+        self.assertIn("Cloud only", file.attributes["cloudmarks_status"])
+        neighbour = File("file:///upload-neighbour/new.txt")
+        self.adapter.update_file_info(neighbour)
+        self.assertEqual(neighbour.attributes, {})
+
     def test_large_folder_has_bounded_work_and_memory(self):
         started = time.monotonic()
         for index in range(10000):

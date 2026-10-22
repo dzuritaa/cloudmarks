@@ -275,7 +275,7 @@ class OneDrive:
             raise ScopeError("Stable item lookup returned another identity")
         return self.observation(value, allow_directory=True)
 
-    def observation(self, value, path=None, *, allow_directory=False):
+    def observation(self, value, path=None, *, allow_directory=False, ancestors=None):
         initial = value
         names = []
         seen = set()
@@ -289,7 +289,16 @@ class OneDrive:
             names.append(value["name"])
             if parent.get("id") == self.config.allowed_root_id:
                 break
-            value = self.item(parent["id"])
+            # A bounded catalog already established each traversed parent's
+            # identity and ancestry. Reuse only that scan's verified responses;
+            # individual identity/path controls still perform fresh lookups.
+            if ancestors is None:
+                value = self.item(parent["id"])
+            else:
+                try:
+                    value = ancestors[parent["id"]]
+                except KeyError:
+                    raise ScopeError("Catalog ancestry was not established in this scan") from None
             if "folder" not in value:
                 raise ScopeError("Item ancestry is not a folder")
         else:
@@ -342,6 +351,81 @@ class OneDrive:
             self.config.validate_remote(remote)
             return Observation(remote, kind, digest)
         raise IntegrityError("Remote file has no supported authoritative checksum")
+
+    def catalog(self, *, limit=128, cancelled=lambda: False):
+        """Observe the allowed root without pinning or inferring any deletions.
+
+        A failed/truncated scan returns no catalog. Credentials and continuation
+        requests remain confined to Graph and the exact verified children route.
+        """
+        if type(limit) is not int or not 1 <= limit <= 128:
+            raise ScopeError("Catalog limit must be between 1 and 128")
+        self.authenticate()
+        q = urllib.parse.quote
+        pending = [(self.config.allowed_root_id, "", 0)]
+        values, seen, paths, ancestors = [], set(), set(), {}
+        deadline, pages = time.monotonic() + 60, 0
+        while pending:
+            item_id, parent_path, depth = pending.pop()
+            prefix = (
+                f"drives/{q(self.config.expected_drive_id, safe='')}/items/{q(item_id, safe='')}/children"
+            )
+            route, visited = prefix + "?$top=128", set()
+            while route:
+                if cancelled():
+                    raise Cancelled("Catalog cancelled")
+                if time.monotonic() > deadline or pages >= 32 or route in visited:
+                    raise StorageError("Catalog exceeded its time/page bound")
+                visited.add(route)
+                pages += 1
+                page = self.graph(route)
+                if not isinstance(page, dict) or not isinstance(page.get("value"), list):
+                    raise IntegrityError("Incomplete catalog")
+                for value in page["value"]:
+                    if len(seen) >= limit or depth >= 16:
+                        raise StorageError("Catalog exceeded its item/depth bound")
+                    # Reject misplaced entries before consulting the scan-local
+                    # parent map, including a response claiming another folder.
+                    if value.get("parentReference", {}).get("id") != item_id:
+                        raise ScopeError("Catalog child belongs to another parent")
+                    child = self.observation(value, allow_directory=True, ancestors=ancestors)
+                    remote = child.remote
+                    expected_path = (parent_path + "/" if parent_path else "") + value["name"]
+                    if (
+                        value.get("parentReference", {}).get("id") != item_id
+                        or remote.relative_path != expected_path
+                        or remote.identity in seen
+                        or self.config.path_key(remote.relative_path) in paths
+                    ):
+                        raise ScopeError("Catalog has duplicate or misplaced children")
+                    seen.add(remote.identity)
+                    paths.add(self.config.path_key(remote.relative_path))
+                    name = value["name"]
+                    if remote.is_directory and (
+                        name == ".Trash" or name.startswith(".Trash-") and name[7:].isdigit()
+                    ):
+                        # GNOME may move deleted mount files into these hidden
+                        # folders. Observe no trash contents and never remove it.
+                        continue
+                    values.append(child)
+                    if remote.is_directory:
+                        ancestors[remote.identity.item_id] = value
+                        pending.append((remote.identity.item_id, remote.relative_path, depth + 1))
+                route = None
+                if (link := page.get("@odata.nextLink")) is not None:
+                    if not isinstance(link, str) or len(link) > 8192 or any(ord(c) < 33 for c in link):
+                        raise ScopeError("Invalid catalog continuation")
+                    parsed = urllib.parse.urlsplit(link)
+                    if (
+                        parsed.scheme != "https"
+                        or parsed.netloc != "graph.microsoft.com"
+                        or parsed.path != "/v1.0/" + prefix
+                        or not parsed.query
+                        or parsed.fragment
+                    ):
+                        raise ScopeError("Catalog continuation left the verified children endpoint")
+                    route = prefix + "?" + parsed.query
+        return values
 
     def tree(self, path, *, limit=128, cancelled=lambda: False):
         """Bounded complete manifest, independently repeated by the controller.

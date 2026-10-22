@@ -15,7 +15,7 @@ import time
 from . import __version__
 
 IDENTIFIER = "cloudmarks-diagnostics"
-COMPONENTS = {"cli", "desktop", "bridge", "helper", "ipc", "view", "transport"}
+COMPONENTS = {"cli", "desktop", "bridge", "helper", "ipc", "view", "transport", "activity"}
 EVENTS = {
     "command_started",
     "command_finished",
@@ -43,8 +43,20 @@ EVENTS = {
     "unmount_failed",
     "metadata_failed",
     "download_failed",
+    "scan_completed",
+    "scan_failed",
+    "queue_failed",
 }
-STATES = {"none", "cloud_only", "saved_locally", "kept_offline", "transferring", "error", "unknown"}
+STATES = {
+    "none",
+    "cloud_only",
+    "saved_locally",
+    "kept_offline",
+    "transferring",
+    "uploading",
+    "error",
+    "unknown",
+}
 ENUMS = {
     "state": STATES,
     "previous_state": STATES,
@@ -65,6 +77,7 @@ ENUMS = {
         "demo",
         "check-config",
         "serve",
+        "mount-guard",
         "fixture-session",
         "install",
         "enable",

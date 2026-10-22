@@ -9,7 +9,7 @@ import threading
 import time
 from pathlib import Path
 
-from .ipc import MAX_BATCH, UNKNOWN, load_settings, relative_uri, request
+from .ipc import MAX_BATCH, UNKNOWN, load_settings, mapped_uri, request
 from .telemetry import error_category, record
 
 MAX_TRACKED = 512
@@ -18,6 +18,16 @@ MAX_WORKER_FRAME = 65536
 
 def settings_key(settings):
     return tuple(sorted(settings.items())) if settings else None
+
+
+def query_views(settings, mapped):
+    results = {}
+    for view in ("offline", "upload"):
+        paths = list(dict.fromkeys(path for scope, path in mapped.values() if scope == view))
+        if paths:
+            response = request(settings["socket"], paths, **({"view": view} if view == "upload" else {}))
+            results.update({(view, path): result for path, result in response.items()})
+    return results
 
 
 class Background:
@@ -95,12 +105,12 @@ class Background:
                 except queue.Empty:
                     break
             key = settings_key(current)
-            mapped = {uri: relative_uri(uri, current["visible_root"]) for uri in batch} if current else {}
+            mapped = {uri: mapped_uri(uri, current) for uri in batch} if current else {}
             mapped = {uri: path for uri, path in mapped.items() if path is not None}
             issued = time.monotonic()
             paths = list(dict.fromkeys(mapped.values()))
             if current and current["enabled"] and paths and issued >= retry_at:
-                results = request(current["socket"], paths)
+                results = query_views(current, mapped)
                 if all(result == UNKNOWN for result in results.values()):
                     retry_at = time.monotonic() + 1
             else:
