@@ -1,8 +1,34 @@
 # Compatibility and validation boundaries
 
-The published initial prerelease is `0.1.0a1`; the checkout develops `0.1.0a2.dev0`. This is an experimental disposable-data viewer,
-not a production replacement for Windows Files On-Demand. MIT licensing and publication
-status are tracked in the [release checklist](release-checklist.md).
+The published prerelease is `0.1.0a1`; `main` develops `0.1.0a2.dev0`.
+CloudMarks remains experimental. MIT licensing and publication status are tracked
+in the [release checklist](release-checklist.md).
+
+## Current main validation — 2026-10-22
+
+The current development build was installed in the owner's native GNOME Files
+session on the Ubuntu/GNOME/rclone versions listed below. The dedicated OneDrive
+test-account trial passed personal acceptance, including uploads, badges, Keep
+offline, Free local copy, automatic startup after reboot, and busy-view retry.
+Both the source and installed-wheel suites passed 296 tests.
+
+Version 4 settings add file/folder menu controls and background aggregate proofs,
+including empty directories. Recursive selections are bounded to 10,000 entries;
+file observation uses a bounded requested-path working set rather than a
+128-entry library scan. Online preflight checks every retained file without the
+old 128-file cap. It can still be slow for large retained libraries.
+
+These current behaviors supersede the initial release's feature/size limits below.
+See [folder controls](folder-controls.md), [automatic status](automatic-status.md),
+and the [current validation record](evidence/m6/folder-controls-local.json).
+Large real-account use, business/shared accounts, and physical storage reconnect
+remain unvalidated. No general desktop or filesystem compatibility claim follows
+from the test-account trial.
+
+## Published 0.1.0a1 baseline and historical M3–M5 evidence
+
+The following table and limits describe the earlier release validation, before
+the development desktop trial and version 4 controls above.
 
 | Component | Tested scope |
 | --- | --- |

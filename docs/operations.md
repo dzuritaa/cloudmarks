@@ -1,18 +1,39 @@
 # Install and operate the experimental viewer
 
-CloudMarks 0.1.0a1 is the published experimental prerelease for disposable test data.
-The current checkout develops 0.1.0a2.dev0; see [M6 hardening](m6-hardening.md)
-for new archive/export, verification and health commands. It supports
-read-only offline viewing and explicit CLI controls. It does not edit, upload,
-merge, automatically watch OneDrive, update mounted trees or supply context-menu
-actions. Before daily use, complete the physical reconnect/logout checks in the
-[acceptance checklist](release-checklist.md). See [compatibility](compatibility.md)
-for tested versions. The Nautilus adapter and status IPC remain read-only.
+The published `0.1.0a1` prerelease provides experimental read-only offline viewing
+and explicit CLI controls for disposable test data. The current `main` branch
+(`0.1.0a2.dev0`) also adds an opt-in [automatic upload/status observer](automatic-status.md)
+and [file/folder context-menu controls](folder-controls.md), plus
+[verification and recovery commands](m6-hardening.md).
+
+The base setup below establishes the account, store, and read-only adapter. For
+the current desktop workflow, configure automatic observation next, then enable
+version 4 menu controls using the linked guides. An external rclone mount performs
+uploads; CloudMarks' offline view remains read-only. Offline edits, two-way sync,
+and automatic conflict merging are not implemented. Start with a dedicated test
+account and review [compatibility](compatibility.md) before connecting data.
 
 ## Install the CLI
 
-Use Python 3.11–3.14 on Linux. Use a separate virtual environment, avoiding system
-Python packages. Once a licensed release is available, download its wheel and
+Use Python 3.11–3.14 on Linux and a separate virtual environment. For the current
+README's upload observation and context-menu features, install from `main`:
+
+```bash
+git clone https://github.com/dzuritaa/cloudmarks.git
+cd cloudmarks
+python3 -m venv "$HOME/.local/share/cloudmarks/venv"
+"$HOME/.local/share/cloudmarks/venv/bin/python" -m pip install --no-deps .
+"$HOME/.local/share/cloudmarks/venv/bin/cloudmarks" --version
+"$HOME/.local/share/cloudmarks/venv/bin/cloudmarks" demo
+```
+
+For an existing installation, follow [upgrade and rollback](#upgrade-and-rollback)
+first. Installing the CLI alone does not configure an account or load the Nautilus
+extension; continue with the separate test profile below.
+
+### Install the earlier published prerelease instead
+
+For `0.1.0a1`, download its wheel and
 `SHA256SUMS` from the project's release page into a new directory. Verify the
 checksums there; they detect accidental changes, not the identity of the publisher.
 
@@ -126,9 +147,11 @@ launcher to `~/.local/share/nautilus-python/extensions/cloudmarks_nautilus.py`.
 The historical `m2` directory name is retained across versions. Desktop settings
 and the ownership manifest are private under `~/.config/cloudmarks`. The command
 installs disabled and never restarts Files. `serve` is foreground; start it in a
-separate terminal. It reads account state with SQLite mode=ro and has no transfer
-or credential API. Use a fresh Files process in your chosen test session, after
-saving work; an already loaded extension keeps its imported code until exit.
+separate terminal. Its status socket exposes no transfer or credential API. The
+base version 2 helper reads account state with SQLite mode=ro; opting into version
+3/4 automatic observation also gives separate background workers scoped metadata
+access through the private transport configuration. Use a fresh Files process in
+your chosen test session, after saving work; an already loaded extension keeps its imported code until exit.
 
 ```bash
 cloudmarks enable
@@ -140,6 +163,9 @@ or expired lease clears positive status. Unrelated roots stay unbadged.
 Do not install the disposable M0 spike beside the real adapter.
 
 ## Optional helper startup at login
+
+This section describes the base version 2 helper. For version 3/4 observation and
+mount startup, also follow [automatic status setup](automatic-status.md#startup-and-stopped-mount-protection).
 
 The source archive contains `examples/cloudmarks-status.service`. It starts only
 the installed account status helper, with a private runtime socket directory and
