@@ -2,9 +2,11 @@
 
 Cloud and offline status badges for GNOME Files, starting with OneDrive through rclone.
 
+This project was **vibe-coded** with AI assistance using Codex.
+
 ## Project status
 
-M0–M4 are implemented experimentally for read-only offline viewing. M4 adds explicit change checks, durable retryable downloads, preserved conflict versions and bounded folder pins. M2 remains a status-only adapter. [M5’s experimental `0.1.0a1` release](https://github.com/dzuritaa/cloudmarks/releases/tag/v0.1.0a1) is published under MIT with passing hosted CI, package validation and operating guides; nothing is installed in the daily desktop.
+M0–M4 are implemented experimentally for read-only offline viewing. M4 adds explicit change checks, durable retryable downloads, preserved conflict versions and bounded folder pins. M2 remains a status-only adapter. [M5’s experimental `0.1.0a1` release](https://github.com/dzuritaa/cloudmarks/releases/tag/v0.1.0a1) is published under MIT with passing hosted CI, package validation and operating guides; the current development build has also been tested on the development machine with a dedicated OneDrive test account.
 
 See the [project plan](PLAN.md) for milestones and acceptance criteria, and
 [your setup checklist](YOUR_CHECKLIST.md) for the steps needed before desktop testing.
@@ -25,8 +27,8 @@ See the [installation and operating guide](docs/operations.md),
 [tested compatibility](docs/compatibility.md), [changelog](CHANGELOG.md) and
 [release gates](docs/release-checklist.md). Use [GitHub Releases](https://github.com/dzuritaa/cloudmarks/releases) for published
 builds and [Actions](https://github.com/dzuritaa/cloudmarks/actions) for hosted
-validation. The project uses the [MIT license](LICENSE). Physical reconnect/logout
-acceptance remains open before daily use.
+validation. The project uses the [MIT license](LICENSE). Broader real-account and physical storage reconnect
+acceptance remain open before daily use.
 
 Use `cloudmarks logs --follow` for privacy-filtered operational diagnostics;
 see [logging and retention](docs/operations.md#diagnostic-logging).
