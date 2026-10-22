@@ -20,6 +20,11 @@ class BackgroundFake:
         self.outbox = queue.Queue()
         self.submitted = []
         self.notes = []
+        self.controls = []
+
+    def control(self, path, operation, binding):
+        self.controls.append((path, operation, binding))
+        return True
 
     def note(self, event, **fields):
         self.notes.append((event, fields))
@@ -57,6 +62,17 @@ class File:
         return False
 
 
+class MenuItem:
+    def __init__(self, **values):
+        self.__dict__.update(values)
+
+    def connect(self, signal, callback, *args):
+        self.callback = lambda: callback(self, *args)
+
+    def activate(self):
+        self.callback()
+
+
 class AdapterTests(unittest.TestCase):
     def setUp(self):
         gi = types.ModuleType("gi")
@@ -64,7 +80,10 @@ class AdapterTests(unittest.TestCase):
         repo = types.ModuleType("gi.repository")
         repo.GObject = types.SimpleNamespace(GObject=type("GObject", (), {}))
         repo.Nautilus = types.SimpleNamespace(
-            InfoProvider=type("InfoProvider", (), {}), ColumnProvider=type("ColumnProvider", (), {})
+            InfoProvider=type("InfoProvider", (), {}),
+            ColumnProvider=type("ColumnProvider", (), {}),
+            MenuProvider=type("MenuProvider", (), {}),
+            MenuItem=MenuItem,
         )
         repo.GLib = types.SimpleNamespace(timeout_add=lambda *args: 1, SOURCE_CONTINUE=True)
         repo.Gdk = types.SimpleNamespace(Display=types.SimpleNamespace(get_default=lambda: None))
@@ -203,6 +222,24 @@ class AdapterTests(unittest.TestCase):
         neighbour = File("file:///upload-neighbour/new.txt")
         self.adapter.update_file_info(neighbour)
         self.assertEqual(neighbour.attributes, {})
+
+    def test_menu_and_activation_only_queue_scoped_actions(self):
+        self.settings = dict(
+            self.settings, version=4, mode="onedrive", upload_root="/upload", control_binding="a" * 64
+        )
+        self.adapter.background.outbox.put(("settings", self.settings))
+        self.adapter.drain()
+        with (
+            patch("builtins.open", side_effect=AssertionError("No UI I/O")),
+            patch("subprocess.Popen", side_effect=AssertionError("No process startup in UI")),
+            patch("socket.socket", side_effect=AssertionError("No UI socket")),
+        ):
+            items = self.adapter.get_file_items([File("file:///upload/folder")])
+            self.assertEqual([item.label for item in items], ["Keep offline", "Free local copy"])
+            items[0].activate()
+            self.assertEqual(self.adapter.get_file_items([File("file:///elsewhere/file")]), [])
+            self.assertEqual(self.adapter.get_file_items([self.file(), self.file("two")]), [])
+        self.assertEqual(self.adapter.background.controls, [("folder", "keep", "a" * 64)])
 
     def test_large_folder_has_bounded_work_and_memory(self):
         started = time.monotonic()

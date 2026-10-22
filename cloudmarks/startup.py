@@ -42,7 +42,7 @@ def run(settings, view, operation):
     _, offline = load_offline(settings["core_config"])
     if settings["visible_root"] != offline["visible_root"]:
         raise ConfigurationError("Desktop and offline view roots disagree")
-    if view == "upload" and settings.get("version") == 3:
+    if view == "upload" and settings.get("version") in (3, 4):
         root = settings["upload_root"]
     elif view == "offline":
         root = settings["visible_root"]

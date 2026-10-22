@@ -508,7 +508,7 @@ PRAGMA user_version=2;
 """)
         self.reopen()
         self.tracker = ChangeTracker(self.controller)
-        self.assertEqual(self.store.connection.execute("PRAGMA user_version").fetchone()[0], 4)
+        self.assertEqual(self.store.connection.execute("PRAGMA user_version").fetchone()[0], 5)
         self.assertEqual(self.store.copy(self.identity), old)
         self.tracker.queue_tree("folder")
         self.tracker.unpin_tree("folder")

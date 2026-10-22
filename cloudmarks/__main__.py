@@ -101,6 +101,9 @@ def main():
     from .offline_cli import configure
 
     configure(commands)
+    from .controls import configure as configure_controls
+
+    configure_controls(commands)
     args = parser.parse_args()
     started = time.monotonic()
     outcome = "ok"
@@ -125,6 +128,10 @@ def main():
             if args.follow:
                 command.append("--follow")
             raise SystemExit(subprocess.call(command))
+        elif args.command == "control":
+            from .controls import run
+
+            run(args)
         elif args.command == "offline":
             from .offline_cli import run
 
@@ -200,6 +207,13 @@ def main():
             )
         parser.exit(0, "Fixture helper stopped. No mount or desktop process was changed.\n")
     except (CloudMarksError, OSError) as error:
+        from .onedrive import Cancelled
+
+        if isinstance(error, Cancelled):
+            outcome = "interrupted"
+            parser.exit(
+                130, "CloudMarks: Operation cancelled; previous versions and completed files are preserved.\n"
+            )
         outcome = "failed"
         record("cli", "command_failed", error=error_category(error), **context)
         parser.exit(1, f"CloudMarks: {error}\n")

@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import socket
 import stat
 import struct
@@ -18,7 +19,17 @@ MAX_FRAME = 16384
 MAX_BATCH = 16
 TIMEOUT = 0.6
 LEASE_MS = 1000
-STATES = {"cloud_only", "saved_locally", "kept_offline", "transferring", "uploading", "error", "unknown"}
+STATES = {
+    "cloud_only",
+    "saved_locally",
+    "kept_offline",
+    "transferring",
+    "uploading",
+    "partial",
+    "freeing",
+    "error",
+    "unknown",
+}
 UNKNOWN = {"state": "unknown", "reason": "Helper unavailable or evidence needs checking", "valid_for_ms": 500}
 
 
@@ -58,17 +69,24 @@ def read_private_json(path):
 
 def validate_settings(value):
     base = {"version", "mode", "enabled", "visible_root", "core_config", "socket"}
-    automatic = isinstance(value, dict) and value.get("version") == 3
+    automatic = isinstance(value, dict) and value.get("version") in (3, 4)
+    controls = isinstance(value, dict) and value.get("version") == 4
     if (
         not isinstance(value, dict)
-        or set(value) != base | ({"upload_root", "upload_config", "upload_socket"} if automatic else set())
+        or set(value)
+        != base
+        | ({"upload_root", "upload_config", "upload_socket"} if automatic else set())
+        | ({"control_config", "control_binding"} if controls else set())
         or type(value["version"]) is not int
-        or (value["version"], value["mode"]) not in ((1, "fixture"), (2, "onedrive"), (3, "onedrive"))
+        or (value["version"], value["mode"])
+        not in ((1, "fixture"), (2, "onedrive"), (3, "onedrive"), (4, "onedrive"))
         or type(value["enabled"]) is not bool
     ):
         raise ConfigurationError("Expected version 1 fixture or version 2 test-account desktop settings")
-    for key in ("visible_root", "core_config", "socket") + (
-        ("upload_root", "upload_config", "upload_socket") if automatic else ()
+    for key in (
+        ("visible_root", "core_config", "socket")
+        + (("upload_root", "upload_config", "upload_socket") if automatic else ())
+        + (("control_config",) if controls else ())
     ):
         item = value[key]
         if (
@@ -86,6 +104,11 @@ def validate_settings(value):
         a, b = Path(value["visible_root"]), Path(value["upload_root"])
         if a.is_relative_to(b) or b.is_relative_to(a) or len(os.fsencode(value["upload_socket"])) > 100:
             raise ConfigurationError("Upload and offline roots must be separate; sockets must be bounded")
+    if controls and (
+        not isinstance(value["control_binding"], str)
+        or not re.fullmatch(r"[0-9a-f]{64}", value["control_binding"])
+    ):
+        raise ConfigurationError("Control binding must be a SHA-256 configuration fingerprint")
     return value
 
 

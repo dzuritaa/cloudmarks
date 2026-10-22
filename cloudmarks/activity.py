@@ -13,18 +13,19 @@ import stat
 import threading
 import time
 
-from .ipc import LEASE_MS, private_directory, same_user
+from .ipc import LEASE_MS, private_directory, read_private_json, same_user
+from .limits import CACHE_ENTRIES, OBSERVED_PATHS, PENDING_UPLOADS
 from .model import ConfigurationError, ScopeError, StorageError, canonical_drive
 from .offline_config import mounted_view
 from .onedrive import OneDrive, private_config
 from .paths import READ_FILE, fingerprint, open_absolute_directory, relative_parts
 from .telemetry import error_category, record
 
-LIMIT = 128
+LIMIT = OBSERVED_PATHS
 SCAN_SECONDS = 10
 FRESH_SECONDS = 30
 LOCAL_SECONDS = 3
-MAX_RESPONSE = 256 * 1024
+MAX_RESPONSE = 4 * 1024 * 1024
 
 
 class UnixHTTP(http.client.HTTPConnection):
@@ -70,55 +71,61 @@ def rc(path, method):
         connection.close()
 
 
-def cache_entries(data_path, meta_path):
-    """Bounded metadata/stat inspection only; never read or hydrate file content."""
+def cache_entries(data_path, meta_path, paths=None):
+    """Bounded, no-follow cache inspection; selected paths avoid a full scan."""
     root = open_absolute_directory(data_path)
     meta = open_absolute_directory(meta_path)
-    values, count = {}, 0
+    values = {}
     try:
-        # fwalk pins directory descriptors and does not follow symbolic links.
-        for directory, dirs, files, fd in os.fwalk(".", dir_fd=root, follow_symlinks=False):
-            depth = len(directory.split("/")) - 1
-            count += len(dirs) + len(files)
-            if depth > 16 or count > LIMIT:
-                raise StorageError("Upload cache exceeds the observation limit")
-            for name in dirs:
-                if stat.S_ISLNK(os.stat(name, dir_fd=fd, follow_symlinks=False).st_mode):
-                    raise ScopeError("Upload cache contains a directory link")
-            for name in files:
-                path = (directory[2:] + "/" if directory != "." else "") + name
-                relative_parts(path)
-                info = os.stat(name, dir_fd=fd, follow_symlinks=False)
-                if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
-                    raise ScopeError("Upload cache contains an unsupported file")
-                # Walk metadata components with O_NOFOLLOW as well.
-                parent = os.dup(meta)
-                try:
-                    for part in relative_parts(path)[:-1]:
-                        child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
-                        os.close(parent)
-                        parent = child
-                    content = os.open(name, READ_FILE, dir_fd=parent)
-                    try:
-                        meta_info = os.fstat(content)
-                        if not stat.S_ISREG(meta_info.st_mode) or meta_info.st_nlink != 1:
-                            raise ScopeError("Upload metadata is not a regular file")
-                        data = os.read(content, 16385)
-                        if len(data) > 16384:
-                            raise StorageError("Upload metadata exceeds its limit")
-                        value = json.loads(data)
-                        if not isinstance(value, dict) or type(value.get("Dirty")) is not bool:
-                            raise StorageError("Upload metadata is incomplete")
-                        dirty = value["Dirty"]
-                    finally:
-                        os.close(content)
-                except (FileNotFoundError, json.JSONDecodeError):
-                    # New/open files can precede their metadata. Never confirm
-                    # cloud completion while that local write is unaccounted for.
-                    dirty = True
-                finally:
+        if paths is None:
+            paths = []
+            for directory, dirs, files, fd in os.fwalk(".", dir_fd=root, follow_symlinks=False):
+                if len(directory.split("/")) > 65 or len(paths) + len(dirs) + len(files) > CACHE_ENTRIES:
+                    raise StorageError("Upload cache exceeds the observation limit")
+                for name in dirs:
+                    if stat.S_ISLNK(os.stat(name, dir_fd=fd, follow_symlinks=False).st_mode):
+                        raise ScopeError("Upload cache contains a directory link")
+                paths.extend((directory[2:] + "/" if directory != "." else "") + name for name in files)
+        for path in paths:
+            parts = relative_parts(path)
+            parent = os.dup(root)
+            try:
+                for part in parts[:-1]:
+                    child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
                     os.close(parent)
-                values[path] = (fingerprint(info), dirty)
+                    parent = child
+                info = os.stat(parts[-1], dir_fd=parent, follow_symlinks=False)
+            except FileNotFoundError:
+                continue
+            finally:
+                os.close(parent)
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                raise ScopeError("Upload cache contains an unsupported file")
+            parent = os.dup(meta)
+            try:
+                for part in parts[:-1]:
+                    child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+                    os.close(parent)
+                    parent = child
+                content = os.open(parts[-1], READ_FILE, dir_fd=parent)
+                try:
+                    meta_info = os.fstat(content)
+                    if not stat.S_ISREG(meta_info.st_mode) or meta_info.st_nlink != 1:
+                        raise ScopeError("Upload metadata is not a regular file")
+                    data = os.read(content, 16385)
+                    if len(data) > 16384:
+                        raise StorageError("Upload metadata exceeds its limit")
+                    value = json.loads(data)
+                    if not isinstance(value, dict) or type(value.get("Dirty")) is not bool:
+                        raise StorageError("Upload metadata is incomplete")
+                    dirty = value["Dirty"]
+                finally:
+                    os.close(content)
+            except (FileNotFoundError, json.JSONDecodeError):
+                dirty = True
+            finally:
+                os.close(parent)
+            values[path] = (fingerprint(info), dirty)
         return values
     finally:
         os.close(root)
@@ -133,9 +140,11 @@ class Activity:
         self.stop = threading.Event()
         self.wake = threading.Event()
         self.remote = {}
+        self.interests = {}
         self.local = {}
         self.after = {}
         self.local_at = 0
+        self.control_progress = None
         self.threads = []
         self.validate_upload()
 
@@ -169,7 +178,7 @@ class Activity:
             thread.join(timeout=0.5)
 
     def update_local(self, entries, queue):
-        if not isinstance(queue, list) or len(queue) > LIMIT:
+        if not isinstance(queue, list) or len(queue) > PENDING_UPLOADS:
             raise StorageError("Upload queue exceeds the observation limit")
         states = {}
         for item in queue:
@@ -181,7 +190,7 @@ class Activity:
         for path, (_, dirty) in entries.items():
             if dirty:
                 states.setdefault(path, "uploading")
-        if len(set(entries) | set(states)) > LIMIT:
+        if len(set(entries) | set(states)) > PENDING_UPLOADS + OBSERVED_PATHS:
             raise StorageError("Upload activity exceeds the observation limit")
         now = self.clock()
         with self.lock:
@@ -199,26 +208,90 @@ class Activity:
                 for path, stamp in self.after.items()
                 if path in entries or path in states or now - stamp < FRESH_SECONDS + SCAN_SECONDS
             }
-            if len(self.after) > LIMIT:
+            if len(self.after) > PENDING_UPLOADS + OBSERVED_PATHS:
                 raise StorageError("Recent upload activity exceeds the observation limit")
             self.entries, self.local, self.local_at = entries, states, now
 
     def local_worker(self):
-        while not self.stop.is_set():
+        from .cache_watch import CacheWatch
+
+        watch, roots, cached = None, None, {}
+        try:
+            while not self.stop.is_set():
+                try:
+                    self.validate_upload()
+                    mount = mounted_view({"visible_root": self.settings["upload_root"]})
+                    if not mount or mount["type"] != "fuse.rclone" or "rw" not in mount["options"]:
+                        raise StorageError("Upload mount is unavailable")
+                    stats = rc(self.settings["upload_socket"], "vfs/stats")["diskCache"]
+                    queue = rc(self.settings["upload_socket"], "vfs/queue").get("queue", [])
+                    current = (stats["path"], stats["pathMeta"])
+                    if watch is None or roots != current:
+                        if watch:
+                            watch.close()
+                        watch, roots = CacheWatch(*current), current
+                        cached = cache_entries(*current)
+                    changed = watch.changed()
+                    if changed:
+                        updates = cache_entries(*current, paths=changed)
+                        for path in changed:
+                            cached.pop(path, None)
+                        cached.update(updates)
+                    if len(cached) > CACHE_ENTRIES:
+                        raise StorageError("Upload cache exceeded its bound")
+                    queued = {item["name"] for item in queue}
+                    with self.lock:
+                        relevant = set(self.interests) | set(getattr(self, "entries", {})) | queued
+                    entries = {p: value for p, value in cached.items() if value[1] or p in relevant}
+                    self.update_local(entries, queue)
+                    self.read_control_progress()
+                except Exception as error:
+                    if watch:
+                        watch.close()
+                    watch, roots = None, None
+                    record("activity", "queue_failed", error=error_category(error))
+                    # No polling storm if notifications or the mount are unavailable.
+                    self.stop.wait(2)
+                self.stop.wait(0.5)
+        finally:
+            if watch:
+                watch.close()
+
+    def read_control_progress(self):
+        from .controls import process_start, progress_path
+
+        value = None
+        if self.settings.get("version") == 4:
             try:
-                self.validate_upload()
-                mount = mounted_view({"visible_root": self.settings["upload_root"]})
-                if not mount or mount["type"] != "fuse.rclone" or "rw" not in mount["options"]:
-                    raise StorageError("Upload mount is unavailable")
-                stats = rc(self.settings["upload_socket"], "vfs/stats")["diskCache"]
-                queue = rc(self.settings["upload_socket"], "vfs/queue").get("queue", [])
-                entries = cache_entries(stats["path"], stats["pathMeta"])
-                self.update_local(entries, queue)
-            except Exception as error:
-                # A transient timeout does not revoke a still-live observation.
-                # Repeated failures expire naturally at the original deadline.
-                record("activity", "queue_failed", error=error_category(error))
-            self.stop.wait(0.5)
+                candidate = read_private_json(progress_path(self.config))
+                relative_parts(candidate["path"])
+                if (
+                    candidate.get("version") == 1
+                    and candidate.get("operation") in ("keep", "free")
+                    and candidate.get("active") is True
+                    and 0 <= self.clock() - candidate["updated_at"] < 30
+                    and candidate.get("start") is not None
+                    and process_start(candidate["pid"]) == candidate["start"]
+                ):
+                    value = candidate
+            except (OSError, ValueError, TypeError, KeyError, ConfigurationError, ScopeError):
+                pass
+        with self.lock:
+            self.control_progress = value
+
+    def control_evidence(self, path):
+        with self.lock:
+            progress = self.control_progress
+        if not progress or not 0 <= self.clock() - progress["updated_at"] < 30:
+            return None
+        selected = progress["path"]
+        if path != selected and not path.startswith(selected + "/") and not selected.startswith(path + "/"):
+            return None
+        state = "transferring" if progress["operation"] == "keep" else "freeing"
+        return self.result(
+            state,
+            f"Offline operation: {progress['completed']}/{progress['total']} files ({progress['phase']})",
+        )
 
     def update_remote(self, observations):
         if len(observations) > LIMIT:
@@ -242,26 +315,71 @@ class Activity:
         backoff = 5
         while not self.stop.is_set():
             self.wake.clear()
+            with self.lock:
+                now = self.clock()
+                wanted = {p: stamp for p, stamp in self.interests.items() if 0 <= now - stamp < 60}
+                wanted.update({p: stamp for p, stamp in self.after.items() if 0 <= now - stamp < 60})
+                paths = sorted(wanted, key=wanted.get, reverse=True)[:OBSERVED_PATHS]
+            if not paths:
+                self.wake.wait(0.5)
+                continue
             started = time.monotonic()
             try:
-                self.update_remote(self.backend.catalog(cancelled=self.stop.is_set))
+                values = self.backend.describe_many(paths)
+                with self.lock:
+                    for path, observation in values.items():
+                        if observation is None:
+                            self.remote.pop(path, None)
+                        else:
+                            self.config.validate_remote(observation.remote)
+                            if observation.remote.relative_path != path:
+                                raise ScopeError("Metadata working set returned a different path")
+                            self.remote[path] = observation.remote
+                    if len(self.remote) > OBSERVED_PATHS:
+                        for path in sorted(self.remote, key=lambda p: wanted.get(p, 0))[:-OBSERVED_PATHS]:
+                            del self.remote[path]
+                record("activity", "scan_completed", count=len(values))
                 delay, backoff = SCAN_SECONDS, 5
             except Exception as error:
                 # Keep old observations only until their own deadline. A failed
                 # request must never renew metadata or offline evidence.
                 record("activity", "scan_failed", error=error_category(error))
                 delay, backoff = backoff, min(60, backoff * 2)
+                self.stop.wait(max(0, delay - (time.monotonic() - started)))
+                continue
             # Do not let a large upload generate unbounded Graph polling.
             if self.stop.wait(max(0, 3 - (time.monotonic() - started))):
                 break
             self.wake.wait(max(0, delay - (time.monotonic() - started)))
 
+    def watch(self, path):
+        """Demand-driven working set, independent of how many cloud files exist."""
+        relative_parts(path)
+        now = self.clock()
+        with self.lock:
+            remote = self.remote.get(path)
+            first = path not in self.interests
+            self.interests[path] = now
+            if len(self.interests) > OBSERVED_PATHS:
+                oldest = min(self.interests, key=self.interests.get)
+                del self.interests[oldest]
+            if first or remote is None or now - remote.observed_at >= SCAN_SECONDS:
+                self.wake.set()
+
     def evidence(self, path):
         """Memory-only status evidence; caller still proves durable offline bytes."""
+        self.watch(path)
+        control = self.control_evidence(path)
+        if control:
+            return None, control
         now = self.clock()
         with self.lock:
             remote = self.remote.get(path)
             local = self.local.get(path)
+            if remote is not None and remote.is_directory:
+                children = [value for child, value in self.local.items() if child.startswith(path + "/")]
+                if children:
+                    local = "error" if "error" in children else "uploading"
             after = self.after.get(path, 0)
             entry = getattr(self, "entries", {}).get(path)
             local_age = now - self.local_at

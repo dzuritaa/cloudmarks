@@ -66,8 +66,9 @@ class GraphTests(unittest.TestCase):
         }
         self.folder = {
             "id": "allowed-root",
+            "name": "allowed",
             "folder": {},
-            "parentReference": {"driveId": "test-drive", "id": "drive-root"},
+            "parentReference": {"driveId": "test-drive", "id": "drive-root", "path": "/drive/root:"},
         }
 
         def graph(route):
@@ -78,6 +79,13 @@ class GraphTests(unittest.TestCase):
                 return {"mail": "test@example.invalid"}
             if route.endswith("/items/allowed-root"):
                 return self.folder
+            if route.endswith("/items/drive-root"):
+                return {
+                    "id": "drive-root",
+                    "folder": {},
+                    "root": {},
+                    "parentReference": {"driveId": "test-drive"},
+                }
             if ":/" in route:
                 return self.file
             raise ScopeError("Unproven ancestry")
@@ -392,6 +400,79 @@ class StatusReaderTests(OfflineCase):
             "DROP TABLE local_entries; DROP TABLE publications; PRAGMA user_version=1;"
         )
         self.reopen()
-        self.assertEqual(self.store.connection.execute("PRAGMA user_version").fetchone()[0], 4)
+        self.assertEqual(self.store.connection.execute("PRAGMA user_version").fetchone()[0], 5)
         self.assertEqual(self.store.copy(self.identity), copy)
         self.assertTrue(self.store.row(self.identity)["pinned"])
+
+
+class BatchTests(GraphTests):
+    def test_batches_correlate_unordered_results_beyond_old_library_limit(self):
+        original = self.backend.graph
+        batches = []
+
+        def graph(route, **kwargs):
+            if route != "$batch":
+                return original(route)
+            rows = kwargs["payload"]["requests"]
+            batches.append(rows)
+            responses = []
+            for row in rows:
+                name = row["url"].rsplit("/", 1)[-1].removesuffix(":")
+                body = dict(self.file, id=name, name=name)
+                responses.append({"id": row["id"], "status": 200, "body": body})
+            return {"responses": list(reversed(responses))}
+
+        self.backend.graph = graph
+        paths = [f"file-{i}.txt" for i in range(140)]
+        values = self.backend.describe_many(paths)
+        self.assertEqual(set(values), set(paths))
+        self.assertEqual(len(batches), 7)
+        self.assertTrue(
+            all(
+                row["url"].startswith("/drives/test-drive/root:/allowed/") for rows in batches for row in rows
+            )
+        )
+        self.assertTrue(
+            all(len(rows) == 20 and all(row["method"] == "GET" for row in rows) for rows in batches)
+        )
+
+    def test_failed_item_is_unknown_and_misplaced_success_is_rejected(self):
+        original = self.backend.graph
+        self.backend.graph = lambda route, **kwargs: (
+            {"responses": [{"id": "0", "status": 404}]} if route == "$batch" else original(route)
+        )
+        self.assertEqual(self.backend.describe_many(["document.txt"]), {"document.txt": None})
+        self.backend.graph = lambda route, **kwargs: (
+            {"responses": [{"id": "0", "status": 200, "body": dict(self.file, name="wrong.txt")}]}
+            if route == "$batch"
+            else original(route)
+        )
+        with self.assertRaises(ScopeError):
+            self.backend.describe_many(["document.txt"])
+
+    def test_actual_transport_rejects_mutations_and_noncanonical_batch_urls(self):
+        backend = OneDrive(self.config, self.settings)
+        backend._batch_prefix = "/drives/test-drive/root:/allowed/"
+        for method, url in (
+            ("DELETE", "/drives/test-drive/root:/allowed/document.txt"),
+            ("GET", "/drives/test-drive/items/outside:/document.txt"),
+            ("GET", "/drives/test-drive/root:/allowed/document.txt?expand=content"),
+            ("GET", "/drives/test-drive/root:/allowed/%2e%2e/secret"),
+        ):
+            with self.subTest(method=method, url=url), self.assertRaises(ScopeError):
+                backend.graph("$batch", payload={"requests": [{"id": "0", "method": method, "url": url}]})
+
+    def test_account_attestation_memo_expires_and_credential_changes_invalidate_it(self):
+        with patch("cloudmarks.onedrive.time.monotonic", return_value=100) as clock:
+            self.backend.authenticate()
+            first = len(self.calls)
+            clock.return_value = 110
+            self.backend.authenticate()
+            self.assertEqual(len(self.calls), first)
+            clock.return_value = 121
+            self.backend.authenticate()
+            self.assertEqual(len(self.calls), first * 2)
+            self.parser["origin"]["token"] = json.dumps({"access_token": "artificial-new"})
+            self.save()
+            self.backend.authenticate()
+            self.assertEqual(len(self.calls), first * 3)

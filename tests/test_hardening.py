@@ -505,7 +505,7 @@ class DiagnosticsTests(OfflineCase):
                 reader.connection.execute("SELECT name FROM sqlite_master WHERE name='archives'").fetchone()
             )
         self.reopen()
-        self.assertEqual(self.store.connection.execute("PRAGMA user_version").fetchone()[0], 4)
+        self.assertEqual(self.store.connection.execute("PRAGMA user_version").fetchone()[0], 5)
 
     def test_legacy_schema_read_only_never_migrates_then_writer_preserves_bytes(self):
         old = self.keep()
@@ -518,6 +518,6 @@ class DiagnosticsTests(OfflineCase):
             self.assertEqual(reader.connection.execute("PRAGMA user_version").fetchone()[0], 3)
         self.assertEqual(self.config.state_path.read_bytes(), before)
         self.reopen()
-        self.assertEqual(self.store.connection.execute("PRAGMA user_version").fetchone()[0], 4)
+        self.assertEqual(self.store.connection.execute("PRAGMA user_version").fetchone()[0], 5)
         self.assertEqual(self.store.copy(self.identity), old)
         self.assertEqual(self.visible().read_bytes(), self.backend.content)

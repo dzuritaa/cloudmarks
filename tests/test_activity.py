@@ -177,14 +177,14 @@ class ActivityTests(test_offline.OfflineCase):
 
     def test_catalog_validation_is_atomic_and_bounded(self):
         with self.assertRaises(StorageError):
-            self.activity.update_remote([self.backend.describe(self.path)] * 129)
+            self.activity.update_remote([self.backend.describe(self.path)] * 1025)
         with self.assertRaises(ScopeError):
             self.activity.update_remote([self.backend.describe(self.path)] * 2)
         self.assertEqual(self.state(), "cloud_only")
 
     def test_bad_queue_cannot_grow_memory_or_escape_root(self):
         with self.assertRaises(StorageError):
-            self.activity.update_local({}, [{}] * 129)
+            self.activity.update_local({}, [{}] * 10001)
         with self.assertRaises(ScopeError):
             self.activity.update_local({}, [{"name": "../escape", "tries": 0}])
 

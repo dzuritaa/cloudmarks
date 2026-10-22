@@ -203,14 +203,21 @@ def run(settings):
         config, offline = load_offline(settings["core_config"])
         with ReadStore(config) as store:
             activity = None
+            folders = None
             try:
-                if settings["version"] == 3:
+                if settings["version"] in (3, 4):
                     from .activity import Activity
 
                     activity = Activity(config, offline, settings).start()
-                service = OfflineStatusService(settings, store, offline, activity=activity)
+                if activity:
+                    from .folders import FolderObserver
+
+                    folders = FolderObserver(config, offline, activity).start()
+                service = OfflineStatusService(settings, store, offline, activity=activity, folders=folders)
                 serve(settings, store, service=service)
             finally:
+                if folders:
+                    folders.close()
                 if activity:
                     activity.close()
         return
@@ -224,10 +231,11 @@ class OfflineStatusService(StatusService):
 
     supports_large_files = True
 
-    def __init__(self, settings, store, offline, *, activity=None):
+    def __init__(self, settings, store, offline, *, activity=None, folders=None):
         from .verification import status_engine
 
         self.activity = activity
+        self.folders = folders
         if activity:
             from .activity import ObservedStore
 
@@ -243,7 +251,11 @@ class OfflineStatusService(StatusService):
         if remote is None:
             return result
         if remote.is_directory:
-            return self.activity.result("unknown", "Folder coverage requires an explicit offline manifest")
+            return (
+                self.folders.request(path, view)
+                if self.folders
+                else self.activity.result("unknown", "Folder verification is unavailable")
+            )
         if view == "upload":
             return result
         row = self.store.connection.execute(
@@ -252,17 +264,15 @@ class OfflineStatusService(StatusService):
         ).fetchone()
         # A remote-only observation must never hide an older retained file at
         # this path, including replacement identities and renamed publications.
-        from .activity import LIMIT
-
-        entries = self.store.connection.execute(
-            "SELECT item_id,relative_path FROM local_entries LIMIT ?", (LIMIT + 1,)
-        ).fetchall()
-        if len(entries) > LIMIT:
-            return self.activity.result("unknown", "Retained catalog exceeds the automatic observation limit")
-        entry = next(
-            (e for e in entries if self.config.path_key(e["relative_path"]) == self.config.path_key(path)),
-            None,
-        )
+        if self.store.connection.execute("PRAGMA user_version").fetchone()[0] >= 5:
+            entry = self.store.connection.execute(
+                "SELECT item_id,relative_path FROM local_entries WHERE cm_path_key(relative_path)=?",
+                (self.config.path_key(path),),
+            ).fetchone()
+        else:
+            entry = self.store.connection.execute(
+                "SELECT item_id,relative_path FROM local_entries WHERE relative_path=?", (path,)
+            ).fetchone()
         if entry and (entry["item_id"] != remote.identity.item_id or not row):
             return self.activity.result(
                 "unknown", "Retained path differs from OneDrive; preserve the local copy"

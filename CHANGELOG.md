@@ -2,11 +2,20 @@
 
 ## 0.1.0a2.dev0 — unreleased
 
+- Opt-in Nautilus file/folder Keep offline and Free local copy controls run in a
+  separate progress/retry/cancel window. Normal unmounts, overlapping pins,
+  corruption checks and intent recovery preserve local/cloud data.
+- Background aggregate badges verify current folder membership, local bytes and
+  read paths, including nested/empty folders. Partial coverage stays distinct.
+- Demand-driven read-only metadata batches replace the 128-entry library scan;
+  recursive selections support 10,000 entries. Cache change notifications avoid
+  repeated idle directory walks. Schema 5 adds retained-path and pin-owner indexes.
+
 - Service mount guards refuse startup over pending local files and protect
   stopped mountpoints against accidental local writes. Optional login startup
   can resume a supervised test profile without relying on bookmark navigation.
 - Opt-in automatic status observation follows a scoped rclone upload queue and
-  bounded OneDrive catalog in background workers. Both test views receive badges;
+  bounded OneDrive working set in background workers. Both test views receive badges;
   pending uploads, fresh cloud confirmation and verified offline copies remain
   distinct. Existing metadata-only desktop configurations remain supported.
 - Structured, privacy-filtered journal diagnostics cover desktop refresh/expiry,

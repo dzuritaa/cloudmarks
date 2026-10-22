@@ -11,6 +11,7 @@ import sqlite3
 import time
 from dataclasses import asdict, replace
 
+from .limits import TREE_ENTRIES
 from .model import FileIdentity, IntegrityError, LocalCopy, ScopeError, StorageError
 from .offline import usage
 from .onedrive import Cancelled, RemoteMissing, checksum
@@ -242,9 +243,9 @@ class ChangeTracker:
         self.store._update(remote.identity, "operation='idle',error=NULL", ())
         return True
 
-    def resume(self, *, limit=128):
-        if type(limit) is not int or not 1 <= limit <= 128:
-            raise ScopeError("Worker limit must be between 1 and 128")
+    def resume(self, *, limit=TREE_ENTRIES):
+        if type(limit) is not int or not 1 <= limit <= TREE_ENTRIES:
+            raise ScopeError(f"Worker limit must be between 1 and {TREE_ENTRIES}")
         self.control.recover()
         jobs = self.store.connection.execute(
             "SELECT * FROM jobs WHERE status IN ('pending','error') ORDER BY rowid LIMIT ?", (limit,)
@@ -339,7 +340,7 @@ class ChangeTracker:
             )
         ]
 
-    def queue_tree(self, path, *, limit=128):
+    def queue_tree(self, path, *, limit=TREE_ENTRIES):
         self.control.recover()
         first = self.backend.tree(path, limit=limit, cancelled=self.control.cancelled)
         second = self.backend.tree(path, limit=limit, cancelled=self.control.cancelled)
@@ -393,6 +394,7 @@ class ChangeTracker:
                     self.enqueue(remote, direct=False)
             for member in old_members:
                 self.store.recompute_pin(connection, FileIdentity(*member))
+        return second
 
     def unpin_tree(self, path):
         self.control.recover()
@@ -412,12 +414,10 @@ class ChangeTracker:
 
     def check_online(self):
         """Do not let a stale local-first path shadow changed cloud content."""
-        rows = self.store.connection.execute(
-            "SELECT drive_id,item_id FROM local_entries LIMIT 129"
-        ).fetchall()
-        if not rows or len(rows) > 128:
-            raise ScopeError("Online view requires between 1 and 128 verified retained files")
+        rows = self.store.connection.execute("SELECT drive_id,item_id FROM local_entries")
+        found = False
         for row in rows:
+            found = True
             identity = FileIdentity(*row)
             observation = self.observe(identity)
             if not observation or self.assess(observation):
@@ -438,3 +438,5 @@ class ChangeTracker:
                 raise IntegrityError("Remote checksum mismatch prevents online mounting")
             self.backend.verify_transport_item(observation)
             self.store.observe(replace(remote, sha256=copy.sha256))
+        if not found:
+            raise ScopeError("Online view requires a verified retained file")

@@ -54,6 +54,8 @@ STATES = {
     "kept_offline",
     "transferring",
     "uploading",
+    "partial",
+    "freeing",
     "error",
     "unknown",
 }
@@ -84,6 +86,7 @@ ENUMS = {
         "disable",
         "uninstall",
         "offline",
+        "control",
         "logs",
     },
     "action": {

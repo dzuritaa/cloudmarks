@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .ipc import private_directory
+from .limits import OBSERVED_PATHS, TREE_DEPTH, TREE_ENTRIES, TREE_PAGES, TREE_SECONDS
 from .model import ConfigurationError, IntegrityError, RemoteFile, ScopeError, StorageError, canonical_drive
 from .paths import relative_parts
 from .telemetry import error_category, record
@@ -175,9 +176,37 @@ class OneDrive:
             "--timeout=15s",
         ]
 
-    def graph(self, route, *, refreshed=False):
+    def graph(self, route, *, refreshed=False, payload=None):
         # Callers build route components with quote(..., safe=''). Metadata GETs
         # never follow redirects carrying the bearer token to another host.
+        if payload is not None:
+            q = urllib.parse.quote
+            prefix = getattr(self, "_batch_prefix", None)
+            if prefix is None:
+                raise ScopeError("Metadata batches require a verified allowed-root path")
+            rows = payload.get("requests") if isinstance(payload, dict) else None
+            if route != "$batch" or not isinstance(rows, list) or not 1 <= len(rows) <= 20:
+                raise ScopeError("Only bounded read-only metadata batches are supported")
+            seen = set()
+            for row in rows:
+                if (
+                    not isinstance(row, dict)
+                    or set(row) != {"id", "method", "url"}
+                    or not isinstance(row["id"], str)
+                    or row["id"] in seen
+                    or row["method"] != "GET"
+                    or not isinstance(row["url"], str)
+                    or not row["url"].startswith(prefix)
+                ):
+                    raise ScopeError("Metadata batch operation escaped its read-only root")
+                encoded = row["url"][len(prefix) :]
+                if encoded.endswith(":"):
+                    encoded = encoded[:-1]
+                decoded = urllib.parse.unquote(encoded, errors="strict")
+                relative_parts(decoded)
+                if q(decoded, safe="/") != encoded:
+                    raise ScopeError("Metadata batch path is not canonically encoded")
+                seen.add(row["id"])
         parser = self.validate_transport()
         try:
             credential = json.loads(parser["origin"]["token"])
@@ -192,8 +221,12 @@ class OneDrive:
             raise ConfigurationError(
                 "Transport credential is unavailable; reauthenticate the test account locally"
             ) from None
+        if payload is not None and route != "$batch":
+            raise ScopeError("Only read-only metadata batches may use a request body")
         request = urllib.request.Request(
-            "https://graph.microsoft.com/v1.0/" + route, headers={"Authorization": "Bearer " + token}
+            "https://graph.microsoft.com/v1.0/" + route,
+            data=json.dumps(payload).encode() if payload is not None else None,
+            headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
         )
         try:
             with self.opener.open(request, timeout=20) as stream:
@@ -216,7 +249,7 @@ class OneDrive:
                     timeout=45,
                 )
                 if result.returncode == 0:
-                    return self.graph(route, refreshed=True)
+                    return self.graph(route, refreshed=True, **({"payload": payload} if payload else {}))
             if code == 404:
                 raise RemoteMissing("Remote item is unavailable; preserve retained snapshots") from None
             raise StorageError("Remote metadata unavailable; retain local evidence") from None
@@ -229,10 +262,30 @@ class OneDrive:
         return self.graph(f"drives/{q(self.config.expected_drive_id, safe='')}/items/{q(item_id, safe='')}")
 
     def authenticate(self):
+        # Reuse account/root attestation briefly within one transport instance.
+        # Each Graph call still reloads/validates the private config; credential
+        # or expected-account changes invalidate this memo before reuse.
+        parser = self.validate_transport()
+        stamp = hashlib.sha256(
+            json.dumps(
+                [
+                    dict(parser["origin"]),
+                    self.settings["expected_email"],
+                    self.config.expected_drive_id,
+                    self.config.allowed_root_id,
+                ],
+                sort_keys=True,
+            ).encode()
+        ).digest()
+        now = time.monotonic()
+        previous = getattr(self, "_account_proof", None)
+        if previous and previous[0] == stamp and 0 <= now - previous[1] < 20:
+            return
         try:
             self._authenticate()
         except RemoteMissing:
             raise StorageError("Account or allowed root is unavailable; retain local evidence") from None
+        self._account_proof = (stamp, now)
 
     def _authenticate(self):
         drive = self.graph("me/drive?$select=id")
@@ -242,6 +295,7 @@ class OneDrive:
         ].casefold() not in {str(me.get(k, "")).casefold() for k in ("mail", "userPrincipalName")}:
             raise ScopeError("Authenticated user/drive is not the configured test account")
         root = self.item(self.config.allowed_root_id)
+        self._authenticated_root = root
         if (
             root.get("id") != self.config.allowed_root_id
             or "folder" not in root
@@ -269,11 +323,97 @@ class OneDrive:
         try:
             value = self.item(identity.item_id)
         except RemoteMissing:
+            self._account_proof = None
             self.authenticate()  # Root/account must still be accessible.
             raise
         if value.get("id") != identity.item_id:
             raise ScopeError("Stable item lookup returned another identity")
         return self.observation(value, allow_directory=True)
+
+    def describe_many(self, paths):
+        """Observe a bounded working set; never enumerate the whole library.
+
+        Microsoft Graph accepts 20 GETs per batch. Missing/failed individual
+        results are unknown, never deletion evidence. Each successful result is
+        independently checked against the requested path and allowed ancestry.
+        """
+        if not 1 <= len(paths) <= OBSERVED_PATHS or len(set(paths)) != len(paths):
+            raise ScopeError("Metadata working set is empty, duplicated or too large")
+        for path in paths:
+            relative_parts(path)
+        self.authenticate()
+        backend = self
+
+        class Parents(dict):
+            def __missing__(self, key):
+                if len(self) >= OBSERVED_PATHS:
+                    raise ScopeError("Metadata ancestry exceeds its working-set bound")
+                self[key] = value = backend.item(key)
+                return value
+
+        parents, results = Parents(), {}
+        q = urllib.parse.quote
+        cached = getattr(self, "_batch_address", None)
+        if cached and cached[0] == self._account_proof:
+            prefix = cached[1]
+        else:
+            # Consumer OneDrive batch routing ignores an item-relative suffix
+            # on some accounts. Resolve the allowed root's absolute path using
+            # authenticated parent IDs, then still validate each returned item's
+            # complete ancestry against the allowed root ID.
+            value, names, seen = self._authenticated_root, [], set()
+            for _ in range(TREE_DEPTH):
+                if value.get("id") in seen or "remoteItem" in value or "folder" not in value:
+                    raise ScopeError("Allowed-root batch ancestry is invalid")
+                seen.add(value["id"])
+                parent = value.get("parentReference", {})
+                if canonical_drive(parent.get("driveId")) != self.config.expected_drive_id:
+                    raise ScopeError("Allowed-root batch ancestry left its drive")
+                if "root" in value:
+                    break
+                name = value.get("name")
+                if len(relative_parts(name)) != 1:
+                    raise ScopeError("Allowed-root name is not one component")
+                names.append(name)
+                value = self.item(parent["id"])
+            else:
+                raise ScopeError("Allowed-root batch ancestry exceeded its bound")
+            absolute = "/".join(reversed(names))
+            relative_parts(absolute)
+            prefix = (
+                f"/drives/{q(self.config.expected_drive_id, safe='')}/root:/" + q(absolute, safe="/") + "/"
+            )
+            self._batch_address = (self._account_proof, prefix)
+        self._batch_prefix = prefix
+        for offset in range(0, len(paths), 20):
+            batch = paths[offset : offset + 20]
+            request = {
+                "requests": [
+                    {"id": str(i), "method": "GET", "url": prefix + q(path, safe="/") + ":"}
+                    for i, path in enumerate(batch)
+                ]
+            }
+            response = self.graph("$batch", payload=request)
+            rows = response.get("responses") if isinstance(response, dict) else None
+            if not isinstance(rows, list) or len(rows) != len(batch):
+                raise IntegrityError("Metadata batch returned an incomplete response")
+            indexed = {row.get("id"): row for row in rows if isinstance(row, dict)}
+            if len(indexed) != len(batch) or set(indexed) != {str(i) for i in range(len(batch))}:
+                raise IntegrityError("Metadata batch response identities disagree")
+            for i, path in enumerate(batch):
+                row = indexed[str(i)]
+                if type(row.get("status")) is not int:
+                    raise IntegrityError("Metadata batch status is malformed")
+                if row["status"] != 200:
+                    results[path] = None
+                    continue
+                try:
+                    results[path] = self.observation(
+                        row["body"], path, allow_directory=True, ancestors=parents
+                    )
+                except (KeyError, TypeError):
+                    raise IntegrityError("Metadata batch returned malformed item data") from None
+        return results
 
     def observation(self, value, path=None, *, allow_directory=False, ancestors=None):
         initial = value
@@ -427,14 +567,14 @@ class OneDrive:
                     route = prefix + "?" + parsed.query
         return values
 
-    def tree(self, path, *, limit=128, cancelled=lambda: False):
+    def tree(self, path, *, limit=TREE_ENTRIES, cancelled=lambda: False):
         """Bounded complete manifest, independently repeated by the controller.
 
         Never infer deletions from listing omissions. Pages must stay on the
         exact children endpoint; bearer credentials cannot follow arbitrary URLs.
         """
-        if type(limit) is not int or not 1 <= limit <= 128:
-            raise ScopeError("Recursive manifest limit must be between 1 and 128")
+        if type(limit) is not int or not 1 <= limit <= TREE_ENTRIES:
+            raise ScopeError(f"Recursive manifest limit must be between 1 and {TREE_ENTRIES}")
         root = self.describe(path, allow_directory=True)
         if not root.remote.is_directory:
             raise ScopeError("Recursive intent requires a folder")
@@ -445,7 +585,17 @@ class OneDrive:
             {root.remote.identity},
             {self.config.path_key(path)},
         )
-        deadline, pages = time.monotonic() + 120, 0
+        deadline, pages = time.monotonic() + TREE_SECONDS, 0
+        backend = self
+
+        class Parents(dict):
+            def __missing__(self, key):
+                if len(self) > TREE_ENTRIES + TREE_DEPTH:
+                    raise ScopeError("Recursive ancestry exceeded its bound")
+                self[key] = value = backend.item(key)
+                return value
+
+        ancestors = Parents()
         while pending:
             folder, depth = pending.pop()
             prefix = (
@@ -456,7 +606,7 @@ class OneDrive:
             while route:
                 if cancelled():
                     raise Cancelled("Folder enumeration cancelled; prior intent retained")
-                if time.monotonic() > deadline or pages >= 32 or route in visited:
+                if time.monotonic() > deadline or pages >= TREE_PAGES or route in visited:
                     raise StorageError("Recursive enumeration exceeded its time/page bound")
                 pages += 1
                 visited.add(route)
@@ -464,9 +614,11 @@ class OneDrive:
                 if not isinstance(page, dict) or not isinstance(page.get("value"), list):
                     raise IntegrityError("Incomplete recursive listing")
                 for value in page["value"]:
-                    if len(values) >= limit or depth >= 16:
+                    if len(values) >= limit or depth >= TREE_DEPTH:
                         raise StorageError("Recursive enumeration exceeded its item/depth bound")
-                    child = self.observation(value, allow_directory=True)
+                    # Folder ancestry was established when scheduling this
+                    # endpoint; reuse those responses only within this scan.
+                    child = self.observation(value, allow_directory=True, ancestors=ancestors)
                     remote = child.remote
                     parent = value.get("parentReference", {})
                     if (
@@ -480,6 +632,7 @@ class OneDrive:
                     paths.add(self.config.path_key(remote.relative_path))
                     values.append(child)
                     if remote.is_directory:
+                        ancestors[remote.identity.item_id] = value
                         pending.append((child, depth + 1))
                 link = page.get("@odata.nextLink")
                 route = None

@@ -65,7 +65,7 @@ cloudmarks offline --config /private/offline.json init
 ```
 
 For an existing bound store, stop its view and run `recover` instead of `init`.
-The development writer upgrades schemas 1–3 to 4; the published 0.1.0a1 writer
+The development writer upgrades schemas 1–4 to 5; the published 0.1.0a1 writer
 upgrades schemas 1/2 to 3. Back up a consistent store/state/
 configuration bundle before upgrading; read-only helper startup does not migrate.
 The M4 conflict-test store deliberately contains issues and modified raw files;
@@ -203,7 +203,9 @@ If a schema rollback is necessary, restore the whole stopped backup bundle at it
 original bound paths after separately preserving any newer local bytes, pin/job
 intent and conflict candidates. Never restore an old DB over a newer live store.
 The published 0.1.0a1 supports schema 3, but refuses schema 4. Development
-0.1.0a2.dev0 supports schemas 1–4 for reading and upgrades them to 4 when writing.
+0.1.0a2.dev0 supports schemas 1–5 for reading and upgrades them to 5 when writing.
+
+The unreleased version 4 desktop profile adds opt-in [file/folder menu controls](folder-controls.md).
 
 ## Uninstall
 

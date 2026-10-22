@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-22",
+  "scope": "Configured disposable OneDrive account and subfolder only",
+  "environment": {"python": "3.14", "nautilus": "50", "schema_before": 4, "schema_after": 5},
+  "backup": "Paired stopped database/state and offline-store backup before migration",
+  "automated": {
+    "source_tests_passed": 296,
+    "installed_wheel_tests_passed": 296,
+    "recursive_test_files": 140,
+    "cases": ["nested and empty folders", "overlapping pins", "changed membership", "local corruption", "interrupted free restores intent", "busy mount", "cancellation", "read-only batch scope", "indexed path lookup", "cache notifications"]
+  },
+  "native": {
+    "gi_menu_items_created_and_activated": ["Keep offline", "Free local copy"],
+    "separate_gtk_progress_window": "Keep completed; Offline selection is ready",
+    "nautilus_accessibility_column": "Kept offline (test account, read-only) — All 1 files and folders verified offline",
+    "observed_live_free_progress_state": "freeing"
+  },
+  "real_cloud": {
+    "selected_folder_files": 1,
+    "selected_folder_bytes": 143296,
+    "keep_completed": true,
+    "free_completed": true,
+    "cloud_manifest_including_checksums_unchanged_after_free": true,
+    "local_selection_released_after_free": true,
+    "free_and_cloud_comparison_seconds": 33.1,
+    "busy_open_test_window_refused_before_content_changes": true
+  },
+  "limits": [
+    "140-file scale checks use artificial cloud data; real-cloud cycle used one existing disposable file",
+    "No important OneDrive account was connected",
+    "Online remount integrity checks can remain slow for large retained libraries",
+    "Physical reboot acceptance of this new version remains a user check"
+  ]
+}

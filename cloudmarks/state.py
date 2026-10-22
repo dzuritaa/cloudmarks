@@ -13,7 +13,7 @@ from urllib.parse import quote
 from .model import ConfigurationError, LocalCopy, RemoteFile, ScopeError, StorageError
 from .paths import open_absolute_directory
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 class StateStore:
@@ -67,11 +67,12 @@ class StateStore:
                 f"/proc/self/fd/{self._directory_fd}/{path.name}", isolation_level=None
             )
             self.connection.row_factory = sqlite3.Row
+            self.connection.create_function("cm_path_key", 1, config.path_key, deterministic=True)
             self.connection.execute("PRAGMA foreign_keys=ON")
             self.connection.execute("PRAGMA synchronous=FULL")
             self.connection.execute("PRAGMA journal_mode=DELETE")
             version = self.connection.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1, 2, 3, SCHEMA_VERSION):
+            if version not in (0, 1, 2, 3, 4, SCHEMA_VERSION):
                 raise ConfigurationError("Unsupported state schema; explicit migration is required")
             if version == 0:
                 self._create_schema()
@@ -156,6 +157,15 @@ class StateStore:
                         PRIMARY KEY(drive_id,item_id)
                     );
                     PRAGMA user_version=4;
+                    COMMIT;
+                """)
+            if version in (0, 1, 2, 3, 4):
+                self.connection.executescript("""
+                    BEGIN IMMEDIATE;
+                    CREATE UNIQUE INDEX IF NOT EXISTS local_entries_path_key
+                        ON local_entries(cm_path_key(relative_path));
+                    CREATE INDEX IF NOT EXISTS pin_sources_owner ON pin_sources(owner);
+                    PRAGMA user_version=5;
                     COMMIT;
                 """)
             # A durable job is retried explicitly, never from the display helper.
@@ -449,7 +459,14 @@ class ReadStore(StateStore):
                 timeout=0.1,
             )
             self.connection.row_factory = sqlite3.Row
-            if self.connection.execute("PRAGMA user_version").fetchone()[0] not in (1, 2, 3, SCHEMA_VERSION):
+            self.connection.create_function("cm_path_key", 1, config.path_key, deterministic=True)
+            if self.connection.execute("PRAGMA user_version").fetchone()[0] not in (
+                1,
+                2,
+                3,
+                4,
+                SCHEMA_VERSION,
+            ):
                 raise ConfigurationError("Unsupported read-only state schema")
             binding = self.connection.execute(
                 "SELECT drive_id,root_id,volume_id,storage_root,case_sensitive FROM binding"

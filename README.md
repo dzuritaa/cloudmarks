@@ -35,6 +35,9 @@ The unreleased [automatic status observer](docs/automatic-status.md) can show
 real upload progress in a separately configured writable test mount and discover
 cloud files automatically. It observes an external rclone upload mount; it does
 not add two-way sync or automatic offline downloads to the read-only viewer.
+Opt-in [file/folder controls](docs/folder-controls.md) add Keep offline, Free local
+copy, cancellation and background folder verification; the observer no longer
+has a 128-entry library limit.
 
 ## Try the local status engine
 

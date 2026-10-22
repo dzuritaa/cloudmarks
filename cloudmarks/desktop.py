@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 
 from .ipc import MAX_BATCH, UNKNOWN, load_settings, mapped_uri, request
+from .paths import relative_parts
 from .telemetry import error_category, record
 
 MAX_TRACKED = 512
@@ -62,6 +63,16 @@ class Background:
         """UI-safe: diagnostics use a bounded queue, never journal/file I/O."""
         try:
             self.notes.put_nowait({"diagnostic": event, "fields": fields})
+            return True
+        except queue.Full:
+            return False
+
+    def control(self, path, operation, binding):
+        relative_parts(path)
+        if operation not in ("keep", "free") or not isinstance(binding, str) or len(binding) != 64:
+            return False
+        try:
+            self.notes.put_nowait({"control": operation, "path": path, "binding": binding})
             return True
         except queue.Full:
             return False
@@ -250,6 +261,17 @@ def pipe_worker(settings_path):
                 if not isinstance(uri["diagnostic"], str) or not isinstance(uri["fields"], dict):
                     break
                 record("desktop", uri["diagnostic"], **uri["fields"])
+            elif isinstance(uri, dict) and set(uri) == {"control", "path", "binding"}:
+                relative_parts(uri["path"])
+                if (
+                    uri["control"] not in ("keep", "free")
+                    or not isinstance(uri["binding"], str)
+                    or len(uri["binding"]) != 64
+                ):
+                    break
+                from .control_gui import launch
+
+                launch(settings_path, uri["path"], uri["control"], uri["binding"])
             elif isinstance(uri, str) and len(uri) <= 16384:
                 worker.submit(uri)
             else:

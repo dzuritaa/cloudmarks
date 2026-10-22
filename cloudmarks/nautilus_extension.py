@@ -28,12 +28,16 @@ PRESENTATION = {
     "kept_offline": ("cloudmarks-pin", "Kept offline"),
     "transferring": ("cloudmarks-transfer", "Downloading"),
     "uploading": ("cloudmarks-transfer", "Uploading"),
+    "partial": ("cloudmarks-local", "Partly offline"),
+    "freeing": ("cloudmarks-transfer", "Freeing local copy"),
     "error": ("cloudmarks-error", "Needs attention"),
     "unknown": ("cloudmarks-unknown", "Needs checking"),
 }
 
 
-class CloudMarksExtension(GObject.GObject, Nautilus.InfoProvider, Nautilus.ColumnProvider):
+class CloudMarksExtension(
+    GObject.GObject, Nautilus.InfoProvider, Nautilus.ColumnProvider, Nautilus.MenuProvider
+):
     def __init__(self):
         super().__init__()
         config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
@@ -63,12 +67,42 @@ class CloudMarksExtension(GObject.GObject, Nautilus.InfoProvider, Nautilus.Colum
                 name="CloudMarks::status",
                 attribute="cloudmarks_status",
                 label="CloudMarks",
-                description="Read-only cloud status and evidence; actions use the separate CLI",
+                description="Cloud status and verified offline availability",
             )
         ]
 
     def scoped(self, uri):
         return bool(self.settings and self.settings["enabled"] and mapped_uri(uri, self.settings) is not None)
+
+    def get_file_items(self, files):
+        if (
+            len(files) != 1
+            or not self.settings
+            or self.settings.get("version") != 4
+            or not self.settings["enabled"]
+        ):
+            return []
+        mapped = mapped_uri(files[0].get_uri(), self.settings)
+        if mapped is None:
+            return []
+        _, path = mapped
+        items = []
+        for operation, label in (("keep", "Keep offline"), ("free", "Free local copy")):
+            item = Nautilus.MenuItem(
+                name="CloudMarks::" + operation,
+                label=label,
+                tip="Save verified offline copies"
+                if operation == "keep"
+                else "Remove local copies; keep OneDrive files",
+            )
+            item.connect("activate", self.control_selected, path, operation, self.settings["control_binding"])
+            items.append(item)
+        return items
+
+    def control_selected(self, item, path, operation, binding):
+        # Process startup, configuration, service and cloud work occur in the
+        # existing child worker, never inside Nautilus's activation callback.
+        self.background.control(path, operation, binding)
 
     def update_file_info(self, file):
         uri = file.get_uri()

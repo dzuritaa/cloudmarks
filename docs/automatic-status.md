@@ -28,12 +28,15 @@ service can retain its existing AF_UNIX-only restriction. Services remain manual
 unless explicitly enabled by the operator; these settings alone do not enable
 login startup.
 
-The status helper starts two background workers. One polls local upload queue and
-cache metadata every half second without opening content through FUSE. The other
-authenticates the configured OneDrive account and scans the allowed folder about
-every ten seconds. A queue transition requests an earlier scan, with a minimum
-three-second interval and a bounded failure backoff up to sixty seconds. Network
-latency never blocks a Nautilus callback or the local status request.
+The status helper polls the local upload queue every half second and observes
+cache changes through Linux notifications. It scans the cache at startup and
+rebuilds watches after directory changes, rather than walking every idle cache
+file repeatedly. A separate worker authenticates the configured OneDrive account
+and observes requested paths in read-only Graph batches about every ten seconds.
+A queue transition requests an earlier check, with a minimum three-second interval
+and failure backoff up to sixty seconds. Network latency never blocks a Nautilus
+callback or the local status request. Version 4 also adds separate background
+[folder verification and menu controls](folder-controls.md).
 
 Presentation:
 
@@ -53,19 +56,12 @@ Stalled local queue observations expire after three seconds. Status leases remai
 at most one second and never outlive their evidence. Small, fast uploads can
 finish between UI refreshes, so an uploading badge may be too brief to see.
 
-The catalog is limited to 128 entries (files and folders), 16 levels, 32 pages
-and a sixty-second enumeration budget checked between Graph operations. Individual
-Graph calls retain their own deadline. Unsafe links/shortcuts, duplicate paths,
-wrong ancestry and incomplete scans fail closed. Listing omissions mean unknown;
-they never authorize deletion or eviction. Folder aggregate badges still require
-an explicit offline manifest. Exceeding the limits requires a separately designed
-larger-account observer rather than increasing unbounded desktop work.
-
-Each catalog reuses parent metadata verified earlier in that same scan, avoiding
-one network ancestry lookup per nested child. GNOME trash directories (`.Trash`
-and `.Trash-UID`) count toward the enumeration bound but their contents are not
-scanned. This keeps deleted test files from delaying normal-file confirmation;
-no trash or cloud content is removed by the observer.
+The automatic observer keeps a bounded working set of 1,024 requested/recent paths;
+it no longer enumerates the whole library or applies a 128-entry library limit.
+Each Graph batch contains at most 20 metadata GETs. Unsafe links/shortcuts,
+duplicate paths, wrong ancestry and malformed responses fail closed. Missing or
+failed items mean unknown, never deletion or eviction. Recursive folder controls
+have separate [per-selection limits](folder-controls.md#badges-and-limits).
 
 Observations live only in the helper's bounded memory. They overlay fresh remote
 metadata for status calculation without changing the durable state database,
