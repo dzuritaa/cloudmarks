@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0a3.dev0 — unreleased
+
+- No changes yet.
+
 ## 0.1.0a2 — 2026-10-26 — experimental prerelease
 
 - `cloudmarks setup` guides a new user from sign-in to working folders: rclone
