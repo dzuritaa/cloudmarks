@@ -7,7 +7,7 @@ in your file manager. Choose **Keep offline** or **Free local copy** from the
 context menu for a file or folder.
 
 [![Validate](https://github.com/dzuritaa/cloudmarks/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dzuritaa/cloudmarks/actions/workflows/ci.yml)
-[MIT license](LICENSE) · [Setup guide](docs/operations.md) · [Report an issue](https://github.com/dzuritaa/cloudmarks/issues)
+[MIT license](LICENSE) · [User guide](docs/user-guide.md) · [Report an issue](https://github.com/dzuritaa/cloudmarks/issues)
 
 **Status: experimental alpha.** Personal acceptance tests for the dedicated
 OneDrive test-account trial have passed. Broader everyday use with important
@@ -40,6 +40,9 @@ in this screenshot are artificial; it illustrates the UI, not a live sync run.*
 - **Progress, cancellation, and retry** in a separate GTK window.
 - **Verified folder completion.** A completed folder badge requires current cloud
   membership and verified local copies for all its files.
+- **Guided setup** with `cloudmarks setup`: browser sign-in through rclone, folder
+  choice, private profile, Files extension and user services.
+- **Health checks** with `cloudmarks doctor`, whose report is safe to share.
 - **Local diagnostics** through `cloudmarks logs`, with a privacy filter that
   excludes file names, paths, account IDs, tokens, and file contents.
 
@@ -66,25 +69,22 @@ confirmation expires. An upload cache alone never counts as a verified offline c
 
 ## How you use it
 
-The current setup has two separately configured views:
+Setup creates two folders, both tied to one OneDrive folder you choose:
 
-| View | Purpose |
+| Folder | Purpose |
 | --- | --- |
-| **Upload view** | A writable rclone mount. Copy files here to upload them to the configured OneDrive folder. |
-| **Offline view** | A read-only view combining cloud files and CloudMarks' verified local copies. |
+| **Upload** (`~/CloudMarks/Upload`) | A writable rclone mount. Copy files here to upload them to OneDrive. |
+| **Offline** (`~/CloudMarks/Offline`) | A read-only view combining cloud files and CloudMarks' verified local copies. |
 
-On the development machine these were named `CloudMarks-Upload` and
-`CloudMarks-Test`; the paths belong to the configured profile.
-
-1. Copy a disposable file into the upload view and wait for OneDrive confirmation.
-2. Right-click a file or folder and choose **Keep offline**.
-3. After completion, open the offline view and check the **Kept offline** badge.
+1. Copy a disposable file into the Upload folder and wait for **Cloud only**.
+2. In the Offline folder, right-click a file or folder and choose **Keep offline**.
+3. After completion, check the **Kept offline** badge.
 4. Choose **Free local copy** when you want to release that local selection.
 
-**Current workflow limitation:** Keep and Free need to unmount the read-only
-view normally. Close its Files tabs and applications using it before running
-these actions. If it is busy, close them and click **Retry**. You can keep the
-upload view open. See [file and folder controls](docs/folder-controls.md) for details.
+By default, Keep and Free briefly unmount the Offline folder. If an application
+is using it, the progress window names it; close it and click **Retry**. The
+optional **live updates** setting keeps the folder open instead
+([ADR 0002](docs/decisions/0002-live-view-updates.md)).
 
 CloudMarks observes rclone uploads and manages explicit offline copies. Offline
 editing, automatic two-way synchronization, and automatic conflict merging are
@@ -104,25 +104,30 @@ python3 -m cloudmarks demo
 This demonstrates the status engine. Installing the Nautilus UI and connecting
 OneDrive are separate setup steps.
 
-## Set up the Nautilus integration
+## Install and set up
 
-Setup is currently manual. The tested desktop is **Ubuntu 26.04 with GNOME Files
-50.2.2**, `python3-nautilus` 4.1, GTK 4 introspection, and **rclone 1.75.2**. The
-integration uses Linux FUSE and a local offline store on a selected filesystem.
-Other desktop environments, Nautilus APIs, and OneDrive Business/shared accounts
-have not been validated.
+The tested desktop is **Ubuntu 26.04 with GNOME Files 50.2.2**, `python3-nautilus`
+4.1, GTK 4 introspection, and **rclone 1.75.2**. Other desktops, Nautilus
+versions, and OneDrive Business/shared accounts have not been validated.
 
-Start with a dedicated test account and disposable subfolder:
+```bash
+sudo apt install python3-nautilus gir1.2-nautilus-4.1 gir1.2-gtk-4.0 fuse3 pipx
+pipx install git+https://github.com/dzuritaa/cloudmarks.git
+cloudmarks setup
+cloudmarks doctor
+```
 
-1. Follow the [installation and operating guide](docs/operations.md) for the CLI,
-   private account profile, offline store, and Nautilus adapter.
-2. Configure the [automatic upload/status observer](docs/automatic-status.md).
-3. Enable the [file/folder menu controls](docs/folder-controls.md).
+Install [rclone](https://rclone.org/install/) 1.75 or newer separately. Setup
+signs in through rclone in your browser, lets you pick a OneDrive folder, creates
+the Upload and Offline folders, installs the Files extension and creates three
+user services. It asks before starting them. Start with a test account or a
+folder of disposable files.
 
-The installer starts disabled. Services, mounts, and account authentication are
-explicit setup steps. See [compatibility](docs/compatibility.md) for exact tested
-versions and [upgrade/rollback](docs/operations.md#upgrade-and-rollback) before
-changing an existing installation.
+The [user guide](docs/user-guide.md) covers setup, everyday use, troubleshooting
+and removal. See [compatibility](docs/compatibility.md) for exact tested versions,
+the [configuration](docs/reference/configuration.md) and
+[command](docs/reference/cli.md) references, and the
+[operations guide](docs/operations.md) for manual setup, upgrades and rollback.
 
 ## Testing and current limits
 

@@ -18,11 +18,15 @@ restores the selection's pin intent; already completed evictions remain complete
 Modified files, conflicting identities and changed folder manifests require review
 or another Keep before Free. No cloud delete API is part of these controls.
 
-Publication and eviction still require a normal unmount of the controlled
+With `"live_updates": true` in the control profile, publication and eviction
+run while the view stays mounted ([ADR 0002](decisions/0002-live-view-updates.md));
+CloudMarks still refuses any mount other than its attested read-only view.
+Otherwise, publication and eviction require a normal unmount of the controlled
 read-only view. The control stops only its configured user view service, restores
 its previous online/offline mode, and leaves the upload mount running. If an open
 file or Files window makes it busy, close the `CloudMarks-Test` window and files
-opened from it, then click Retry. There is no forced/lazy unmount. A retained file
+opened from it, then click Retry; the message names the applications holding
+files in the view. There is no forced/lazy unmount. A retained file
 is readable in the test view after the control restores that view.
 
 ## Badges and limits
@@ -70,8 +74,9 @@ The new writer upgrades schemas 1–4 to 5, adding a normalized retained-path in
 and pin-owner index without removing data. Readers support schemas 1–5. Old writers
 refuse schema 5. Never restore a database alone after changing offline-store bytes.
 
-Start with a working version 3 desktop settings file. Create a private JSON control
-profile beside it with exactly these fields:
+`cloudmarks setup` creates the control profile and binding automatically. The
+steps below are for manual profiles. Start with a working version 3 desktop
+settings file. Create a private JSON control profile beside it with these fields:
 
 ```json
 {"version": 1, "view_service": "cloudmarks-trial-view.service"}

@@ -1,4 +1,8 @@
-"""Local fixture and desktop commands. The demo cannot discover or use cloud credentials."""
+"""CloudMarks: OneDrive status badges and offline controls for GNOME Files.
+
+Start with `cloudmarks setup`, then check the result with `cloudmarks doctor`.
+The demo command cannot discover or use cloud credentials.
+"""
 
 import argparse
 import json

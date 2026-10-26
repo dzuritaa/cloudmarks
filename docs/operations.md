@@ -1,5 +1,9 @@
 # Install and operate the experimental viewer
 
+> **Most users should run `cloudmarks setup` instead.** It performs every step on
+> this page automatically; see the [user guide](user-guide.md). This page remains
+> the reference for manual setups, upgrades, rollback and recovery.
+
 The published `0.1.0a1` prerelease provides experimental read-only offline viewing
 and explicit CLI controls for disposable test data. The current `main` branch
 (`0.1.0a2.dev0`) also adds an opt-in [automatic upload/status observer](automatic-status.md)
@@ -65,7 +69,8 @@ Start from the templates in the source archive's `examples` directory:
 Keep these files in a new private directory (0700), with private files (0600).
 Do not overwrite an existing profile or copy private examples into Git. Use only
 the dedicated test account and a disposable subfolder; the allowed root cannot
-be the drive root or a shared shortcut. Configure the blocked personal drive ID.
+be the drive root or a shared shortcut. Optionally list other drive IDs, such as
+a personal account's, in `blocked_drive_ids`.
 Account IDs/email, tokens, storage UUIDs and paths must be your private values.
 Authenticate that dedicated rclone `origin` locally; never put tokens in chat,
 command-line arguments, reports or issues. CloudMarks validates account/root
