@@ -36,8 +36,10 @@ class Config:
 
     def __post_init__(self):
         expected = canonical_drive(self.expected_drive_id)
-        if not isinstance(self.blocked_drive_ids, tuple) or not self.blocked_drive_ids:
-            raise ConfigurationError("At least one explicitly blocked drive is required in test mode")
+        # Blocking other known drives is an optional extra guard; the expected
+        # drive and allowed root are always enforced.
+        if not isinstance(self.blocked_drive_ids, tuple):
+            raise ConfigurationError("Blocked drive IDs must be a list")
         blocked = tuple(canonical_drive(item) for item in self.blocked_drive_ids)
         if expected in blocked:
             raise ConfigurationError("Expected drive is blocked")
@@ -82,13 +84,21 @@ def load_config(path):
         ):
             raise ConfigurationError("Expected configuration version 1 and the documented sections")
         account, storage, status = (value[name] for name in ("account", "storage", "status"))
-        if set(account) != {"expected_drive_id", "allowed_root_id", "blocked_drive_ids"}:
+        if (
+            not {"expected_drive_id", "allowed_root_id"}
+            <= set(account)
+            <= {
+                "expected_drive_id",
+                "allowed_root_id",
+                "blocked_drive_ids",
+            }
+        ):
             raise ConfigurationError("Unexpected or missing account configuration")
         if set(storage) != {"root", "volume_id", "state_path", "case_sensitive"}:
             raise ConfigurationError("Unexpected or missing storage configuration")
         if set(status) != {"max_age_seconds"}:
             raise ConfigurationError("Unexpected or missing status configuration")
-        blocked = account["blocked_drive_ids"]
+        blocked = account.get("blocked_drive_ids", [])
         if not isinstance(blocked, list):
             raise ConfigurationError("blocked_drive_ids must be a list")
         return Config(

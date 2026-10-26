@@ -572,7 +572,7 @@ class ConfigurationTests(unittest.TestCase):
             template.replace("max_age_seconds = 300", "max_age_seconds = nan"),
             template.replace("max_age_seconds = 300", "max_age_seconds = 0"),
             template.replace("case_sensitive = false", "case_sensitive = 0"),
-            template.replace('blocked_drive_ids = ["fixture-personal-drive"]', "blocked_drive_ids = []"),
+            template.replace('blocked_drive_ids = ["fixture-personal-drive"]', 'blocked_drive_ids = "drive"'),
             template.replace(
                 'expected_drive_id = "fixture-test-drive"', 'expected_drive_id = "fixture-personal-drive"'
             ),
@@ -584,6 +584,18 @@ class ConfigurationTests(unittest.TestCase):
                 path.write_text(contents)
                 with self.subTest(index=index), self.assertRaises(ConfigurationError):
                     load_config(path)
+
+    def test_blocked_drive_list_is_optional(self):
+        template = (Path(__file__).resolve().parents[1] / "examples/config.toml").read_text()
+        line = 'blocked_drive_ids = ["fixture-personal-drive"]'
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            for contents in (template.replace(line, "blocked_drive_ids = []"), template.replace(line, "")):
+                path.write_text(contents)
+                value = load_config(path)
+                self.assertEqual(value.blocked_drive_ids, ())
+                with self.assertRaises(ScopeError):
+                    value.validate_identity(FileIdentity("fixture-personal-drive", "item"))
 
     def test_missing_configuration_is_a_clean_configuration_error(self):
         with self.assertRaises(ConfigurationError):

@@ -71,6 +71,15 @@ def main():
     logs.add_argument("--since", default="today", help="Journal time range, e.g. '1 hour ago'")
     logs.add_argument("--lines", type=int, default=200, help="Maximum recent entries, 1..10000")
     logs.add_argument("--follow", action="store_true", help="Watch new diagnostic events")
+    health = commands.add_parser(
+        "doctor", help="Check the system, installation, profile and services (read-only, shareable)"
+    )
+    health.add_argument("--settings", type=Path, help="Desktop settings (default: installed settings)")
+    health.add_argument("--online", action="store_true", help="Also confirm the OneDrive account and folder")
+    health.add_argument("--json", action="store_true", help="Machine-readable report")
+    from .setup import configure as configure_setup
+
+    configure_setup(commands)
     check = commands.add_parser("check-config", help="Validate TOML syntax and account/root settings only")
     check.add_argument("path", type=Path)
     service = commands.add_parser(
@@ -128,6 +137,17 @@ def main():
             if args.follow:
                 command.append("--follow")
             raise SystemExit(subprocess.call(command))
+        elif args.command == "doctor":
+            from .doctor import main as doctor
+
+            code = doctor(args)
+            if code:
+                outcome = "failed"
+            raise SystemExit(code)
+        elif args.command == "setup":
+            from .setup import main as setup
+
+            setup(args)
         elif args.command == "control":
             from .controls import run
 

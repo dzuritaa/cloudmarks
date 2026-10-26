@@ -4,6 +4,7 @@ version = 1
 # Placeholders only. Keep actual account IDs in private local configuration.
 expected_drive_id = "fixture-test-drive"
 allowed_root_id = "fixture-disposable-root"
+# Optional: other drives (such as a personal account) to refuse explicitly.
 blocked_drive_ids = ["fixture-personal-drive"]
 
 [storage]

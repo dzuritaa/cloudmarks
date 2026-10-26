@@ -88,6 +88,8 @@ ENUMS = {
         "offline",
         "control",
         "logs",
+        "doctor",
+        "setup",
     },
     "action": {
         "init",
