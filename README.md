@@ -133,7 +133,7 @@ the [configuration](docs/reference/configuration.md) and
 2026-10-22.** They cover uploads and cloud confirmation, Nautilus badges, Keep
 offline, Free local copy, startup after reboot, and retry after closing a busy view.
 
-- **325 automated tests passed** from source and again from the installed wheel.
+- **329 automated tests passed** from source and again from the installed wheel.
 - A **140-file artificial folder** exercised recursive keep/free, complete-folder
   status, indexed lookups, and online restart checks.
 - A **real OneDrive folder keep/free cycle** verified that freeing the local copy

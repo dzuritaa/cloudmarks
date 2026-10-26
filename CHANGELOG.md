@@ -1,16 +1,14 @@
 # Changelog
 
-## 0.1.0a3.dev0 — unreleased
-
-- No changes yet.
-
 ## 0.1.0a2 — 2026-10-26 — experimental prerelease
 
 - `cloudmarks setup` guides a new user from sign-in to working folders: rclone
   handles the browser sign-in, setup confirms the account, picks a regular
   OneDrive folder, writes the private profile, creates the store, installs the
   Files extension and generates the three user services. It resumes after an
-  interruption and never overwrites existing files.
+  interruption and never overwrites existing files. Sign-in uses
+  `rclone authorize` and the account's own drive, so accounts that list
+  inaccessible extra drives work.
 - `cloudmarks doctor` checks requirements, installed files, the profile, mounts,
   sockets, the helper, control binding, store health and services. Its report
   contains no paths, IDs, emails or credentials.

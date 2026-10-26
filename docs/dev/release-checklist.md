@@ -3,10 +3,10 @@
 ## v0.1.0a2
 
 - [x] Version, changelog and [release notes](../releases/v0.1.0a2.md) updated.
-- [x] 325 tests pass locally on Python 3.11, 3.12, 3.13 and 3.14, plus ruff, docs and compile checks.
+- [x] 329 tests pass locally on Python 3.11, 3.12, 3.13 and 3.14, plus ruff, docs and compile checks.
 - [x] Build, strict twine check, `check_dist.py --release`, installed-wheel suite and source rebuild comparison pass locally.
 - [x] Live-view probe recorded on NTFS3 and tmpfs ([spike](../../spikes/live-view/README.md)).
-- [ ] `cloudmarks setup` run once with a real browser sign-in on the test account.
+- [x] `cloudmarks setup` completed in a sandbox with a real browser sign-in on the test account (2026-10-26). It found and fixed two sign-in problems: stale extra drives and the missing `User.Read` scope.
 - [ ] Hosted CI on main and the exact tag, then publication and downloaded-asset checksum verification.
 - [ ] Physical acceptance ([checklist](physical-acceptance.md)); still open, as for v0.1.0a1.
 
