@@ -6,6 +6,7 @@ Signing in is delegated to rclone, so passwords and tokens never pass through
 CloudMarks output. Re-running continues from the last completed step.
 """
 
+import base64
 import configparser
 import json
 import os
@@ -30,6 +31,11 @@ STATUS_UNIT = "cloudmarks-status.service"
 VIEW_UNIT = "cloudmarks-view.service"
 ORIGIN_KEYS = ("type", "drive_id", "drive_type", "token", "root_folder_id", "client_id", "client_secret")
 GIB = 2**30
+# rclone's default OneDrive scopes plus User.Read, which /me needs to confirm the
+# signed-in account's email on every authentication.
+SCOPES = (
+    "Files.Read Files.ReadWrite Files.Read.All Files.ReadWrite.All Sites.Read.All offline_access User.Read"
+)
 
 
 def configure(commands):
@@ -276,6 +282,46 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+def authorize_blob():
+    """Extra `rclone authorize` settings, encoded the way rclone decodes them."""
+    data = json.dumps({"access_scopes": SCOPES}, separators=(",", ":")).encode()
+    return base64.b64encode(data).decode().rstrip("=")
+
+
+def authorized_token(output):
+    """Extract the token from `rclone authorize` output, without echoing it.
+
+    With extra settings rclone prints an encoded settings map containing the
+    token; without them it prints the token JSON itself.
+    """
+    match = re.search(r"--->\s*\n(.*?)\n\s*<---End paste", output or "", re.S)
+    try:
+        printed = match.group(1).strip()
+        if not printed.startswith("{"):
+            settings = json.loads(base64.b64decode(printed + "=" * (-len(printed) % 4), validate=True))
+            printed = settings["token"]
+        value = json.loads(printed)
+        if not isinstance(value, dict) or not isinstance(value.get("access_token"), str):
+            raise ValueError
+    except (AttributeError, ValueError, KeyError, TypeError):
+        raise StorageError("OneDrive sign-in did not complete; run setup again to retry") from None
+    return printed
+
+
+def write_origin(path, origin, *, replace=False):
+    """Write the private sign-in copy; replacing goes through a new file and rename."""
+    parser = configparser.ConfigParser(interpolation=None)
+    parser["origin"] = origin
+    data = _ini(parser)
+    if not replace:
+        write_new(path, data)
+        return
+    temporary = path.with_name(path.name + ".new")
+    temporary.unlink(missing_ok=True)
+    write_new(temporary, data)
+    os.replace(temporary, path)
+
+
 def volume_of(path, run=subprocess.run):
     """Filesystem UUID and mount target of an existing directory."""
     result = run(
@@ -384,42 +430,52 @@ class Setup:
         signin = self.layout.file("signin.conf")
         if not signin.exists():
             self.say(
-                "\nSign in to OneDrive. rclone opens your browser; your password and token stay with "
-                "rclone.\nChoose the Microsoft account CloudMarks should use."
+                "\nSign in to OneDrive. rclone opens your browser; your password stays with Microsoft "
+                "and the token is never shown.\nChoose the Microsoft account CloudMarks should use."
             )
-            previous = os.umask(0o077)
+            from .onedrive import clean_environment
+
+            # Sign-in only: `rclone authorize` never lists or tests drives. Consumer
+            # accounts can list stale extra drives that refuse access; setup takes
+            # the account's own drive from Graph instead.
             try:
                 result = self.run(
-                    [
-                        rclone,
-                        "config",
-                        "create",
-                        "origin",
-                        "onedrive",
-                        "config_type=onedrive",
-                        "--config",
-                        str(signin),
-                    ],
+                    [rclone, "authorize", "onedrive", authorize_blob()],
+                    stdout=subprocess.PIPE,
+                    text=True,
+                    env=clean_environment(),
                     timeout=900,
                 )
-            finally:
-                os.umask(previous)
-            if result.returncode or not signin.exists():
-                signin.unlink(missing_ok=True)
-                raise StorageError("OneDrive sign-in did not complete; run setup again to retry")
+            except subprocess.TimeoutExpired:
+                raise StorageError("OneDrive sign-in timed out; run setup again to retry") from None
+            token = authorized_token(result.stdout if result.returncode == 0 else "")
+            write_origin(signin, {"type": "onedrive", "token": token})
         from .onedrive import private_config
 
-        origin = private_config(signin)["origin"]
-        if origin.get("type") != "onedrive" or not origin.get("drive_id"):
-            raise ConfigurationError("Sign-in did not select a OneDrive drive")
+        origin = dict(private_config(signin)["origin"])
+        if origin.get("type") != "onedrive" or not origin.get("token"):
+            raise ConfigurationError(
+                "Sign-in did not produce a OneDrive credential; delete signin.conf and retry"
+            )
         graph = self.graph_factory(rclone, signin)
-        me = graph.get("me?$select=mail,userPrincipalName")
+        try:
+            me = graph.get("me?$select=mail,userPrincipalName")
+        except StorageError:
+            signin.unlink()
+            raise StorageError(
+                "The sign-in cannot read the account's email (an expired sign-in, or one made by an "
+                "older setup). Run setup again to sign in"
+            ) from None
         drive = graph.get("me/drive?$select=id,driveType")
         email = me.get("mail") or me.get("userPrincipalName")
         if not isinstance(email, str) or not email:
             raise ScopeError("The signed-in account has no email address")
-        if canonical_drive(drive.get("id")) != canonical_drive(origin["drive_id"]):
-            raise ScopeError("rclone selected a different drive from the signed-in account's own drive")
+        if not isinstance(drive.get("id"), str) or drive.get("driveType") not in ("personal", "business"):
+            raise ScopeError("The signed-in account has no usable OneDrive drive")
+        drive_id = canonical_drive(drive["id"])
+        if origin.get("drive_id") != drive_id or origin.get("drive_type") != drive["driveType"]:
+            origin.update(drive_id=drive_id, drive_type=drive["driveType"])
+            write_origin(signin, origin, replace=True)
         self.say(f"\nSigned in as {email}.")
         expected = self.prompt.answers.get("account_email")
         if expected is not None and str(expected).casefold() != email.casefold():
@@ -427,7 +483,7 @@ class Setup:
         if not self.prompt.confirm("confirm_account", "Use this account?", default=expected is not None):
             signin.unlink()
             raise ScopeError("Account not confirmed; run setup again to sign in with another account")
-        self.values.update(rclone=rclone, email=email, drive=canonical_drive(origin["drive_id"]))
+        self.values.update(rclone=rclone, email=email, drive=drive_id)
 
     def folder(self):
         graph = self.graph_factory(self.values["rclone"], self.layout.file("signin.conf"))

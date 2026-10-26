@@ -102,16 +102,19 @@ class SetupTests(unittest.TestCase):
         self.commands.append(argv)
         if argv[1:] == ["version"]:
             return SimpleNamespace(returncode=0, stdout="rclone v1.75.2\n")
-        if argv[1:3] == ["config", "create"]:
+        if argv[1:3] == ["authorize", "onedrive"]:
             self.signins += 1
-            target = Path(argv[argv.index("--config") + 1])
-            target.write_text(
-                "[origin]\ntype = onedrive\n"
-                'token = {"access_token":"fixture-access","refresh_token":"fixture-refresh"}\n'
-                f"drive_id = {DRIVE}\ndrive_type = personal\n"
+            import base64
+
+            self.assertEqual(len(argv), 4, "sign-in must pass the extra scope settings")
+            requested = json.loads(base64.b64decode(argv[3] + "=" * (-len(argv[3]) % 4)))
+            self.assertIn("User.Read", requested["access_scopes"].split())
+            token = '{"access_token":"fixture-access","refresh_token":"fixture-refresh"}'
+            blob = base64.b64encode(json.dumps({"token": token}).encode()).decode().rstrip("=")
+            return SimpleNamespace(
+                returncode=0,
+                stdout=f"Paste the following into your remote machine --->\n{blob}\n<---End paste\n",
             )
-            target.chmod(0o600)
-            return SimpleNamespace(returncode=0, stdout="")
         return SimpleNamespace(returncode=0, stdout="")
 
     def initializer(self, config, values):
@@ -206,6 +209,48 @@ class SetupTests(unittest.TestCase):
         self.assertIn(
             ["systemctl", "--user", "enable", "--now", UPLOAD_UNIT, STATUS_UNIT, VIEW_UNIT], self.commands
         )
+
+    def test_token_only_sign_in_from_an_earlier_run_resumes_with_the_accounts_own_drive(self):
+        layout = Layout.current()
+        layout.profile.mkdir(parents=True, mode=0o700)
+        layout.config.chmod(0o700)
+        (layout.file("setup.json")).write_text(json.dumps({"version": 1, "completed": [], "values": {}}))
+        layout.file("setup.json").chmod(0o600)
+        signin = layout.file("signin.conf")
+        signin.write_text('[origin]\ntype = onedrive\ntoken = {"access_token":"fixture-access"}\n')
+        signin.chmod(0o600)
+        self.setup().execute()
+        self.assertEqual(self.signins, 0)
+        self.assertIn(f"drive_id = {DRIVE.upper()}", layout.file("transport.conf").read_text())
+
+    def test_sign_in_without_profile_permission_asks_for_a_new_sign_in(self):
+        class NoProfile(FakeGraph):
+            def get(self, route):
+                if route.startswith("me?"):
+                    raise StorageError("OneDrive returned HTTP 401")
+                return super().get(route)
+
+        setup = self.setup()
+        setup.graph_factory = lambda rclone, path: NoProfile(rclone, path, routes())
+        with self.assertRaises(StorageError) as caught:
+            setup.execute()
+        self.assertIn("Run setup again to sign in", str(caught.exception))
+        self.assertFalse(Layout.current().file("signin.conf").exists())
+        self.setup().execute()
+        self.assertEqual(self.signins, 2)
+
+    def test_failed_sign_in_reports_cleanly_without_echoing_output(self):
+        def failing(argv, **kwargs):
+            if "authorize" in argv:
+                return SimpleNamespace(returncode=1, stdout="secret-looking-output")
+            return self.fake_run(argv, **kwargs)
+
+        setup = self.setup()
+        setup.run = failing
+        with self.assertRaises(StorageError) as caught:
+            setup.execute()
+        self.assertNotIn("secret-looking-output", str(caught.exception))
+        self.assertFalse(Layout.current().file("signin.conf").exists())
 
     def test_existing_installation_is_never_replaced(self):
         config = Path(os.environ["XDG_CONFIG_HOME"]) / "cloudmarks"
