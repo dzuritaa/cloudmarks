@@ -4,9 +4,9 @@
 > this page automatically; see the [user guide](user-guide.md). This page remains
 > the reference for manual setups, upgrades, rollback and recovery.
 
-The published `0.1.0a1` prerelease provides experimental read-only offline viewing
-and explicit CLI controls for disposable test data. The current `main` branch
-(`0.1.0a2.dev0`) also adds an opt-in [automatic upload/status observer](automatic-status.md)
+The `0.1.0a1` prerelease provided experimental read-only offline viewing and
+explicit CLI controls for disposable test data. `0.1.0a2` adds guided setup, an
+opt-in [automatic upload/status observer](automatic-status.md)
 and [file/folder context-menu controls](folder-controls.md), plus
 [verification and recovery commands](dev/m6-hardening.md).
 
@@ -91,7 +91,7 @@ cloudmarks offline --config /private/offline.json init
 ```
 
 For an existing bound store, stop its view and run `recover` instead of `init`.
-The development writer upgrades schemas 1–4 to 5; the published 0.1.0a1 writer
+The 0.1.0a2 writer upgrades schemas 1–4 to 5; the 0.1.0a1 writer
 upgrades schemas 1/2 to 3. Back up a consistent store/state/
 configuration bundle before upgrading; read-only helper startup does not migrate.
 The M4 conflict-test store deliberately contains issues and modified raw files;
@@ -233,10 +233,10 @@ new schema: it refuses unknown schemas. There is no automatic schema downgrade.
 If a schema rollback is necessary, restore the whole stopped backup bundle at its
 original bound paths after separately preserving any newer local bytes, pin/job
 intent and conflict candidates. Never restore an old DB over a newer live store.
-The published 0.1.0a1 supports schema 3, but refuses schema 4. Development
-0.1.0a2.dev0 supports schemas 1–5 for reading and upgrades them to 5 when writing.
+0.1.0a1 supports schema 3, but refuses schema 4. 0.1.0a2 supports schemas 1–5
+for reading and upgrades them to 5 when writing.
 
-The unreleased version 4 desktop profile adds opt-in [file/folder menu controls](folder-controls.md).
+The version 4 desktop profile adds opt-in [file/folder menu controls](folder-controls.md).
 
 ## Uninstall
 

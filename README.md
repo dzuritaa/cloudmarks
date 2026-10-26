@@ -46,10 +46,8 @@ in this screenshot are artificial; it illustrates the UI, not a live sync run.*
 - **Local diagnostics** through `cloudmarks logs`, with a privacy filter that
   excludes file names, paths, account IDs, tokens, and file contents.
 
-These features are in the current `main` branch (`0.1.0a2.dev0`). The published
-[`0.1.0a1` prerelease](https://github.com/dzuritaa/cloudmarks/releases/tag/v0.1.0a1)
-is an earlier experimental viewer and does **not** include the latest automatic
-upload observation or context-menu controls.
+These features are in the [`0.1.0a2` prerelease](https://github.com/dzuritaa/cloudmarks/releases/tag/v0.1.0a2)
+and the current `main` branch.
 
 ## What the badges mean
 
@@ -135,7 +133,7 @@ the [configuration](docs/reference/configuration.md) and
 2026-10-22.** They cover uploads and cloud confirmation, Nautilus badges, Keep
 offline, Free local copy, startup after reboot, and retry after closing a busy view.
 
-- **296 automated tests passed** from source and again from the installed wheel.
+- **325 automated tests passed** from source and again from the installed wheel.
 - A **140-file artificial folder** exercised recursive keep/free, complete-folder
   status, indexed lookups, and online restart checks.
 - A **real OneDrive folder keep/free cycle** verified that freeing the local copy

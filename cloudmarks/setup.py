@@ -636,13 +636,21 @@ class Setup:
         if not self.which("systemctl"):
             self.say("systemctl is unavailable; start the three services manually.")
             return
-        self.run(["systemctl", "--user", "daemon-reload"], timeout=30, check=True)
-        if self.prompt.confirm("enable_services", "Start CloudMarks now and at every login?", default=True):
-            self.run(
-                ["systemctl", "--user", "enable", "--now", UPLOAD_UNIT, STATUS_UNIT, VIEW_UNIT],
-                timeout=180,
-                check=True,
-            )
+        try:
+            self.run(["systemctl", "--user", "daemon-reload"], timeout=30, check=True)
+            if self.prompt.confirm(
+                "enable_services", "Start CloudMarks now and at every login?", default=True
+            ):
+                self.run(
+                    ["systemctl", "--user", "enable", "--now", UPLOAD_UNIT, STATUS_UNIT, VIEW_UNIT],
+                    timeout=180,
+                    check=True,
+                )
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            raise StorageError(
+                "A CloudMarks service did not start. Check `systemctl --user status cloudmarks-upload.service` "
+                "and `cloudmarks doctor`, then run setup again to finish"
+            ) from None
         if self.prompt.confirm("enable_badges", "Show CloudMarks badges in Files?", default=True):
             from .install import set_enabled
 

@@ -1,6 +1,6 @@
 # Compatibility and validation boundaries
 
-The published prerelease is `0.1.0a1`; `main` develops `0.1.0a2.dev0`.
+The current prerelease is `0.1.0a2`; `0.1.0a1` remains available as an earlier viewer.
 CloudMarks remains experimental. MIT licensing and publication status are tracked
 in the [release checklist](dev/release-checklist.md).
 

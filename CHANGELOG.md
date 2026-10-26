@@ -1,7 +1,22 @@
 # Changelog
 
-## 0.1.0a2.dev0 — unreleased
+## 0.1.0a2 — 2026-10-26 — experimental prerelease
 
+- `cloudmarks setup` guides a new user from sign-in to working folders: rclone
+  handles the browser sign-in, setup confirms the account, picks a regular
+  OneDrive folder, writes the private profile, creates the store, installs the
+  Files extension and generates the three user services. It resumes after an
+  interruption and never overwrites existing files.
+- `cloudmarks doctor` checks requirements, installed files, the profile, mounts,
+  sockets, the helper, control binding, store health and services. Its report
+  contains no paths, IDs, emails or credentials.
+- Optional live updates (`"live_updates": true` in the control profile) let Keep
+  offline and Free local copy run while the offline view stays mounted. A busy
+  view now names the applications holding it open.
+- `blocked_drive_ids` is optional; the expected drive and allowed root remain
+  enforced.
+- A plain-language user guide plus configuration and command references.
+  Development records moved to `docs/dev`. CI reports test coverage.
 - Opt-in Nautilus file/folder Keep offline and Free local copy controls run in a
   separate progress/retry/cancel window. Normal unmounts, overlapping pins,
   corruption checks and intent recovery preserve local/cloud data.

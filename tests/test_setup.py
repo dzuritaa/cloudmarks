@@ -190,6 +190,23 @@ class SetupTests(unittest.TestCase):
         self.setup().execute()
         self.assertEqual(self.signins, 1)
 
+    def test_service_start_failure_is_reported_and_resumable(self):
+        def failing(argv, **kwargs):
+            if "enable" in argv:
+                raise subprocess.CalledProcessError(1, argv)
+            return self.fake_run(argv, **kwargs)
+
+        setup = self.setup()
+        setup.run = failing
+        with self.assertRaises(StorageError):
+            setup.execute()
+        record = json.loads(Layout.current().file("setup.json").read_text())
+        self.assertNotIn("services", record["completed"])
+        self.setup().execute()
+        self.assertIn(
+            ["systemctl", "--user", "enable", "--now", UPLOAD_UNIT, STATUS_UNIT, VIEW_UNIT], self.commands
+        )
+
     def test_existing_installation_is_never_replaced(self):
         config = Path(os.environ["XDG_CONFIG_HOME"]) / "cloudmarks"
         config.mkdir(mode=0o700)

@@ -1,10 +1,25 @@
-# M5 release checklist
+# Release checklist
+
+## v0.1.0a2
+
+- [x] Version, changelog and [release notes](../releases/v0.1.0a2.md) updated.
+- [x] 325 tests pass locally on Python 3.11, 3.12, 3.13 and 3.14, plus ruff, docs and compile checks.
+- [x] Build, strict twine check, `check_dist.py --release`, installed-wheel suite and source rebuild comparison pass locally.
+- [x] Live-view probe recorded on NTFS3 and tmpfs ([spike](../../spikes/live-view/README.md)).
+- [ ] `cloudmarks setup` run once with a real browser sign-in on the test account.
+- [ ] Hosted CI on main and the exact tag, then publication and downloaded-asset checksum verification.
+- [ ] Physical acceptance ([checklist](physical-acceptance.md)); still open, as for v0.1.0a1.
+
+The same tag-triggered workflow publishes a GitHub prerelease. PyPI publication is
+not configured.
+
+## v0.1.0a1 (M5)
 
 [Version 0.1.0a1 is published](https://github.com/dzuritaa/cloudmarks/releases/tag/v0.1.0a1) as an MIT-licensed experimental prerelease. The immutable source tag is `v0.1.0a1`. M5 prepares a
 shareable experimental package with clear limits. It does not turn pending
 physical acceptance into a production-safety claim.
 
-## Candidate gates
+### Candidate gates
 
 - [x] Standard-library CLI runtime, version output and alpha package metadata.
 - [x] Pinned build/lint tools, package assets and source-reproduction contents.
@@ -29,7 +44,7 @@ The downloaded wheel and source archive matched SHA256SUMS and passed the
 license/source inventory checker. Physical operational acceptance remains
 separate and open.
 
-## Prepare and publish after the gates
+### Prepare and publish after the gates
 
 Run the [contributor checks](../../CONTRIBUTING.md), including installed-wheel tests
 and source rebuild, from the intended source revision. Review the full diff,
@@ -57,7 +72,7 @@ not publisher identity; signing/attestation can be evaluated for a later release
 The exact local and hosted outcomes are recorded separately in
 [the M5 validation record](../evidence/m5/validation.json).
 
-## Operational acceptance before daily use
+### Operational acceptance before daily use
 
 These remain open even if an experimental prerelease is published:
 

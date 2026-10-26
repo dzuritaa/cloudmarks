@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cloudmarks"
-version = "0.1.0a2.dev0"
+version = "0.1.0a2"
 description = "Verified offline-file state for GNOME Files"
 readme = "README.md"
 license = "MIT"
