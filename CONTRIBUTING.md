@@ -11,7 +11,8 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -e '.[dev]'
 .venv/bin/python -m ruff check cloudmarks tests spikes scripts
 .venv/bin/python -m ruff format --check cloudmarks tests spikes scripts
-.venv/bin/python -W error::ResourceWarning -m unittest discover -s tests -q
+.venv/bin/python -W error::ResourceWarning -m coverage run -m unittest discover -s tests -q
+.venv/bin/python -m coverage report
 .venv/bin/python scripts/check_docs.py
 .venv/bin/python -m build
 .venv/bin/python -m twine check --strict dist/*.whl dist/*.tar.gz

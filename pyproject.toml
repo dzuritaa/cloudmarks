@@ -27,7 +27,7 @@ Repository = "https://github.com/dzuritaa/cloudmarks"
 Issues = "https://github.com/dzuritaa/cloudmarks/issues"
 
 [project.optional-dependencies]
-dev = ["build==1.6.1", "ruff==0.17.1", "twine==7.0.0"]
+dev = ["build==1.6.1", "coverage==7.17.0", "ruff==0.17.1", "twine==7.0.0"]
 
 [project.scripts]
 cloudmarks = "cloudmarks.__main__:main"
@@ -38,6 +38,14 @@ include-package-data = false
 
 [tool.setuptools.package-data]
 cloudmarks = ["icons/hicolor/index.theme", "icons/hicolor/scalable/emblems/*.svg"]
+
+[tool.coverage.run]
+branch = true
+source = ["cloudmarks"]
+
+[tool.coverage.report]
+skip_covered = true
+sort = "cover"
 
 [tool.ruff]
 line-length = 110
