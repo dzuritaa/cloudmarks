@@ -4,9 +4,9 @@ Status: M0–M5 experimental implementation and MIT prerelease v0.1.0a1 are deli
 
 ## Recorded M0 outcome
 
-- [Badge presentation](docs/m0-presentation.md): real Nautilus 50 rendered fixture emblems in icon/list views, both appearances and two zoom levels; asynchronous completion, refresh and removal were exercised in an isolated desktop.
-- [ADR 0001](docs/decisions/0001-offline-backend.md): select direction **C**, an owned verified offline store with rclone transport and a read-only local-first union view. Ordinary VFS caching failed the tested offline-restart scenario.
-- [Storage design review](docs/offline-store-design.md): M1 may implement transactional state, stable identity and evidence checks against an artificial backend. Real transfers, visible-tree publication and offline controls remain M3 work.
+- [Badge presentation](m0-presentation.md): real Nautilus 50 rendered fixture emblems in icon/list views, both appearances and two zoom levels; asynchronous completion, refresh and removal were exercised in an isolated desktop.
+- [ADR 0001](../decisions/0001-offline-backend.md): select direction **C**, an owned verified offline store with rclone transport and a read-only local-first union view. Ordinary VFS caching failed the tested offline-restart scenario.
+- [Storage design review](offline-store-design.md): M1 may implement transactional state, stable identity and evidence checks against an artificial backend. Real transfers, visible-tree publication and offline controls remain M3 work.
 - The clean OneDrive test passed same-path reads after two process restarts under a rejecting proxy, read-only operations and local eviction without remote change. Physical network loss, logout and disk reconnection still need integration checks before daily use. See the ADR for the initial setup error, its correction, and experiment limits.
 
 ## Validation account setup
@@ -32,7 +32,7 @@ The first target is GNOME Files 50 on Ubuntu, using one OneDrive account through
 - Offline viewing is an acceptable first usable version. Offline editing, queued uploads, and two-way synchronization are deferred; they are not prerequisites for the first release.
 - The offline open path must enforce read-only behavior and be tested as such. An ordinary application must not be able to silently edit a managed offline copy that CloudMarks cannot synchronize or safely preserve.
 - Backend selection is an engineering investigation. If rclone fails the feasibility gate, evaluate replacements and recommend one based on evidence; the user does not need to choose a backend in advance. Building a new sync client is not the automatic fallback.
-- [Preliminary backend research](docs/backend-research.md) records documentation findings and outstanding experiments. It does not select the M0 backend or complete M0.2/M0.3.
+- [Preliminary backend research](backend-research.md) records documentation findings and outstanding experiments. It does not select the M0 backend or complete M0.2/M0.3.
 
 ## Current constraints
 
@@ -124,7 +124,7 @@ An inconclusive result is recorded as such and is not treated as direction A.
 
 Requires the M0 decision. The state store and file identity model depend on the chosen backend.
 
-Implemented: see [the M1 result](docs/m1-status-engine.md) and its validation record. The adapter and read-path proof are artificial; no real cloud actions are enabled by this engine.
+Implemented: see [the M1 result](m1-status-engine.md) and its validation record. The adapter and read-path proof are artificial; no real cloud actions are enabled by this engine.
 
 - Implement configuration validation, root containment, a stable file identity model, and the status contract.
 - Test state transitions with fixture data and an artificial transfer backend; no Microsoft credentials required.
@@ -134,7 +134,7 @@ Implemented: see [the M1 result](docs/m1-status-engine.md) and its validation re
 
 ### M2 — Read-only Nautilus prototype
 
-Implemented: see [the M2 result, screenshots and installation instructions](docs/m2-nautilus-prototype.md). The actual helper/adapter passed isolated desktop checks; real OneDrive state and actions remain disabled.
+Implemented: see [the M2 result, screenshots and installation instructions](m2-nautilus-prototype.md). The actual helper/adapter passed isolated desktop checks; real OneDrive state and actions remain disabled.
 
 - Add cloud, local, transfer, error, and unknown badges using the presentation chosen in M0.1, with text descriptions where the API permits.
 - Read state from the helper; do not perform transfers or automatically hydrate files when browsing.
@@ -149,7 +149,7 @@ While M0.3 is in progress, only backend-independent work may start: configuratio
 
 Requires the M0 backend decision and successful offline tests.
 
-Implemented as [experimental CLI controls with the M2 adapter kept read-only](docs/m3-offline-controls.md). Real test-account checks passed checksum verification, two offline restart reads, read-only operations and safe local eviction. Publication/eviction require the experimental view unmounted; mounted actions and context menus are deferred.
+Implemented as [experimental CLI controls with the M2 adapter kept read-only](m3-offline-controls.md). Real test-account checks passed checksum verification, two offline restart reads, read-only operations and safe local eviction. Publication/eviction require the experimental view unmounted; mounted actions and context menus are deferred.
 
 The first usable offline version targets viewing only. Do not add offline editing or automatic uploads as part of this milestone.
 
@@ -164,7 +164,7 @@ The first usable offline version targets viewing only. Do not add offline editin
 
 ### M4 — Change tracking and recovery
 
-Implemented for the read-only viewing scope at the user’s request: see [M4 behavior, matrix and limits](docs/m4-change-tracking.md). M2 remains status-only. Explicit retries and repeated bounded manifests replace an automatic sync daemon. Physical network/disk reconnection and desktop logout/login acceptance remain open. Offline editing, uploads, and two-way synchronization still need a separate scope decision before implementation.
+Implemented for the read-only viewing scope at the user’s request: see [M4 behavior, matrix and limits](m4-change-tracking.md). M2 remains status-only. Explicit retries and repeated bounded manifests replace an automatic sync daemon. Physical network/disk reconnection and desktop logout/login acceptance remain open. Offline editing, uploads, and two-way synchronization still need a separate scope decision before implementation.
 
 - Detect remote revisions and deletions without silently overwriting unsent local work.
 - Preserve both versions on conflicts; show an actionable state instead of inventing automatic merge behavior.
@@ -180,7 +180,7 @@ Implemented for the read-only viewing scope at the user’s request: see [M4 beh
 credential-free CI, package/source-rebuild checks, compatibility and operating/
 upgrade/recovery guides, an optional status-helper unit and a tag-only release
 workflow. Main and exact-tag hosted CI passed; downloaded release checksums,
-license and source contents were independently verified. See [M5 evidence](docs/evidence/m5/validation.json).
+license and source contents were independently verified. See [M5 evidence](../evidence/m5/validation.json).
 Physical daily-use acceptance remains separate and open.
 
 - Document supported Ubuntu/Nautilus/rclone versions and tested filesystems.
@@ -213,7 +213,7 @@ Physical daily-use acceptance remains separate and open.
 
 ## User participation
 
-See [YOUR_CHECKLIST.md](YOUR_CHECKLIST.md). The M0.1/M2 desktop tests used locally extracted `python3-nautilus`, typelibs and Xvfb inside an isolated session; no system package installation or daily Files restart occurred. The working OneDrive connection was not changed by M1–M2. Backup steps are tied to the milestone that introduces the corresponding risk.
+The M0.1/M2 desktop tests used locally extracted `python3-nautilus`, typelibs and Xvfb inside an isolated session; no system package installation or daily Files restart occurred. The working OneDrive connection was not changed by M1–M2. Backup steps are tied to the milestone that introduces the corresponding risk.
 
 ## References
 

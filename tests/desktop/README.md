@@ -1,6 +1,6 @@
 # Real Nautilus M2 acceptance harness
 
-See [the M2 result and reproduction instructions](../../docs/m2-nautilus-prototype.md).
+See [the M2 result and reproduction instructions](../../docs/dev/m2-nautilus-prototype.md).
 
 `run_isolated.py` uses Bubblewrap, a private DBus session, extracted
 nautilus-python/typelibs and Xvfb. It installs the actual CloudMarks package and

@@ -1,7 +1,7 @@
 # Preliminary backend research
 
 Historical first pass. Superseded by the completed source review and experiments
-in [ADR 0001](decisions/0001-offline-backend.md). The final M0 decision selects an
+in [ADR 0001](../decisions/0001-offline-backend.md). The final M0 decision selects an
 owned offline store with rclone transport/read-only union, rather than adopting
 onedriver without a supported state/control interface.
 

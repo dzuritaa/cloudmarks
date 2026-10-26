@@ -23,4 +23,4 @@ Dependencies are installed only in development environments. CI requires no
 account credentials, cloud access or privileged desktop setup. M5 does not enable
 a daily service, replace the user's mount, install system packages or reconnect
 the personal account. Review [operating limits](docs/operations.md) and the
-[pending acceptance checks](docs/release-checklist.md) before deployment.
+[pending acceptance checks](docs/dev/release-checklist.md) before deployment.

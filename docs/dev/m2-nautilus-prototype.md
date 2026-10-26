@@ -85,24 +85,24 @@ disabling in the same Files process, unrelated files, and a fresh launch after
 uninstall. After helper restart, the fixture that was actively transferring
 correctly becomes an interrupted-transfer error rather than remaining active.
 
-- [Initial state column, including downloading](evidence/m2/initial.png).
-- [Live pin transition](evidence/m2/refreshed.png).
-- [Unresponsive helper](evidence/m2/helper-unresponsive.png),
-  [recovered helper](evidence/m2/helper-recovered.png),
-  [unavailable helper](evidence/m2/helper-unavailable.png).
-- [Disabled while Files stays open](evidence/m2/disabled.png).
-- [2,000-entry folder](evidence/m2/large-folder.png).
-- [Unrelated folder](evidence/m2/unrelated.png) and
-  [uninstalled baseline](evidence/m2/uninstalled.png).
-- [Acceptance results](evidence/m2/results.json),
-  [sanitized observed attributes and heartbeat samples](evidence/m2/observer.jsonl),
-  [theme availability](evidence/m2/icon-themes.json),
-  [validation record](evidence/m2/validation.json).
+- [Initial state column, including downloading](../evidence/m2/initial.png).
+- [Live pin transition](../evidence/m2/refreshed.png).
+- [Unresponsive helper](../evidence/m2/helper-unresponsive.png),
+  [recovered helper](../evidence/m2/helper-recovered.png),
+  [unavailable helper](../evidence/m2/helper-unavailable.png).
+- [Disabled while Files stays open](../evidence/m2/disabled.png).
+- [2,000-entry folder](../evidence/m2/large-folder.png).
+- [Unrelated folder](../evidence/m2/unrelated.png) and
+  [uninstalled baseline](../evidence/m2/uninstalled.png).
+- [Acceptance results](../evidence/m2/results.json),
+  [sanitized observed attributes and heartbeat samples](../evidence/m2/observer.jsonl),
+  [theme availability](../evidence/m2/icon-themes.json),
+  [validation record](../evidence/m2/validation.json).
 
 | View | Small/light | Small/dark | Large/light | Large/dark |
 | --- | --- | --- | --- | --- |
-| Icons | [PNG](evidence/m2/icon-small-light.png) | [PNG](evidence/m2/icon-small-dark.png) | [PNG](evidence/m2/icon-large-light.png) | [PNG](evidence/m2/icon-large-dark.png) |
-| List + status | [PNG](evidence/m2/list-small-light.png) | [PNG](evidence/m2/list-small-dark.png) | [PNG](evidence/m2/list-large-light.png) | [PNG](evidence/m2/list-large-dark.png) |
+| Icons | [PNG](../evidence/m2/icon-small-light.png) | [PNG](../evidence/m2/icon-small-dark.png) | [PNG](../evidence/m2/icon-large-light.png) | [PNG](../evidence/m2/icon-large-dark.png) |
+| List + status | [PNG](../evidence/m2/list-small-light.png) | [PNG](../evidence/m2/list-small-dark.png) | [PNG](../evidence/m2/list-large-light.png) | [PNG](../evidence/m2/list-large-dark.png) |
 
 Nautilus adds its own lock mark to the fixture files with read-only permissions.
 That lock is distinct from the CloudMarks availability symbol. Screenshots crop
@@ -120,7 +120,7 @@ python3 -m unittest discover -s tests -v
 ```
 
 Run the real desktop harness using the locally extracted Ubuntu dependencies
-from the [M0 runner instructions](../spikes/nautilus-badges/README.md):
+from the [M0 runner instructions](../../spikes/nautilus-badges/README.md):
 
 ```bash
 python3 tests/desktop/run_isolated.py \

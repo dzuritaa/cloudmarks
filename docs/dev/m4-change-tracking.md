@@ -133,8 +133,8 @@ deliberate issues and their local versions remain retained for explicit review.
 The separate M3 pin/config/store and daily test-account mount were preserved.
 
 The acceptance matrix and final run scope are recorded in
-[the M4 validation record](evidence/m4/validation.json). The opt-in cloud runner
-and its mutation boundaries are documented [here](../tests/integration/README.md).
+[the M4 validation record](../evidence/m4/validation.json). The opt-in cloud runner
+and its mutation boundaries are documented [here](../../tests/integration/README.md).
 
 Physical cable/Wi-Fi loss, hardware disk unplug/replug and full desktop
 logout/login are still separate operational acceptance checks. Worker restart,

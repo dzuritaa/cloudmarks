@@ -35,7 +35,7 @@
 ## 0.1.0a1 — 2026-10-20 — experimental prerelease
 
 Initial experimental read-only offline viewer for a scoped dedicated OneDrive
-test account. See [the release checklist](docs/release-checklist.md) for build gates and
+test account. See [the release checklist](docs/dev/release-checklist.md) for build gates and
 [GitHub Releases](https://github.com/dzuritaa/cloudmarks/releases) for publication
 availability.
 

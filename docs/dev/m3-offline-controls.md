@@ -19,7 +19,7 @@ by M3; it reused one of the existing M0 fixtures.
 The real retained copy also reached the actual M2 adapter through its status-only
 socket in an isolated Files session:
 
-![Real read-only account status](evidence/m3/account-readonly.png)
+![Real read-only account status](../evidence/m3/account-readonly.png)
 
 That scene uses a read-only bind of the no-network offline FUSE view into the
 sandbox. The status helper runs outside the sandbox against the original view;
@@ -29,10 +29,10 @@ contains only a disposable filename and temporary sandbox breadcrumbs.
 
 Evidence:
 
-- [Real account restart/eviction result](evidence/m3/onedrive.json).
-- [Real adapter result](evidence/m3/account-desktop.json).
-- [M2 desktop regression](evidence/m3/m2-regression.json).
-- [Validation record](evidence/m3/validation.json).
+- [Real account restart/eviction result](../evidence/m3/onedrive.json).
+- [Real adapter result](../evidence/m3/account-desktop.json).
+- [M2 desktop regression](../evidence/m3/m2-regression.json).
+- [Validation record](../evidence/m3/validation.json).
 
 The existing daily test mount/service was preserved. No daily extension/settings,
 CloudMarks service, system package installation or Files restart occurred.
@@ -168,10 +168,10 @@ lifetime. Busy normal unmounts are reported rather than forced.
 
 ## M2 integration and setup
 
-Core TOML remains configuration version 1. See [the core template](../examples/config.toml),
-[offline settings](../examples/offline.json),
-[transport layout](../examples/transport.conf) and
-[read-only account desktop settings](../examples/desktop-account.json).
+Core TOML remains configuration version 1. See [the core template](../../examples/config.toml),
+[offline settings](../../examples/offline.json),
+[transport layout](../../examples/transport.conf) and
+[read-only account desktop settings](../../examples/desktop-account.json).
 These contain placeholders, not usable credentials. Put actual configuration in
 private user-owned directories (0700), with regular singly linked files (0600).
 Create the private state directory and the selected store's parent first;

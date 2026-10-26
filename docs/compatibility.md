@@ -2,7 +2,7 @@
 
 The published prerelease is `0.1.0a1`; `main` develops `0.1.0a2.dev0`.
 CloudMarks remains experimental. MIT licensing and publication status are tracked
-in the [release checklist](release-checklist.md).
+in the [release checklist](dev/release-checklist.md).
 
 ## Current main validation — 2026-10-22
 
@@ -50,7 +50,7 @@ not supply them.
 
 Content verification costs are bounded in the display helper. In 0.1.0a1, files
 over 8 MiB show unknown. M6 development adds explicit full hashing and short-lived
-fingerprint evidence for larger account files; see [the workflow](m6-hardening.md).
+fingerprint evidence for larger account files; see [the workflow](dev/m6-hardening.md).
 Folder aggregates require their own complete fresh manifest and at
 most 64 files / 8 MiB. Recursive intent is limited to 128 entries including the
 folder. M6 larger-file operational results are recorded separately. An offline view contains

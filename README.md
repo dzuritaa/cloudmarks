@@ -160,7 +160,7 @@ python3 -m unittest discover -s tests -q
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for linting, packaging, and optional desktop
-or account integration checks. The [project plan](PLAN.md),
+or account integration checks. The [project plan](docs/dev/plan.md),
 [backend design decision](docs/decisions/0001-offline-backend.md), and
 [changelog](CHANGELOG.md) cover the implementation history.
 

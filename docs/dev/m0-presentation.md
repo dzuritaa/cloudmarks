@@ -23,11 +23,11 @@ installed typelib; the reference manual's prose and example differ.
 
 | View | Small/light | Small/dark | Large/light | Large/dark |
 | --- | --- | --- | --- | --- |
-| Icons | [PNG](evidence/m0/badges/icon-small-light.png) | [PNG](evidence/m0/badges/icon-small-dark.png) | [PNG](evidence/m0/badges/icon-large-light.png) | [PNG](evidence/m0/badges/icon-large-dark.png) |
-| List + status column | [PNG](evidence/m0/badges/list-small-light.png) | [PNG](evidence/m0/badges/list-small-dark.png) | [PNG](evidence/m0/badges/list-large-light.png) | [PNG](evidence/m0/badges/list-large-dark.png) |
+| Icons | [PNG](../evidence/m0/badges/icon-small-light.png) | [PNG](../evidence/m0/badges/icon-small-dark.png) | [PNG](../evidence/m0/badges/icon-large-light.png) | [PNG](../evidence/m0/badges/icon-large-dark.png) |
+| List + status column | [PNG](../evidence/m0/badges/list-small-light.png) | [PNG](../evidence/m0/badges/list-small-dark.png) | [PNG](../evidence/m0/badges/list-large-light.png) | [PNG](../evidence/m0/badges/list-large-dark.png) |
 
 Captures contain the fixture content pane; host sidebar volume labels are
-excluded. [Callbacks](evidence/m0/badges/callbacks.jsonl) record 56 completions
+excluded. [Callbacks](../evidence/m0/badges/callbacks.jsonl) record 56 completions
 across eight launches: six initial states plus one refreshed state per launch.
 The refreshed item goes from the download emblem to a green check after
 `invalidate_extension_info()`, without directory navigation. The unmanaged
@@ -35,9 +35,9 @@ seventh item never gets a badge or extension attribute.
 
 After the extension file was removed from the sandbox's user extension
 directory, a fresh Nautilus launch produced no more extension callbacks and
-[no fixture badges](evidence/m0/badges/uninstalled.png).
-[Machine-readable results](evidence/m0/badges/results.json) and
-[icon-name availability](evidence/m0/badges/icon-availability.json) are included.
+[no fixture badges](../evidence/m0/badges/uninstalled.png).
+[Machine-readable results](../evidence/m0/badges/results.json) and
+[icon-name availability](../evidence/m0/badges/icon-availability.json) are included.
 
 ## Presentation decision
 
@@ -62,7 +62,7 @@ images tomorrow; no desktop restart is needed to inspect them.
 
 ## Reproduction
 
-See [the isolated runner](../spikes/nautilus-badges/README.md). The code is
+See [the isolated runner](../../spikes/nautilus-badges/README.md). The code is
 deliberately disposable and must not be reused as M2's extension.
 
 API references: [InfoProvider](https://gnome.pages.gitlab.gnome.org/nautilus-python/class-nautilus-python-info-provider.html),

@@ -1,6 +1,6 @@
 # Contributing
 
-Start with [the plan](PLAN.md), [handoff](docs/HANDOFF.md),
+Start with [the plan](docs/dev/plan.md), [handoff](docs/dev/handoff.md),
 [operating boundaries](docs/operations.md) and [compatibility](docs/compatibility.md).
 The project uses the [MIT license](LICENSE), selected by the owner. The project does not yet accept a claim of production safety.
 

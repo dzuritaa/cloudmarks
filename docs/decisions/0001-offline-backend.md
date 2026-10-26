@@ -15,7 +15,7 @@ rclone VFS cache. Both union upstreams are read-only and VFS data caching is off
 This is more than a badge extension, but substantially less than a two-way sync
 client. The initial product supports offline viewing. It has no upload, remote
 delete, automatic merge, or offline editing feature. The storage design and its
-review are recorded separately in [the offline-store design](../offline-store-design.md).
+review are recorded separately in [the offline-store design](../dev/offline-store-design.md).
 
 ## Existing tools review (M0.2)
 

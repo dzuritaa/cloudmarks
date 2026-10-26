@@ -3,8 +3,8 @@
 M6 develops `0.1.0a2.dev0`; the published `0.1.0a1` release is unchanged. The
 viewer remains read-only. The Nautilus adapter and status socket expose no
 mutating commands. New controls are explicit CLI operations on one dedicated
-profile. See the [validation record](evidence/m6/validation.json) for measured
-results and the remaining human acceptance work. The [real 16 MiB Files scene](evidence/m6/account-readonly.png) shows the verified status; the [account trial](evidence/m6/account.public.json) and [desktop regression](evidence/m6/desktop-regression.json) record their exact scope.
+profile. See the [validation record](../evidence/m6/validation.json) for measured
+results and the remaining human acceptance work. The [real 16 MiB Files scene](../evidence/m6/account-readonly.png) shows the verified status; the [account trial](../evidence/m6/account.public.json) and [desktop regression](../evidence/m6/desktop-regression.json) record their exact scope.
 
 ## Review and repair a recorded conflict
 

@@ -1,6 +1,6 @@
 # Opt-in dedicated-account integration
 
-See [M3 setup, results and constraints](../../docs/m3-offline-controls.md).
+See [M3 setup, results and constraints](../../docs/dev/m3-offline-controls.md).
 `run_offline.py` requires explicit private configuration and an existing disposable
 file inside the independently verified allowed folder in the dedicated account.
 It implements no cloud provisioning, upload or deletion. It initializes a new
@@ -53,7 +53,7 @@ hashing disabled. It confirms helper DB bytes and the original profile baselines
 are unchanged. Archives, exports, cloud fixtures and the clean trial store remain
 available for review. The result is sanitized; logs/config/receipts remain private.
 
-See [M6 hardening](../../docs/m6-hardening.md) for reproduction, private handoff
+See [M6 hardening](../../docs/dev/m6-hardening.md) for reproduction, private handoff
 and the remaining supervised physical/user acceptance checks. The test-only
 writer is never imported by the production CLI or helper.
 

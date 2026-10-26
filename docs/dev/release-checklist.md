@@ -31,7 +31,7 @@ separate and open.
 
 ## Prepare and publish after the gates
 
-Run the [contributor checks](../CONTRIBUTING.md), including installed-wheel tests
+Run the [contributor checks](../../CONTRIBUTING.md), including installed-wheel tests
 and source rebuild, from the intended source revision. Review the full diff,
 sanitary archive inventory and selected license. Include all project sources and
 historical evidence intentionally; the repository initially tracked documentation
@@ -55,7 +55,7 @@ Do not publish to PyPI
 or label this production-ready as part of this milestone. Checksums verify bytes,
 not publisher identity; signing/attestation can be evaluated for a later release.
 The exact local and hosted outcomes are recorded separately in
-[the M5 validation record](evidence/m5/validation.json).
+[the M5 validation record](../evidence/m5/validation.json).
 
 ## Operational acceptance before daily use
 

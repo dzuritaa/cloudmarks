@@ -1,4 +1,4 @@
-include PLAN.md YOUR_CHECKLIST.md CHANGELOG.md CONTRIBUTING.md SECURITY.md
+include CHANGELOG.md CONTRIBUTING.md SECURITY.md
 include LICENSE*
 recursive-include .github *.yml
 recursive-include scripts *.py

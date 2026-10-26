@@ -4,7 +4,7 @@ The published `0.1.0a1` prerelease provides experimental read-only offline viewi
 and explicit CLI controls for disposable test data. The current `main` branch
 (`0.1.0a2.dev0`) also adds an opt-in [automatic upload/status observer](automatic-status.md)
 and [file/folder context-menu controls](folder-controls.md), plus
-[verification and recovery commands](m6-hardening.md).
+[verification and recovery commands](dev/m6-hardening.md).
 
 The base setup below establishes the account, store, and read-only adapter. For
 the current desktop workflow, configure automatic observation next, then enable
@@ -78,7 +78,7 @@ to the real selected filesystem from `findmnt`; stacked autofs triggers are not
 the disk. The store has an independent marker and account/state/view binding.
 Changing paths or making a new marker is not a supported migration method.
 
-The detailed [M3 setup](m3-offline-controls.md) explains root-ID normalization,
+The detailed [M3 setup](dev/m3-offline-controls.md) explains root-ID normalization,
 transport policy and initialization. Choose an empty, new store path for:
 
 ```bash
@@ -116,7 +116,7 @@ identities and refuses stale/conflicted local shadows. It does not download or
 repair them automatically. Unmount first, then explicitly `refresh`/`resume` or
 review `conflicts`. Every byte-changing control requires the view unmounted.
 
-[M4](m4-change-tracking.md) documents `queue-tree`, aggregate limits, separate pin
+[M4](dev/m4-change-tracking.md) documents `queue-tree`, aggregate limits, separate pin
 sources and conflict preservation. `unpin`/`unpin-tree` change intent only;
 `free` is a separate individual-file eviction command requiring fresh matching
 cloud evidence and no remaining pins, issue or dirty state. It never deletes a
@@ -130,7 +130,7 @@ The desktop requires the matching Nautilus Python loader and typelib. The tested
 Ubuntu 26.04 packages are `python3-nautilus` 4.1.0 and
 `gir1.2-nautilus-4.1` for Nautilus 50.2.2. Installing system packages is a separate
 administrator action; CloudMarks never does it for you. Other Nautilus APIs are
-untested. Review [the isolated desktop evidence](m2-nautilus-prototype.md) first.
+untested. Review [the isolated desktop evidence](dev/m2-nautilus-prototype.md) first.
 
 Prepare a private `desktop-account.json` with an absolute account settings path,
 absolute visible root, `enabled: false` and socket

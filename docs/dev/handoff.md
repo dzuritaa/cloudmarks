@@ -11,14 +11,14 @@ Physical reconnect/logout and daily-use acceptance remain open.
 ## Start here
 
 - [M5 release gates and publication status](release-checklist.md).
-- [Installation, upgrades, rollback and recovery](operations.md).
-- [Tested compatibility and limits](compatibility.md).
+- [Installation, upgrades, rollback and recovery](../operations.md).
+- [Tested compatibility and limits](../compatibility.md).
 
 - [M4 commands, conflict review, folder intent and remaining acceptance](m4-change-tracking.md).
 
 - [M3 workflow, real-account evidence and limits](m3-offline-controls.md).
 - [M2 historical desktop evidence](m2-nautilus-prototype.md).
-- [Backend decision](decisions/0001-offline-backend.md) and
+- [Backend decision](../decisions/0001-offline-backend.md) and
   [storage design / M3 review](offline-store-design.md).
 - [M1 state model](m1-status-engine.md).
 
@@ -66,7 +66,7 @@ pass on the selected NTFS3 disk. They include cancellation at final metadata
 checks, checksum/revision races, budget/free-space failures, injected ENOSPC,
 link/dirty-file protection, scope checks, safe credential diagnostics, abrupt
 process death during publication/eviction and SQLite commit failure. See
-[the validation record](evidence/m3/validation.json) for run scope/timings.
+[the validation record](../evidence/m3/validation.json) for run scope/timings.
 
 The existing real 100 KiB test file matched its server QuickXor and local SHA-256,
 opened after two offline mount restarts with pin recovery, and rejected modify,
@@ -134,7 +134,7 @@ M4 private work/config/result locations are recorded separately in
 test-account mount were preserved. The cloud matrix uses a new unique disposable
 folder; its harness alone provisions/updates/renames/deletes its own test files.
 Production still contains no remote write/delete feature. Review the sanitized
-[M4 validation record](evidence/m4/validation.json) for exact run results and
+[M4 validation record](../evidence/m4/validation.json) for exact run results and
 operational exclusions. Prior M0–M3 evidence remains historical.
 
 
@@ -168,7 +168,7 @@ attempted; the API and Git transports may use different credentials. Source/CI/n
 committed, pushed, tagged or published. The repository's current remote HEAD
 tracks only historical docs, so publishing a tag at that HEAD would omit the
 implementation. A release must include the reviewed implementation and M5 files.
-See [M5 validation](evidence/m5/validation.json) for local run results and the
+See [M5 validation](../evidence/m5/validation.json) for local run results and the
 remaining gates. No real account/daily desktop was altered for M5.
 
 
@@ -252,7 +252,7 @@ views/helpers stopped normally. Private config, receipts and logs remain outside
 Git; the private M6 handoff is under ~/.config/cloudmarks-test/m6-work.json.
 
 See [M6 workflow and supervised checklist](m6-hardening.md) and its
-[sanitized evidence](evidence/m6/validation.json). Physical network/disk loss,
+[sanitized evidence](../evidence/m6/validation.json). Physical network/disk loss,
 full logout/login and the user's readability/accessibility/repair review remain
 open. The selected disk holds the repository and other data, so unplug testing
 requires a maintenance window or a separate removable trial volume. M6 prepares

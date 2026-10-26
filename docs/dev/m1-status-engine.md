@@ -93,7 +93,7 @@ writes. It runs without Microsoft credentials or a desktop.
 To repeat against a particular filesystem, create an empty private test directory
 on that disk and set `CLOUDMARKS_TEST_TMPDIR` for the test process. Every test
 creates and removes its own disposable subdirectory. The checked-in
-[validation record](evidence/m1/validation.json) distinguishes the standard
+[validation record](../evidence/m1/validation.json) distinguishes the standard
 temporary-filesystem, NTFS3 and Python compatibility runs.
 
 The desktop remains at M0's isolated fixture spike. M2 still needs the real
