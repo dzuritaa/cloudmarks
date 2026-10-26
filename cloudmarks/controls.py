@@ -32,7 +32,8 @@ def profile(settings):
     value = read_private_json(settings["control_config"])
     if (
         not isinstance(value, dict)
-        or set(value) != {"version", "view_service"}
+        or set(value) - {"live_updates"} != {"version", "view_service"}
+        or type(value.get("live_updates", False)) is not bool
         or type(value["version"]) is not int
         or value["version"] != 1
         or not isinstance(value["view_service"], str)
@@ -109,6 +110,64 @@ class Progress:
         self.emit(dict(self.value))
 
 
+def view_holders(root, limit=5):
+    """Names of this user's processes with files or a working directory in the view."""
+    root = str(Path(root))
+    names = set()
+    for entry in Path("/proc").iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            if entry.stat().st_uid != os.getuid():
+                continue
+            links = [entry / "cwd", *(entry / "fd").iterdir()]
+            for link in links:
+                target = os.readlink(link)
+                if target == root or target.startswith(root + "/"):
+                    names.add((entry / "comm").read_text().strip() or "unknown")
+                    break
+        except OSError:
+            continue
+    return sorted(names)[:limit]
+
+
+def busy_message(root):
+    names = view_holders(root)
+    if names:
+        return "Close " + ", ".join(names) + " (using the offline view), then click Retry"
+    return "Close the CloudMarks-Test window and files opened from it, then click Retry"
+
+
+class LiveView:
+    """Keep the verified read-only view mounted while copies change underneath it.
+
+    Publication and eviction are atomic renames inside the store; the view's
+    one-second directory cache shows them without a remount, and open readers
+    keep their original bytes (spikes/live-view). A foreign mount is refused.
+    """
+
+    def __init__(self, config, settings):
+        self.config, self.settings = config, settings
+
+    def was_active(self):
+        return False
+
+    def stop(self):
+        live_guard(self.config)(self.settings)
+        return True
+
+    def start(self):
+        return None
+
+
+def live_guard(config):
+    def guard(settings):
+        if mounted_view(settings) and not attest_view(config, settings):
+            raise ScopeError("Another mount occupies the offline view; preserve it and check the profile")
+
+    return guard
+
+
 class ServiceView:
     def __init__(self, config, settings, unit, *, command=subprocess.run):
         self.config, self.settings, self.unit, self.command = config, settings, unit, command
@@ -136,7 +195,7 @@ class ServiceView:
                 ["fusermount3", "-u", self.settings["visible_root"]], capture_output=True, timeout=10
             )
         if mounted_view(self.settings):
-            raise StorageError("Close the CloudMarks-Test window and files opened from it, then click Retry")
+            raise StorageError(busy_message(self.settings["visible_root"]))
         return True
 
     def start(self):
@@ -266,6 +325,9 @@ def execute(
         raise ScopeError("This selection belongs to an older profile; reopen its folder and retry")
     backend = backend or OneDrive(config, offline)
     root, observations, summary = plan(config, offline, backend, path, operation, cancelled=cancelled)
+    live = control_settings.get("live_updates", False)
+    summary["requires_unmount"] = not live
+    guard = {"unmounted": live_guard(config)} if live else {}
     if dry_run:
         return dict(summary, dry_run=True)
     if operation == "free" and not summary["retained_files"] and not root.remote.is_directory:
@@ -285,7 +347,11 @@ def execute(
             raise StorageError("Another offline operation is running; finish or cancel it first") from None
         progress = Progress(config, path, operation, emit)
         progress.update(total=summary["files"], phase="waiting")
-        manager = service or ServiceView(config, offline, control_settings["view_service"])
+        manager = service or (
+            LiveView(config, offline)
+            if live
+            else ServiceView(config, offline, control_settings["view_service"])
+        )
         was_mounted = bool(mounted_view(offline)) or (hasattr(manager, "was_active") and manager.was_active())
         error = None
         done, skipped = 0, 0
@@ -299,6 +365,7 @@ def execute(
                     store,
                     backend,
                     offline,
+                    **guard,
                     cancelled=cancelled,
                     progress=lambda **v: progress.update(
                         phase="downloading" if operation == "keep" else "freeing",
@@ -392,7 +459,9 @@ def execute(
                 from .verification import verify
 
                 with StateStore(config) as store:
-                    controller = OfflineController(config, store, backend, offline, cancelled=cancelled)
+                    controller = OfflineController(
+                        config, store, backend, offline, **guard, cancelled=cancelled
+                    )
                     for i, value in enumerate(v for v in observations if not v.remote.is_directory):
                         controller.check_cancelled()
                         progress.update(phase="verifying", completed=i, total=summary["files"])

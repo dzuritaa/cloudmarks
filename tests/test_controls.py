@@ -53,7 +53,8 @@ class ControlsTests(test_tracking.TrackingCase):
                 if self.mounted:
                     raise StorageError("View still mounted")
 
-            return OfflineController(*args, **kwargs, volume_check=lambda *a: None, unmounted=unmounted)
+            kwargs.setdefault("unmounted", unmounted)
+            return OfflineController(*args, **kwargs, volume_check=lambda *a: None)
 
         for patcher in (
             patch("cloudmarks.controls.load_offline", return_value=(self.config, self.settings)),
@@ -134,6 +135,49 @@ class ControlsTests(test_tracking.TrackingCase):
             self.run_control("keep")
         self.assertFalse(self.visible().exists())
         self.assertTrue(self.mounted)
+
+    def enable_live_updates(self, attested=True):
+        self.control["live_updates"] = True
+        Path(self.desktop["control_config"]).write_text(json.dumps(self.control))
+        patcher = patch("cloudmarks.controls.attest_view", return_value=attested)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_live_updates_keep_and_free_without_unmounting(self):
+        self.enable_live_updates()
+        dry = execute(self.desktop, "folder", "keep", backend=self.backend, dry_run=True)
+        self.assertFalse(dry["requires_unmount"])
+        before = dict(self.backend.records)
+        self.assertEqual(execute(self.desktop, "folder", "keep", backend=self.backend)["completed"], 2)
+        self.assertTrue((self.disk / "local/folder/disposable.txt").exists())
+        self.assertEqual(execute(self.desktop, "folder", "free", backend=self.backend)["completed"], 2)
+        self.assertFalse((self.disk / "local/folder").exists())
+        self.assertTrue(self.mounted)
+        self.assertEqual((self.stops, self.starts), (0, 0))
+        self.assertEqual(self.backend.records, before)
+
+    def test_live_updates_refuse_a_foreign_mount(self):
+        self.enable_live_updates(attested=False)
+        with self.assertRaises(ScopeError):
+            execute(self.desktop, "folder", "keep", backend=self.backend)
+        self.assertFalse((self.disk / "local/folder").exists())
+
+    def test_live_updates_flag_must_be_boolean(self):
+        self.control["live_updates"] = "yes"
+        Path(self.desktop["control_config"]).write_text(json.dumps(self.control))
+        with self.assertRaises(ConfigurationError):
+            profile(self.desktop)
+
+    def test_busy_message_names_processes_using_the_view(self):
+        from cloudmarks.controls import busy_message, view_holders
+
+        view = self.root / "busy-view"
+        view.mkdir()
+        with open(view / "open.txt", "w"):
+            holders = view_holders(view)
+            self.assertIn(Path("/proc/self/comm").read_text().strip(), holders)
+            self.assertIn("then click Retry", busy_message(view))
+        self.assertEqual(view_holders(view), [])
 
     def test_cancellation_restores_the_original_view_and_keeps_pending_intent(self):
         stopped = [False]

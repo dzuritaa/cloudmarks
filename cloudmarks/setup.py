@@ -564,6 +564,12 @@ class Setup:
             "storage_mount_target": v["volume_target"],
         }
         controls = {"version": 1, "view_service": VIEW_UNIT}
+        if self.prompt.confirm(
+            "live_updates",
+            "Let Keep offline and Free local copy work while the offline view is open? (new, experimental)",
+            default=False,
+        ):
+            controls["live_updates"] = True
         runtime = layout.runtime
         settings = {
             "version": 4,
@@ -733,6 +739,7 @@ def load_answers(path):
         "offline_root",
         "enable_services",
         "enable_badges",
+        "live_updates",
     }
     if set(value) - allowed:
         raise ConfigurationError("Unknown setup answers: " + ", ".join(sorted(set(value) - allowed)))

@@ -146,6 +146,7 @@ class SetupTests(unittest.TestCase):
         for name in ("Account and storage configuration", "Transport configuration", "Upload configuration"):
             self.assertEqual(checks[name]["status"], "ok", checks[name])
         self.assertEqual(checks["Menu controls"]["status"], "ok", checks["Menu controls"])
+        self.assertNotIn("live_updates", json.loads(layout.file("controls.json").read_text()))
         self.assertEqual(checks["Installed files"]["status"], "ok", checks["Installed files"])
         settings = json.loads((layout.config / "desktop.json").read_text())
         self.assertTrue(settings["enabled"])
@@ -167,6 +168,11 @@ class SetupTests(unittest.TestCase):
         )
         for path in (self.answers["upload_root"], self.answers["offline_root"]):
             self.assertEqual(stat.S_IMODE(Path(path).stat().st_mode), 0o700)
+
+    def test_live_updates_are_opt_in(self):
+        self.setup(dict(self.answers, live_updates=True)).execute()
+        controls = json.loads(Layout.current().file("controls.json").read_text())
+        self.assertTrue(controls["live_updates"])
 
     def test_doctor_report_is_free_of_paths_ids_and_email(self):
         self.setup().execute()
