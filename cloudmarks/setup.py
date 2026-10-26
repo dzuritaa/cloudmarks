@@ -694,6 +694,17 @@ class Setup:
             return
         try:
             self.run(["systemctl", "--user", "daemon-reload"], timeout=30, check=True)
+            from .doctor import unit_state
+
+            if unit_state(UPLOAD_UNIT, self.run)[0] == "not-found":
+                # A custom XDG_CONFIG_HOME puts the units where the user's systemd
+                # instance does not look, as in a sandboxed trial run.
+                self.say(
+                    f"\nThe services were written to {self.layout.units}, which systemd does not read "
+                    "(a custom XDG_CONFIG_HOME). They were not started; copy them to "
+                    "~/.config/systemd/user to use them."
+                )
+                return
             if self.prompt.confirm(
                 "enable_services", "Start CloudMarks now and at every login?", default=True
             ):
@@ -767,7 +778,9 @@ class Setup:
 def _absolute(value):
     path = Path(os.path.expanduser(str(value)))
     if not path.is_absolute() or ".." in path.parts or path == Path("/"):
-        raise ConfigurationError("Use an absolute folder path")
+        raise ConfigurationError(
+            "Type the full path, starting with / (for example /home/you/CloudMarks-offline)"
+        )
     return str(path)
 
 

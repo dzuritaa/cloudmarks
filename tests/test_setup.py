@@ -252,6 +252,21 @@ class SetupTests(unittest.TestCase):
         self.assertNotIn("secret-looking-output", str(caught.exception))
         self.assertFalse(Layout.current().file("signin.conf").exists())
 
+    def test_services_outside_systemds_search_path_are_written_but_not_started(self):
+        def invisible(argv, **kwargs):
+            if argv[:3] == ["systemctl", "--user", "show"]:
+                self.commands.append([str(a) for a in argv])
+                return SimpleNamespace(returncode=0, stdout="LoadState=not-found\nActiveState=inactive\n")
+            return self.fake_run(argv, **kwargs)
+
+        setup = self.setup()
+        setup.run = invisible
+        setup.execute()
+        self.assertTrue((Layout.current().units / UPLOAD_UNIT).exists())
+        self.assertFalse(any("enable" in command for command in self.commands))
+        record = json.loads(Layout.current().file("setup.json").read_text())
+        self.assertIn("services", record["completed"])
+
     def test_existing_installation_is_never_replaced(self):
         config = Path(os.environ["XDG_CONFIG_HOME"]) / "cloudmarks"
         config.mkdir(mode=0o700)
