@@ -439,4 +439,4 @@ class ChangeTracker:
             self.backend.verify_transport_item(observation)
             self.store.observe(replace(remote, sha256=copy.sha256))
         if not found:
-            raise ScopeError("Online view requires a verified retained file")
+            self.backend.verify_transport_root()

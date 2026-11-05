@@ -73,6 +73,10 @@ the last completed step.
 
 Close all Files windows and open Files again so it loads the extension.
 
+The first online start can run without any offline copies. The selected OneDrive
+folder must contain at least one regular file or subfolder: CloudMarks checks
+its identity through both Microsoft Graph and rclone without downloading it.
+
 To preview the plan without changing anything, run `cloudmarks setup --dry-run`.
 
 ## Everyday use
@@ -171,6 +175,37 @@ Stop the upload service only after uploads have finished.
 | Keep offline asks you to close an application | Close it (or its Files tab in the Offline folder) and click Retry, or turn on live updates. |
 | The sign-in expired | Run `rclone config reconnect upload: --config ~/.config/cloudmarks/profile/upload.conf` and the same for `origin:` with `transport.conf`, choosing the same account. |
 | Files copied to the Upload folder while it was stopped | They are on your disk, not in OneDrive. Move them somewhere safe, start the upload service, then copy them in again. |
+
+### Slow browsing in Files
+
+GNOME can classify the rclone folders as local filesystems. In that case,
+Files' **local-only** thumbnail and folder item-count settings still apply to
+OneDrive. Counting items can trigger cloud listings; thumbnails can read file
+content. This can also delay opening the parent folder that contains the Upload
+and Offline folders.
+
+If browsing is slow, test these preferences one at a time, repeating the same
+navigation after each command:
+
+```bash
+gsettings set org.gnome.nautilus.preferences show-directory-item-counts 'never'
+gsettings set org.gnome.nautilus.preferences show-image-thumbnails 'never'
+```
+
+These are **user-wide Files preferences**, including ordinary local folders.
+They hide automatic counts and thumbnail previews; files still open normally.
+They do not delete cloud files or offline copies, stop services, or download the
+whole OneDrive folder. In one Ubuntu 26.04 trial, disabling counts partly reduced
+the delay, and disabling thumbnails as well made opening Files and the parent
+disk folder fast again. Other causes may need separate investigation.
+
+Check the existing values with `gsettings get` before changing them. If the
+previous values were `local-only`, restore them with:
+
+```bash
+gsettings set org.gnome.nautilus.preferences show-directory-item-counts 'local-only'
+gsettings set org.gnome.nautilus.preferences show-image-thumbnails 'local-only'
+```
 
 ## Remove CloudMarks
 

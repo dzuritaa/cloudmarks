@@ -115,6 +115,20 @@ class TrackingCase(OfflineCase):
 
 
 class ChangeTests(TrackingCase):
+    def test_online_mount_without_local_copies_verifies_root_without_downloading(self):
+        with patch.object(self.backend, "verify_transport_root", create=True) as verify:
+            self.tracker.check_online()
+        verify.assert_called_once_with()
+        self.assertEqual(self.backend.reads, 0)
+        self.assertEqual(self.store.connection.execute("SELECT count(*) FROM local_entries").fetchone()[0], 0)
+
+    def test_online_mount_without_local_copies_rejects_unverified_root(self):
+        with patch.object(
+            self.backend, "verify_transport_root", create=True, side_effect=ScopeError("Wrong root")
+        ):
+            with self.assertRaises(ScopeError):
+                self.tracker.check_online()
+
     def test_network_loss_retains_durable_intent_and_resume_after_restart(self):
         self.tracker.queue(self.path)
         self.backend.fail = True

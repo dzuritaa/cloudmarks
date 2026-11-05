@@ -174,6 +174,80 @@ class GraphTests(unittest.TestCase):
                 with self.assertRaises(ScopeError):
                     self.backend.verify_transport_item(observation)
 
+    def root_witness(self, *, directory=False):
+        child = dict(self.file)
+        if directory:
+            child.pop("file")
+            child["folder"] = {}
+        original = self.backend.graph
+        self.backend.graph = lambda route: {"value": [child]} if "/children?" in route else original(route)
+        value = {
+            "Path": child["name"],
+            "ID": "test-drive#item-id",
+            "IsDir": directory,
+            "Size": -1 if directory else child["size"],
+        }
+        return child, value
+
+    def test_online_root_uses_matching_child_metadata_without_a_local_copy(self):
+        for directory in (False, True):
+            with self.subTest(directory=directory):
+                _, value = self.root_witness(directory=directory)
+                with patch(
+                    "cloudmarks.onedrive.subprocess.run",
+                    return_value=subprocess.CompletedProcess([], 0, json.dumps([value]).encode()),
+                ) as run:
+                    self.backend.verify_transport_root()
+                self.assertEqual(
+                    run.call_args.args[0], self.backend.argv("lsjson", "origin:", "--max-depth=1")
+                )
+
+    def test_online_root_rejects_wrong_identity_path_type_and_file_size(self):
+        _, value = self.root_witness()
+        for change in (
+            {"ID": "other-drive#item-id"},
+            {"ID": "test-drive#other-item"},
+            {"Path": "elsewhere.txt"},
+            {"IsDir": True},
+            {"Size": 8},
+        ):
+            with self.subTest(change=change):
+                bad = dict(value, **change)
+                with patch(
+                    "cloudmarks.onedrive.subprocess.run",
+                    return_value=subprocess.CompletedProcess([], 0, json.dumps([bad]).encode()),
+                ):
+                    with self.assertRaises(ScopeError):
+                        self.backend.verify_transport_root()
+
+    def test_online_root_rejects_empty_shared_or_misplaced_witnesses(self):
+        child, _ = self.root_witness()
+        original = self.backend.graph
+        for children in (
+            [],
+            [dict(child, remoteItem={})],
+            [dict(child, parentReference={"driveId": "test-drive", "id": "outside-root"})],
+        ):
+            with self.subTest(children=children):
+                self.backend.graph = lambda route, children=children: (
+                    {"value": children} if "/children?" in route else original(route)
+                )
+                with patch("cloudmarks.onedrive.subprocess.run") as run:
+                    with self.assertRaises(ScopeError):
+                        self.backend.verify_transport_root()
+                run.assert_not_called()
+
+    def test_online_root_rejects_malformed_or_unavailable_rclone_evidence(self):
+        self.root_witness()
+        for code, output in ((1, b""), (0, b"invalid"), (0, b"{}"), (0, b"[null]")):
+            with self.subTest(code=code, output=output):
+                with patch(
+                    "cloudmarks.onedrive.subprocess.run",
+                    return_value=subprocess.CompletedProcess([], code, output),
+                ):
+                    with self.assertRaises(StorageError):
+                        self.backend.verify_transport_root()
+
     def test_transport_roots_and_mutable_upstream_policies_cannot_be_overridden(self):
         for key, value in (
             ("drive_id", "other-drive"),

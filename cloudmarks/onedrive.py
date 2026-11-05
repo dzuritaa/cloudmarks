@@ -651,6 +651,64 @@ class OneDrive:
                     route = prefix + "?" + parsed.query
         return values
 
+    def verify_transport_root(self):
+        """Prove the effective origin with a direct child, without downloading.
+
+        rclone synthesizes root/directory stat responses without an ID. Its
+        one-level listing exposes child identities, which must match scoped
+        Graph metadata before a view with no retained copies can start.
+        """
+        self.authenticate()
+        q = urllib.parse.quote
+        page = self.graph(
+            f"drives/{q(self.config.expected_drive_id, safe='')}/items/"
+            f"{q(self.config.allowed_root_id, safe='')}/children?$top=128"
+        )
+        children = page.get("value") if isinstance(page, dict) else None
+        if not isinstance(children, list) or len(children) > 128:
+            raise IntegrityError("Online root metadata is incomplete or too large")
+        child = next(
+            (
+                value
+                for value in children
+                if isinstance(value, dict)
+                and "remoteItem" not in value
+                and "deleted" not in value
+                and ("file" in value or "folder" in value)
+            ),
+            None,
+        )
+        if child is None:
+            raise ScopeError("Online root requires a regular cloud item to verify transport identity")
+        if child.get("parentReference", {}).get("id") != self.config.allowed_root_id:
+            raise ScopeError("Online root witness belongs to another folder")
+        observation = self.observation(child, child["name"], allow_directory=True)
+        remote = observation.remote
+        try:
+            result = subprocess.run(
+                self.argv("lsjson", "origin:", "--max-depth=1"),
+                env=clean_environment(),
+                capture_output=True,
+                timeout=45,
+            )
+            if result.returncode or len(result.stdout) > 1024 * 1024:
+                raise StorageError("Cannot establish the effective transport root identity")
+            values = json.loads(result.stdout)
+            if not isinstance(values, list) or any(not isinstance(value, dict) for value in values):
+                raise StorageError("Cannot establish the effective transport root identity")
+            matches = [value for value in values if value.get("Path") == remote.relative_path]
+            if len(matches) != 1:
+                raise ScopeError("Effective transport root has no unique scoped witness")
+            value = matches[0]
+            if (
+                value.get("ID") != remote.identity.drive_id + "#" + remote.identity.item_id
+                or value.get("IsDir") is not remote.is_directory
+                or (not remote.is_directory and value.get("Size") != remote.size)
+            ):
+                raise ScopeError("Effective transport root does not match scoped Graph evidence")
+        except (OSError, ValueError, subprocess.SubprocessError):
+            raise StorageError("Cannot establish the effective transport root identity") from None
+
     def verify_transport_item(self, observation):
         self.config.validate_remote(observation.remote)
         try:
