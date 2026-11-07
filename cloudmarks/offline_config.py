@@ -3,6 +3,8 @@
 import json
 import os
 import subprocess
+import threading
+import time
 from pathlib import Path
 
 from .config import absolute_path, integer, load_config
@@ -75,9 +77,47 @@ def check_binding(config, settings):
         raise StorageError("Store belongs to another state database, account, root or visible view")
 
 
-def check_volume(config, settings):
+_VOLUME_PROOFS = {}
+_VOLUME_LOCK = threading.Lock()
+
+
+def check_volume(config, settings, *, reuse_seconds=0):
+    """Verify the storage mount. Mutating callers always run findmnt.
+
+    Read-only status callers may pass reuse_seconds to reuse a recent mount
+    proof for the same probe inode, device and expected mount identity. The
+    store binding file is still checked on every call.
+    """
     # A marker in an ordinary empty mountpoint alone is not a disk identity.
     probe = config.storage_root if config.storage_root.exists() else config.storage_root.parent
+    key = None
+    if reuse_seconds > 0:
+        try:
+            info = os.stat(probe)
+        except OSError:
+            raise StorageError("Expected storage volume cannot be verified") from None
+        key = (
+            str(probe),
+            info.st_dev,
+            info.st_ino,
+            settings.get("storage_mount_uuid"),
+            settings.get("storage_mount_target"),
+        )
+        with _VOLUME_LOCK:
+            stamp = _VOLUME_PROOFS.get(key)
+        if stamp is not None and 0 <= time.monotonic() - stamp < reuse_seconds:
+            try:
+                if config.storage_root.exists():
+                    check_binding(config, settings)
+                return
+            except BaseException as error:
+                with _VOLUME_LOCK:
+                    _VOLUME_PROOFS.pop(key, None)
+                if isinstance(error, (OSError, ValueError, KeyError, IndexError)):
+                    raise StorageError("Expected storage volume cannot be verified") from None
+                raise
+    with _VOLUME_LOCK:
+        _VOLUME_PROOFS.pop(key, None)
     try:
         result = subprocess.run(
             ["findmnt", "--json", "--target", str(probe), "--output", "UUID,TARGET,FSTYPE,OPTIONS,MAJ:MIN"],
@@ -105,6 +145,11 @@ def check_volume(config, settings):
             check_binding(config, settings)
     except (OSError, ValueError, KeyError, IndexError, subprocess.SubprocessError):
         raise StorageError("Expected storage volume cannot be verified") from None
+    if key is not None:
+        with _VOLUME_LOCK:
+            if len(_VOLUME_PROOFS) >= 16:
+                _VOLUME_PROOFS.clear()
+            _VOLUME_PROOFS[key] = time.monotonic()
 
 
 def mounted_view(settings):

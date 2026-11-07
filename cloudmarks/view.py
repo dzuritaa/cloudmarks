@@ -26,8 +26,11 @@ def device_name(config):
     return "cloudmarks-" + hashlib.sha256(config.volume_id.encode()).hexdigest()[:24]
 
 
-def attest_view(config, settings):
-    check_volume(config, settings)
+def attest_view(config, settings, *, volume_reuse_seconds=0):
+    if volume_reuse_seconds:
+        check_volume(config, settings, reuse_seconds=volume_reuse_seconds)
+    else:
+        check_volume(config, settings)
     record = read_private_json(config.state_path.parent / "view.json")
     current = mounted_view(settings)
     if (
@@ -43,13 +46,13 @@ def attest_view(config, settings):
     return True
 
 
-def prove_view(config, settings, remote, copy):
-    if not attest_view(config, settings):
+def prove_view(config, settings, remote, copy, *, verify=None, volume_reuse_seconds=0):
+    if not attest_view(config, settings, volume_reuse_seconds=volume_reuse_seconds):
         return False
     # Verify the durable local winner. Do not open a union/cloud path from a
     # badge request: even a read could hydrate data if the local winner vanished.
     with SecureRoot(config.storage_root, config.volume_id) as root:
-        root.verify("local/" + remote.relative_path, copy.size, copy.sha256)
+        (verify or SecureRoot.verify)(root, "local/" + remote.relative_path, copy.size, copy.sha256)
         root.revalidate(config.volume_id)
     return True
 

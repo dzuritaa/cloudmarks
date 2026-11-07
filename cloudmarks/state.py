@@ -334,6 +334,60 @@ class StateStore:
             else None
         )
 
+    # Read-only queries shared by the status engine, helper and observers.
+    # Callers gate on schema_version() where older schemas lack a table.
+
+    def schema_version(self):
+        return self.connection.execute("PRAGMA user_version").fetchone()[0]
+
+    def data_version(self):
+        return self.connection.execute("PRAGMA data_version").fetchone()[0]
+
+    def file_at(self, path):
+        """Tracked item at a path key: (item_id, size) or None."""
+        return self.connection.execute(
+            "SELECT item_id,size FROM files WHERE drive_id=? AND path_key=?",
+            (self.config.expected_drive_id, self.config.path_key(path)),
+        ).fetchone()
+
+    def issue(self, identity):
+        return self.connection.execute(
+            "SELECT * FROM issues WHERE drive_id=? AND item_id=?", self.key(identity)
+        ).fetchone()
+
+    def folder_intent(self, identity):
+        return self.connection.execute(
+            "SELECT * FROM folder_intents WHERE drive_id=? AND item_id=?", self.key(identity)
+        ).fetchone()
+
+    def verification_payload(self, identity):
+        row = self.connection.execute(
+            "SELECT payload FROM verifications WHERE drive_id=? AND item_id=?", self.key(identity)
+        ).fetchone()
+        return None if row is None else row[0]
+
+    def local_entry(self, identity):
+        return self.connection.execute(
+            "SELECT relative_path FROM local_entries WHERE drive_id=? AND item_id=?", self.key(identity)
+        ).fetchone()
+
+    def local_entry_at(self, path):
+        """Retained publication occupying a path, matched by path key from schema 5."""
+        if self.schema_version() >= 5:
+            return self.connection.execute(
+                "SELECT item_id,relative_path FROM local_entries WHERE cm_path_key(relative_path)=?",
+                (self.config.path_key(path),),
+            ).fetchone()
+        return self.connection.execute(
+            "SELECT item_id,relative_path FROM local_entries WHERE relative_path=?", (path,)
+        ).fetchone()
+
+    def local_entries_under(self, path):
+        return self.connection.execute(
+            "SELECT item_id,relative_path FROM local_entries WHERE substr(relative_path,1,?)=?",
+            (len(path) + 1, path + "/"),
+        ).fetchall()
+
     def set_pin(self, identity, pinned):
         if not isinstance(pinned, bool):
             raise ConfigurationError("Pin intent must be a boolean")

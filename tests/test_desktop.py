@@ -31,11 +31,12 @@ from cloudmarks.ipc import (
 )
 from cloudmarks.model import ConfigurationError, FileIdentity, ScopeError
 from cloudmarks.paths import MARKER
+from tests import SOCKET_TMP
 
 
 class FixtureCase(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="cm-m2-")
+        self.temp = tempfile.TemporaryDirectory(prefix="cm-m2-", dir=SOCKET_TMP)
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.settings, self.store = create(self.root / "session")
@@ -141,7 +142,7 @@ class ServiceTests(FixtureCase):
 
 class SocketTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="cm-ipc-")
+        self.temp = tempfile.TemporaryDirectory(prefix="cm-ipc-", dir=SOCKET_TMP)
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.stop = threading.Event()
@@ -261,12 +262,34 @@ class SocketTests(unittest.TestCase):
         self.assertEqual(worker.outbox.get(timeout=2)[-1]["state"], "unknown")
         self.assertLessEqual(worker.inbox.maxsize, MAX_TRACKED)
 
-    def test_process_startup_failure_clears_settings(self):
-        with patch("cloudmarks.desktop.subprocess.Popen", side_effect=OSError("Unavailable")):
+    def test_process_startup_failure_clears_settings_and_close_stops_retries(self):
+        with patch("cloudmarks.desktop.subprocess.Popen", side_effect=OSError("Unavailable")) as start:
             worker = ProcessBackground(self.root / "session/desktop.json")
             self.assertEqual(worker.outbox.get(timeout=2), ("settings", None))
+            worker.close()
             worker.thread.join(timeout=2)
             self.assertFalse(worker.thread.is_alive())
+        self.assertEqual(start.call_count, 1)
+
+    def test_process_worker_restarts_after_the_child_dies(self):
+        worker = ProcessBackground(self.root / "session/desktop.json")
+        worker.restart_delays = (0.05,)
+
+        def close():
+            worker.close()
+            worker.thread.join(timeout=5)
+            self.assertFalse(worker.thread.is_alive(), "Desktop worker failed to stop")
+
+        self.addCleanup(close)
+        self.assertEqual(worker.outbox.get(timeout=2), ("settings", self.settings))
+        first = worker.process
+        first.kill()
+        self.assertEqual(worker.outbox.get(timeout=5), ("settings", None))
+        self.assertEqual(worker.outbox.get(timeout=5), ("settings", self.settings))
+        self.assertIsNot(worker.process, first)
+        uri = (Path(self.settings["visible_root"]) / "03-pinned.txt").as_uri()
+        worker.submit(uri)
+        self.assertEqual(worker.outbox.get(timeout=2)[-1]["state"], "kept_offline")
 
     def test_socket_permissions_and_untrusted_peer_fail_closed(self):
         path = Path(self.settings["socket"])
@@ -304,7 +327,7 @@ class ProtocolTests(unittest.TestCase):
                     receive(left)
 
     def test_client_deadline_for_hung_helper(self):
-        with tempfile.TemporaryDirectory(prefix="cm-hung-") as directory:
+        with tempfile.TemporaryDirectory(prefix="cm-hung-", dir=SOCKET_TMP) as directory:
             path = str(Path(directory) / "status.sock")
             with socket.socket(socket.AF_UNIX) as listener:
                 listener.bind(path)
@@ -334,7 +357,7 @@ class ProtocolTests(unittest.TestCase):
         ):
             with self.assertRaises(ConfigurationError):
                 validate_settings(changed)
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory(dir=SOCKET_TMP) as directory:
             path = Path(directory) / "settings.json"
             path.write_text(json.dumps(value))
             with self.assertRaises(ConfigurationError):

@@ -216,7 +216,7 @@ class AdapterTests(unittest.TestCase):
         ):
             self.adapter.update_file_info(file)
         self.deliver(file, state="uploading")
-        self.assertIn("Uploading (test account, uploads)", file.attributes["cloudmarks_status"])
+        self.assertIn("Uploading (Upload folder)", file.attributes["cloudmarks_status"])
         self.deliver(file, state="cloud_only")
         self.assertIn("Cloud only", file.attributes["cloudmarks_status"])
         neighbour = File("file:///upload-neighbour/new.txt")

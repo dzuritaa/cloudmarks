@@ -8,6 +8,7 @@ small-file checks. It does not defend against a privileged local attacker.
 
 import json
 import math
+import threading
 import time
 from dataclasses import asdict
 
@@ -20,6 +21,42 @@ from .view import attest_view, prove_view
 
 INLINE_LIMIT = 8 * 1024 * 1024
 PROOF_SECONDS = 300
+# Badge requests renew roughly every second. Reuse a complete SHA-256 result
+# while the kernel fingerprint is unchanged, and hash again at this interval so
+# silent media corruption is still found without hashing every visible file
+# twice per second.
+REHASH_SECONDS = 60
+VOLUME_REUSE_SECONDS = 10
+MEMO_ENTRIES = 4096
+
+
+class HashMemo:
+    """Status-only reuse of full-content checks, keyed by kernel fingerprint.
+
+    The trust model matches explicit large-file proofs: any write through the
+    filesystem changes size, mtime or ctime, which invalidates the entry.
+    Mutating operations never use this memo; they always hash.
+    """
+
+    def __init__(self, *, seconds=REHASH_SECONDS, limit=MEMO_ENTRIES, monotonic=time.monotonic):
+        self.seconds, self.limit, self.monotonic = seconds, limit, monotonic
+        self.entries = {}
+        self.lock = threading.Lock()
+
+    def verify(self, root, relative_path, size, sha256):
+        current = tuple(root.current_fingerprint(relative_path))
+        key = (root.device, relative_path, size, sha256, current)
+        with self.lock:
+            stamp = self.entries.get(key)
+        if stamp is not None and 0 <= self.monotonic() - stamp < self.seconds:
+            return current
+        verified = tuple(root.verify(relative_path, size, sha256))
+        with self.lock:
+            self.entries.pop(key, None)
+            while len(self.entries) >= self.limit:
+                del self.entries[next(iter(self.entries))]
+            self.entries[(root.device, relative_path, size, sha256, verified)] = self.monotonic()
+        return verified
 
 
 def verify(control, path, *, clock=time.time):
@@ -27,9 +64,7 @@ def verify(control, path, *, clock=time.time):
     remote, copy = control.store.remote(identity), control.store.copy(identity)
     row = control.store.row(identity)
     age = clock() - remote.observed_at
-    issue = control.store.connection.execute(
-        "SELECT 1 FROM issues WHERE drive_id=? AND item_id=?", control.store.key(identity)
-    ).fetchone()
+    issue = control.store.issue(identity)
     if (
         not copy
         or remote.deleted
@@ -102,14 +137,12 @@ def verify(control, path, *, clock=time.time):
 
 
 def cached_fingerprint(config, store, settings, root, remote, copy, *, clock=time.time):
-    if store.connection.execute("PRAGMA user_version").fetchone()[0] < 4:
+    if store.schema_version() < 4:
         raise VerificationRequired()
-    row = store.connection.execute(
-        "SELECT payload FROM verifications WHERE drive_id=? AND item_id=?", store.key(remote.identity)
-    ).fetchone()
-    if row is None:
+    payload = store.verification_payload(remote.identity)
+    if payload is None:
         raise VerificationRequired()
-    proof = json.loads(row[0])
+    proof = json.loads(payload)
     age = clock() - proof["verified_at"]
     if (
         proof.get("version") != 1
@@ -119,7 +152,7 @@ def cached_fingerprint(config, store, settings, root, remote, copy, *, clock=tim
         or proof["relative_path"] != remote.relative_path
     ):
         raise VerificationRequired()
-    if not attest_view(config, settings):
+    if not attest_view(config, settings, volume_reuse_seconds=VOLUME_REUSE_SECONDS):
         raise VerificationRequired()
     sources = proof["sources"]
     if (
@@ -138,16 +171,19 @@ def cached_fingerprint(config, store, settings, root, remote, copy, *, clock=tim
     return tuple(sources["object"]["fingerprint"])
 
 
-def status_engine(config, store, settings, *, clock=time.time):
+def status_engine(config, store, settings, *, clock=time.time, memo=None):
+    memo = memo or HashMemo()
+
     def check(root, remote, copy):
         if copy.size <= INLINE_LIMIT:
-            return root.verify(copy.object_path, copy.size, copy.sha256)
+            return memo.verify(root, copy.object_path, copy.size, copy.sha256)
         return cached_fingerprint(config, store, settings, root, remote, copy, clock=clock)
 
-    return StatusEngine(
-        config,
-        store,
-        clock=clock,
-        verify_copy=check,
-        read_path=lambda remote, copy: copy.size > INLINE_LIMIT or prove_view(config, settings, remote, copy),
-    )
+    def read_path(remote, copy):
+        return copy.size > INLINE_LIMIT or prove_view(
+            config, settings, remote, copy, verify=memo.verify, volume_reuse_seconds=VOLUME_REUSE_SECONDS
+        )
+
+    engine = StatusEngine(config, store, clock=clock, verify_copy=check, read_path=read_path)
+    engine.memo = memo
+    return engine

@@ -283,6 +283,50 @@ class GraphTests(unittest.TestCase):
                 self.assertNotIn("fixture-secret", str(caught.exception))
 
 
+def reference_quickxor(chunks):
+    """The original byte-at-a-time algorithm, kept as an oracle."""
+    data, shift, length = bytearray(20), 0, 0
+    for content in chunks:
+        for value in content:
+            index, bits = divmod(shift, 8)
+            data[index] ^= (value << bits) & 255
+            if bits:
+                data[(index + 1) % 20] ^= value >> (8 - bits)
+            shift = (shift + 11) % 160
+        length += len(content)
+    for index, value in enumerate(length.to_bytes(8, "little")):
+        data[12 + index] ^= value
+    return bytes(data)
+
+
+class QuickXorTests(unittest.TestCase):
+    def test_lane_folding_matches_the_byte_wise_algorithm(self):
+        import random
+
+        generator = random.Random(20261106)
+        cases = [[], [b""], [b"\x00"], [b"\xff"], [bytes(range(256))], [b"\xff" * 161]]
+        for _ in range(40):
+            payload = generator.randbytes(generator.randrange(0, 5000))
+            cuts = sorted(generator.randrange(0, len(payload) + 1) for _ in range(generator.randrange(0, 6)))
+            bounds = [0, *cuts, len(payload)]
+            cases.append([payload[a:b] for a, b in zip(bounds, bounds[1:], strict=False)])
+        for chunks in cases:
+            value = QuickXor()
+            for chunk in chunks:
+                value.update(chunk)
+            self.assertEqual(value.digest(), reference_quickxor(chunks))
+
+    def test_accepts_bytearray_and_memoryview_blocks(self):
+        payload = bytes(range(256)) * 9
+        for block in (bytearray(payload), memoryview(payload)):
+            value = QuickXor()
+            value.update(block)
+            self.assertEqual(value.digest(), reference_quickxor([payload]))
+
+    def test_empty_digest_matches_the_published_empty_value(self):
+        self.assertEqual(base64.b64encode(QuickXor().digest()), b"AAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+
+
 class VolumeTests(unittest.TestCase):
     def test_automount_trigger_is_not_mistaken_for_accessed_storage_device(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -28,12 +28,10 @@ class StatusEngine:
             age = self.clock() - remote.observed_at
             if not math.isfinite(age) or age < 0 or age > self.config.max_age_seconds:
                 return FileStatus(State.UNKNOWN, "Remote observation needs checking")
-            if self.store.connection.execute("PRAGMA user_version").fetchone()[0] >= 3:
-                issue = self.store.connection.execute(
-                    "SELECT reason FROM issues WHERE drive_id=? AND item_id=?", self.store.key(identity)
-                ).fetchone()
+            if self.store.schema_version() >= 3:
+                issue = self.store.issue(identity)
                 if issue:
-                    return FileStatus(State.ERROR, issue[0])
+                    return FileStatus(State.ERROR, issue["reason"])
             if remote.deleted:
                 return FileStatus(State.UNKNOWN, "Remote deletion observed; preserve any local snapshot")
             if remote.is_directory:
@@ -89,11 +87,9 @@ class StatusEngine:
     def folder_status(self, remote):
         import json
 
-        if self.store.connection.execute("PRAGMA user_version").fetchone()[0] < 3:
+        if self.store.schema_version() < 3:
             return FileStatus(State.UNKNOWN, "Recursive folder coverage is not verified")
-        row = self.store.connection.execute(
-            "SELECT * FROM folder_intents WHERE drive_id=? AND item_id=?", self.store.key(remote.identity)
-        ).fetchone()
+        row = self.store.folder_intent(remote.identity)
         if row is None or not 0 <= self.clock() - row["scanned_at"] <= self.config.max_age_seconds:
             return FileStatus(State.UNKNOWN, "Folder manifest is missing or expired; run queue-tree")
         members = json.loads(row["manifest"])
@@ -124,11 +120,9 @@ class StatusEngine:
                 )
             if not current.is_directory:
                 states.append(self.status(identity).state)
-        latest = self.store.connection.execute(
-            "SELECT manifest,scanned_at,pinned FROM folder_intents WHERE drive_id=? AND item_id=?",
-            self.store.key(remote.identity),
-        ).fetchone()
-        if latest is None or tuple(latest) != tuple(row[key] for key in ("manifest", "scanned_at", "pinned")):
+        latest = self.store.folder_intent(remote.identity)
+        fields = ("manifest", "scanned_at", "pinned")
+        if latest is None or tuple(latest[key] for key in fields) != tuple(row[key] for key in fields):
             return FileStatus(State.UNKNOWN, "Folder intent changed while checking")
         if not 0 <= self.clock() - row["scanned_at"] <= self.config.max_age_seconds:
             return FileStatus(State.UNKNOWN, "Folder manifest expired while checking")

@@ -155,11 +155,35 @@ class ProcessBackground(Background):
     in-memory queues, and the original evidence deadlines remain unchanged.
     """
 
+    process = None
+    restart_delays = (1, 2, 5, 10, 30)
+    healthy_seconds = 60
+
     def run(self):
+        """Supervise the child worker; restart it with backoff until closed.
+
+        Each child generation starts by emitting settings, which clears the
+        extension's cache and pending requests, so no evidence crosses a
+        restart. A child that stays up long enough resets the backoff.
+        """
+        failures = 0
+        while not self.stopped.is_set():
+            started = time.monotonic()
+            self.run_once()
+            if self.stopped.is_set():
+                break
+            if time.monotonic() - started >= self.healthy_seconds:
+                failures = 0
+            delay = self.restart_delays[min(failures, len(self.restart_delays) - 1)]
+            failures += 1
+            record("bridge", "worker_restarting", delay_s=delay, failures=failures)
+            self.stopped.wait(delay)
+
+    def run_once(self):
         python = sys.executable if Path(sys.executable).name.startswith("python") else "/usr/bin/python3"
         process = None
         try:
-            process = subprocess.Popen(
+            self.process = process = subprocess.Popen(
                 [
                     python,
                     "-I",

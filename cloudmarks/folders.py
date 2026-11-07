@@ -16,6 +16,7 @@ from .onedrive import OneDrive
 from .paths import DIRECTORY, SecureRoot
 from .state import ReadStore
 from .tracking import manifest
+from .verification import VOLUME_REUSE_SECONDS
 from .view import attest_view
 
 
@@ -116,13 +117,11 @@ class FolderObserver:
             ReadStore(self.config) as store,
             SecureRoot(self.config.storage_root, self.config.volume_id) as disk,
         ):
-            version = store.connection.execute("PRAGMA data_version").fetchone()[0]
-            intent = store.connection.execute(
-                "SELECT * FROM folder_intents WHERE drive_id=? AND item_id=?", store.key(roots[0].identity)
-            ).fetchone()
+            version = store.data_version()
+            intent = store.folder_intent(roots[0].identity)
             selected = bool(intent and intent["pinned"])
             same_manifest = bool(intent and json.loads(intent["manifest"]) == current_manifest)
-            if not attest_view(self.config, self.offline):
+            if not attest_view(self.config, self.offline, volume_reuse_seconds=VOLUME_REUSE_SECONDS):
                 raise ScopeError("Offline read path is unavailable")
             verified, total, retained, directories = 0, 0, 0, True
             for value in observations:
@@ -149,9 +148,7 @@ class FolderObserver:
                 if copy is None:
                     continue
                 retained += 1
-                issue = store.connection.execute(
-                    "SELECT 1 FROM issues WHERE drive_id=? AND item_id=?", store.key(remote.identity)
-                ).fetchone()
+                issue = store.issue(remote.identity)
                 if issue or row["dirty"] or row["operation"] == "error":
                     return self.activity.result(
                         "error", "A folder member needs review; local copies are preserved"
@@ -160,10 +157,7 @@ class FolderObserver:
                     return self.activity.result(
                         "transferring", f"Saving offline folder: {verified}/{total} checked files"
                     ), deadline
-                entry = store.connection.execute(
-                    "SELECT relative_path FROM local_entries WHERE drive_id=? AND item_id=?",
-                    store.key(remote.identity),
-                ).fetchone()
+                entry = store.local_entry(remote.identity)
                 if (
                     not entry
                     or entry[0] != remote.relative_path
@@ -186,10 +180,7 @@ class FolderObserver:
                 verified += 1
             # Extra retained publications, including renamed/deleted members,
             # invalidate aggregate completion rather than disappearing in a list.
-            entries = store.connection.execute(
-                "SELECT item_id,relative_path FROM local_entries WHERE substr(relative_path,1,?)=?",
-                (len(path) + 1, path + "/"),
-            )
+            entries = store.local_entries_under(path)
             expected = {
                 v.remote.identity.item_id: v.remote.relative_path
                 for v in observations
@@ -198,8 +189,8 @@ class FolderObserver:
             extras = any(expected.get(entry[0]) != entry[1] for entry in entries)
             disk.revalidate(self.config.volume_id)
             if (
-                store.connection.execute("PRAGMA data_version").fetchone()[0] != version
-                or not attest_view(self.config, self.offline)
+                store.data_version() != version
+                or not attest_view(self.config, self.offline, volume_reuse_seconds=VOLUME_REUSE_SECONDS)
                 or self.clock() >= deadline
             ):
                 raise ScopeError("Folder evidence changed or expired")

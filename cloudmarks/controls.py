@@ -135,7 +135,7 @@ def busy_message(root):
     names = view_holders(root)
     if names:
         return "Close " + ", ".join(names) + " (using the offline view), then click Retry"
-    return "Close the CloudMarks-Test window and files opened from it, then click Retry"
+    return "Close Files windows and applications using the Offline folder, then click Retry"
 
 
 class LiveView:
@@ -215,6 +215,36 @@ class ServiceView:
                 pass
             time.sleep(0.2)
         raise StorageError("Offline view is still starting; retry its launcher after checking the connection")
+
+
+def reuse_current(tracker, store, observation, *, pin):
+    """Skip a download when the retained copy already matches fresh OneDrive metadata.
+
+    Keep would refuse or fail on the same preconditions checked here, so
+    anything unusual falls through to the full keep path. Reuse requires a
+    fresh describe, the same version as planned, both local copies hashing to
+    the recorded SHA-256 and the server checksum matching the retained object.
+    """
+    remote = observation.remote
+    row = store.row(remote.identity)
+    entry = tracker.control.entry(remote.identity)
+    if (
+        row is None
+        or row["dirty"]
+        or row["operation"] != "idle"
+        or entry is None
+        or entry["path"] != remote.relative_path
+        or store.connection.execute(
+            "SELECT 1 FROM issues WHERE drive_id=? AND item_id=?", store.key(remote.identity)
+        ).fetchone()
+    ):
+        return False
+    fresh = tracker.backend.describe(remote.relative_path)
+    if not observation.same_version(fresh) or not tracker.current(fresh):
+        return False
+    if pin:
+        store.set_pin(remote.identity, True)
+    return True
 
 
 def plan(config, offline, backend, path, operation, *, cancelled=lambda: False):
@@ -397,7 +427,9 @@ def execute(
                             continue
                         controller.check_cancelled()
                         progress.update(phase="downloading", completed=done, total=summary["files"])
-                        controller.keep(value.remote.relative_path, pin=not root.remote.is_directory)
+                        pin = not root.remote.is_directory
+                        if not reuse_current(tracker, store, value, pin=pin):
+                            controller.keep(value.remote.relative_path, pin=pin)
                         store.connection.execute(
                             "UPDATE jobs SET status='done',error=NULL WHERE drive_id=? AND item_id=?",
                             store.key(value.remote.identity),

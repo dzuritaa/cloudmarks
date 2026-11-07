@@ -110,6 +110,23 @@ class ControlsTests(test_tracking.TrackingCase):
         self.assertTrue(result["already_cloud_only"])
         self.assertEqual(self.backend.records["file"][0], self.path)
 
+    def test_keeping_a_current_folder_again_reuses_verified_copies(self):
+        self.run_control("keep")
+        self.assertEqual(self.run_control("keep")["completed"], 2)
+        with patch.object(self.backend, "chunks", side_effect=AssertionError("downloaded again")):
+            result = self.run_control("keep")
+        self.assertEqual(result["completed"], 2)
+        self.assertTrue(self.visible().exists())
+
+    def test_reuse_falls_back_to_download_when_a_local_copy_changed(self):
+        self.run_control("keep", self.path)
+        visible = self.visible()
+        visible.chmod(0o644)
+        visible.write_bytes(b"changed locally")
+        with self.assertRaises(IntegrityError):
+            self.run_control("keep", self.path)
+        self.assertEqual(visible.read_bytes(), b"changed locally")
+
     def test_other_direct_pins_survive_freeing_a_folder(self):
         self.run_control("keep")
         self.reopen()

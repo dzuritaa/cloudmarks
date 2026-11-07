@@ -99,6 +99,9 @@ class OfflineController:
         self.volume_check, self.unmounted = volume_check, unmounted
         self.progress = progress or (lambda **values: None)
         self.cancelled, self.hook = cancelled, hook
+        # Upper bound of store allocation, valid only while this controller
+        # holds the writer lock. None forces a complete audit.
+        self.usage_bound = None
 
     def guard(self):
         self.volume_check(self.config, self.settings)
@@ -199,6 +202,24 @@ class OfflineController:
             else:
                 root.verify(original, value["size"], value["sha256"])
 
+    def reserve_budget(self, root, reserve):
+        """Enforce the store budget without walking the store for every file.
+
+        The full audit runs on first use and whenever the running upper bound
+        would exceed the budget. Each kept file adds its whole reservation
+        (both complete copies plus metadata slack); frees only lower real
+        usage, so the bound stays conservative. Any failure resets it.
+        """
+        budget = self.settings["budget_bytes"]
+        bound = self.usage_bound
+        if bound is None or bound + reserve > budget:
+            bound = usage(root)
+        if bound + reserve > budget:
+            self.usage_bound = None
+            raise StorageError("Offline storage budget cannot accommodate this file")
+        # Commit the reservation now; a failed keep resets it below.
+        self.usage_bound = bound + reserve
+
     def space(self, root, needed):
         free = os.fstatvfs(root.fd)
         if free.f_bavail * free.f_frsize < self.settings["min_free_bytes"] + needed:
@@ -233,8 +254,7 @@ class OfflineController:
                 # Two complete independent files: immutable object + visible
                 # tree. Include all old/orphan/partial bytes in actual usage.
                 reserve = 2 * max(4096, ((remote.size + 4095) // 4096) * 4096) + 65536
-                if usage(root) + reserve > self.settings["budget_bytes"]:
-                    raise StorageError("Offline storage budget cannot accommodate this file")
+                self.reserve_budget(root, reserve)
                 self.space(root, reserve)
                 candidate, sha = self.download(root, observation)
                 latest = self.backend.describe(path)
@@ -306,6 +326,7 @@ class OfflineController:
                 self.progress(phase="complete", completed=remote.size, total=remote.size)
                 return copy
         except BaseException:
+            self.usage_bound = None
             self.store.fail_transfer(
                 remote.identity, "Cancelled or incomplete operation; previous data retained; retry explicitly"
             )

@@ -13,7 +13,6 @@ from dataclasses import asdict, replace
 
 from .limits import TREE_ENTRIES
 from .model import FileIdentity, IntegrityError, LocalCopy, ScopeError, StorageError
-from .offline import usage
 from .onedrive import Cancelled, RemoteMissing, checksum
 from .paths import SecureRoot, relative_parts
 
@@ -192,8 +191,12 @@ class ChangeTracker:
         self.control.guard()
         with SecureRoot(self.config.storage_root, self.config.volume_id) as root:
             reserve = 2 * max(4096, ((remote.size + 4095) // 4096) * 4096) + 65536
-            if usage(root) + reserve > self.control.settings["budget_bytes"]:
-                raise StorageError("Conflict candidate exceeds the storage budget; original data retained")
+            try:
+                self.control.reserve_budget(root, reserve)
+            except StorageError:
+                raise StorageError(
+                    "Conflict candidate exceeds the storage budget; original data retained"
+                ) from None
             self.control.space(root, reserve)
             path, sha = self.control.download(root, observation)
             final = self.backend.describe_identity(remote.identity)

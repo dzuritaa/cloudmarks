@@ -2,7 +2,24 @@
 
 ## 0.1.0a3.dev0 — unreleased
 
-- No changes yet.
+- Badge requests no longer hash each visible offline file (up to 8 MiB) twice
+  per second. The status helper reuses a full SHA-256 result while the file's
+  kernel fingerprint is unchanged and hashes again every 60 seconds; it reuses
+  the storage-mount proof (`findmnt`) for 10 seconds. Keep, Free and explicit
+  verification still hash and check the mount every time. A status lookup for
+  an 8 MiB file dropped from about 11 ms plus `findmnt` to about 0.5 ms.
+- QuickXor folds 160-byte lanes with integer XOR instead of looping per byte:
+  8 MiB takes about 19 ms instead of about 1 s. Digests are unchanged.
+- Keep offline audits store usage once per operation and keeps a conservative
+  running bound, instead of walking the whole store for every file.
+- Keeping a folder or file again reuses retained copies that still match fresh
+  OneDrive metadata and checksums instead of downloading them again.
+- The Files extension restarts its status worker with backoff if it exits.
+- Status text and messages no longer mention a test account or a
+  `CloudMarks-Test` window.
+- Internal: status-path SQL moved into `StateStore` query methods; the fixture
+  status service is separate from the account status service; socket tests no
+  longer fail when `TMPDIR` is long.
 
 ## 0.1.0a2 — 2026-10-26 — experimental prerelease
 

@@ -19,32 +19,15 @@ from .telemetry import enabled, error_category, record
 MAX_VERIFY_BYTES = 8 * 1024 * 1024
 
 
-class StatusService:
+class BaseStatusService:
+    """Shared read-only status protocol. Subclasses provide store, config and engine."""
+
     supports_large_files = False
-
-    def __init__(self, settings, store):
-        self.settings, self.store = settings, store
-        self.config = store.config
-        if (
-            self.config.expected_drive_id != "fixture-test-drive"
-            or self.config.allowed_root_id != "fixture-root"
-        ):
-            raise ConfigurationError("M2 helper accepts only the artificial fixture account/root")
-        self.engine = StatusEngine(self.config, store, read_path=self.prove_fixture_view)
-
-    def prove_fixture_view(self, remote, copy):
-        # This is an artificial materialized view, not proof of an rclone mount.
-        with SecureRoot(self.settings["visible_root"], self.config.volume_id) as root:
-            root.verify(remote.relative_path, copy.size, copy.sha256)
-            root.revalidate(self.config.volume_id)
-        return True
+    activity = None
 
     def lookup(self, path):
         relative_parts(path)
-        row = self.store.connection.execute(
-            "SELECT item_id FROM files WHERE drive_id=? AND path_key=?",
-            (self.config.expected_drive_id, self.config.path_key(path)),
-        ).fetchone()
+        row = self.store.file_at(path)
         result = {
             "state": "unknown",
             "reason": "No verified observation for this path",
@@ -82,7 +65,7 @@ class StatusService:
         ):
             raise ValueError("Invalid read-only status request")
         view = value.get("view", "offline")
-        if view not in ("offline", "upload") or (view == "upload" and not getattr(self, "activity", None)):
+        if view not in ("offline", "upload") or (view == "upload" and not self.activity):
             raise ValueError("Unsupported status view")
         paths = value["paths"]
         for path in paths:
@@ -99,9 +82,7 @@ class StatusService:
                     "valid_for_ms": 500,
                 }
             else:
-                results[path] = (
-                    self.lookup_view(path, view) if getattr(self, "activity", None) else self.lookup(path)
-                )
+                results[path] = self.lookup_view(path, view) if self.activity else self.lookup(path)
         exhausted = sum(result["reason"] == "Helper work budget exhausted" for result in results.values())
         if exhausted:
             record("helper", "budget_exhausted", count=exhausted)
@@ -114,6 +95,27 @@ class StatusService:
                 elapsed_ms=max(0, (time.monotonic() - (deadline - 0.15)) * 1000),
             )
         return {"version": VERSION, "results": results}
+
+
+class StatusService(BaseStatusService):
+    """Status for the artificial fixture account only (demo and tests)."""
+
+    def __init__(self, settings, store):
+        self.settings, self.store = settings, store
+        self.config = store.config
+        if (
+            self.config.expected_drive_id != "fixture-test-drive"
+            or self.config.allowed_root_id != "fixture-root"
+        ):
+            raise ConfigurationError("M2 helper accepts only the artificial fixture account/root")
+        self.engine = StatusEngine(self.config, store, read_path=self.prove_fixture_view)
+
+    def prove_fixture_view(self, remote, copy):
+        # This is an artificial materialized view, not proof of an rclone mount.
+        with SecureRoot(self.settings["visible_root"], self.config.volume_id) as root:
+            root.verify(remote.relative_path, copy.size, copy.sha256)
+            root.revalidate(self.config.volume_id)
+        return True
 
 
 def serve(settings, store, *, stop=None, tick=None, ready=None, service=None):
@@ -226,7 +228,7 @@ def run(settings):
         serve(settings, store)
 
 
-class OfflineStatusService(StatusService):
+class OfflineStatusService(BaseStatusService):
     """Read-only account status: no transport construction or credential reads."""
 
     supports_large_files = True
@@ -258,21 +260,10 @@ class OfflineStatusService(StatusService):
             )
         if view == "upload":
             return result
-        row = self.store.connection.execute(
-            "SELECT item_id FROM files WHERE drive_id=? AND path_key=?",
-            (self.config.expected_drive_id, self.config.path_key(path)),
-        ).fetchone()
+        row = self.store.file_at(path)
         # A remote-only observation must never hide an older retained file at
         # this path, including replacement identities and renamed publications.
-        if self.store.connection.execute("PRAGMA user_version").fetchone()[0] >= 5:
-            entry = self.store.connection.execute(
-                "SELECT item_id,relative_path FROM local_entries WHERE cm_path_key(relative_path)=?",
-                (self.config.path_key(path),),
-            ).fetchone()
-        else:
-            entry = self.store.connection.execute(
-                "SELECT item_id,relative_path FROM local_entries WHERE relative_path=?", (path,)
-            ).fetchone()
+        entry = self.store.local_entry_at(path)
         if entry and (entry["item_id"] != remote.identity.item_id or not row):
             return self.activity.result(
                 "unknown", "Retained path differs from OneDrive; preserve the local copy"
@@ -287,21 +278,15 @@ class OfflineStatusService(StatusService):
         result = super().lookup(path)
         if result["state"] in ("kept_offline", "saved_locally"):
             # The status lease must not outlive explicit large-file proof.
-            row = self.store.connection.execute(
-                "SELECT item_id,size FROM files WHERE drive_id=? AND path_key=?",
-                (self.config.expected_drive_id, self.config.path_key(path)),
-            ).fetchone()
+            row = self.store.file_at(path)
             if row and row["size"] > MAX_VERIFY_BYTES:
                 from .verification import PROOF_SECONDS
 
-                proof = self.store.connection.execute(
-                    "SELECT payload FROM verifications WHERE drive_id=? AND item_id=?",
-                    (self.config.expected_drive_id, row["item_id"]),
-                ).fetchone()
+                proof = self.store.verification_payload(
+                    FileIdentity(self.config.expected_drive_id, row["item_id"])
+                )
                 remaining = (
-                    0
-                    if proof is None
-                    else PROOF_SECONDS - (time.time() - json.loads(proof[0])["verified_at"])
+                    0 if proof is None else PROOF_SECONDS - (time.time() - json.loads(proof)["verified_at"])
                 )
                 if remaining <= 0:
                     result.update(state="unknown", reason="Verification evidence expired; run offline verify")

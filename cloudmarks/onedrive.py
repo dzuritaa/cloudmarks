@@ -33,6 +33,9 @@ class Cancelled(StorageError):
     pass
 
 
+_MASK_160 = (1 << 160) - 1
+
+
 class QuickXor:
     def __init__(self):
         self.data = bytearray(20)
@@ -40,15 +43,33 @@ class QuickXor:
         self.shift = 0
 
     def update(self, content):
-        data, shift = self.data, self.shift
-        for value in content:
-            index, bits = divmod(shift, 8)
-            data[index] ^= (value << bits) & 255
-            if bits:
-                data[(index + 1) % 20] ^= value >> (8 - bits)
-            shift = (shift + 11) % 160
-        self.shift = shift
-        self.length += len(content)
+        # Byte j is XORed into the 160-bit little-endian register rotated left
+        # by (shift + 11*j) mod 160. Because gcd(11, 160) == 1, bytes 160
+        # positions apart use the same rotation, and XOR is linear: fold all
+        # 160-byte lanes together with big-integer XOR (C speed), then apply
+        # the 160 per-lane rotations once. Equivalent to the byte-wise loop.
+        content = memoryview(content).cast("B")
+        count = len(content)
+        if not count:
+            return
+        lanes = int.from_bytes(content, "little")
+        lane_bits = 160 * 8
+        width = -(-count // 160) * lane_bits
+        while width > lane_bits:
+            chunks = width // lane_bits
+            half = (chunks // 2) * lane_bits
+            lanes = (lanes >> half) ^ (lanes & ((1 << half) - 1))
+            width -= half
+        folded = lanes.to_bytes(160, "little")
+        register = int.from_bytes(self.data, "little")
+        shift = self.shift
+        for offset, value in enumerate(folded):
+            if value:
+                rotated = value << ((shift + 11 * offset) % 160)
+                register ^= (rotated & _MASK_160) | (rotated >> 160)
+        self.data = bytearray(register.to_bytes(20, "little"))
+        self.shift = (shift + 11 * count) % 160
+        self.length += count
 
     def digest(self):
         result = bytearray(self.data)
@@ -219,7 +240,7 @@ class OneDrive:
                 raise ValueError("Invalid credential")
         except (ValueError, TypeError, KeyError):
             raise ConfigurationError(
-                "Transport credential is unavailable; reauthenticate the test account locally"
+                "Transport credential is unavailable; reauthenticate the configured account locally"
             ) from None
         if payload is not None and route != "$batch":
             raise ScopeError("Only read-only metadata batches may use a request body")
@@ -293,7 +314,7 @@ class OneDrive:
         if canonical_drive(drive["id"]) != self.config.expected_drive_id or self.settings[
             "expected_email"
         ].casefold() not in {str(me.get(k, "")).casefold() for k in ("mail", "userPrincipalName")}:
-            raise ScopeError("Authenticated user/drive is not the configured test account")
+            raise ScopeError("Authenticated user/drive is not the configured account")
         root = self.item(self.config.allowed_root_id)
         self._authenticated_root = root
         if (

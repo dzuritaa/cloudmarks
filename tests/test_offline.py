@@ -20,6 +20,7 @@ from cloudmarks.offline import OfflineController, usage
 from cloudmarks.onedrive import Cancelled, Observation, QuickXor
 from cloudmarks.paths import MARKER, SecureRoot
 from cloudmarks.state import ReadStore, StateStore
+from tests import SOCKET_TMP
 
 
 class Backend:
@@ -59,7 +60,9 @@ class Backend:
 
 class OfflineCase(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="cm-m3-", dir=os.environ.get("CLOUDMARKS_TEST_TMPDIR"))
+        self.temp = tempfile.TemporaryDirectory(
+            prefix="cm-m3-", dir=os.environ.get("CLOUDMARKS_TEST_TMPDIR") or SOCKET_TMP
+        )
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.disk = self.root / "disk"
@@ -289,6 +292,22 @@ class ControlsTests(OfflineCase):
         (self.disk / "objects/.partial-leftover").write_bytes(b"x" * (1024 * 1024))
         with self.assertRaises(StorageError):
             self.keep()
+
+    def test_budget_audit_runs_once_until_the_running_bound_reaches_the_budget(self):
+        from cloudmarks import offline
+
+        reserve = 2 * max(4096, ((len(self.backend.content) + 4095) // 4096) * 4096) + 65536
+        with patch("cloudmarks.offline.usage", side_effect=offline.usage) as audit:
+            self.keep()
+            self.next_version()
+            self.keep()
+        self.assertEqual(audit.call_count, 1)
+        # A bound that would cross the budget forces a fresh, exact audit.
+        self.settings["budget_bytes"] = self.controller.usage_bound + reserve - 1
+        self.next_version()
+        with patch("cloudmarks.offline.usage", side_effect=offline.usage) as audit:
+            self.keep()
+        self.assertEqual(audit.call_count, 1)
 
     def test_free_space_failure_and_mid_write_disk_full_preserve_old_version(self):
         old = self.keep()

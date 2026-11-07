@@ -130,7 +130,7 @@ class CloudMarksExtension(
         scope = (
             "fixture"
             if self.settings["mode"] == "fixture"
-            else ("test account, uploads" if view == "upload" else "test account, read-only")
+            else ("Upload folder" if view == "upload" else "Offline folder, read-only")
         )
         file.add_string_attribute("cloudmarks_status", f"{label} ({scope}) — {result['reason']}")
         if uri in self.files and not cached and uri not in self.pending:

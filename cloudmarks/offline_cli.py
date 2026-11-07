@@ -15,7 +15,7 @@ from .view import mount
 
 def configure(commands):
     parser = commands.add_parser(
-        "offline", help="Explicit individual-file controls for the dedicated test account"
+        "offline", help="Explicit individual-file controls for the configured OneDrive folder"
     )
     parser.add_argument("--config", required=True, help="Private offline control JSON")
     actions = parser.add_subparsers(dest="action", required=True)
