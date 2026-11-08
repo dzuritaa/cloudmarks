@@ -56,6 +56,16 @@ def configure(commands):
     resolve.add_argument(
         "--retry-remote", action="store_true", help="Queue a fresh download of the same live cloud identity"
     )
+    gc = actions.add_parser(
+        "gc", help="Report unreferenced old versions, backups and partials; remove them with --apply"
+    )
+    gc.add_argument("--apply", action="store_true", help="Remove eligible files (default: report only)")
+    gc.add_argument(
+        "--min-age-days",
+        type=float,
+        default=7.0,
+        help="Only files untouched for at least this many days are eligible (default: 7)",
+    )
     export = actions.add_parser("export-archive", help="Copy an archive into a new private directory")
     export.add_argument("archive_id")
     export.add_argument("destination")
@@ -182,6 +192,14 @@ def run(args):
                 controller.unpin(args.path)
             elif args.action == "free":
                 controller.free(args.path)
+            elif args.action == "gc":
+                from .storage import collect
+
+                print(
+                    json.dumps(
+                        collect(controller, apply=args.apply, min_age_seconds=args.min_age_days * 86400)
+                    )
+                )
             else:
                 controller.recover()
             with SecureRoot(config.storage_root, config.volume_id) as root:

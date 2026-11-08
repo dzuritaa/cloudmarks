@@ -13,7 +13,7 @@ from urllib.parse import quote
 from .model import ConfigurationError, LocalCopy, RemoteFile, ScopeError, StorageError
 from .paths import open_absolute_directory
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 
 class StateStore:
@@ -72,7 +72,7 @@ class StateStore:
             self.connection.execute("PRAGMA synchronous=FULL")
             self.connection.execute("PRAGMA journal_mode=DELETE")
             version = self.connection.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1, 2, 3, 4, SCHEMA_VERSION):
+            if version not in (0, 1, 2, 3, 4, 5, SCHEMA_VERSION):
                 raise ConfigurationError("Unsupported state schema; explicit migration is required")
             if version == 0:
                 self._create_schema()
@@ -168,6 +168,19 @@ class StateStore:
                     PRAGMA user_version=5;
                     COMMIT;
                 """)
+            if version in (0, 1, 2, 3, 4, 5):
+                # Durable selection intent for an in-progress Free. Pins are
+                # released before local copies are evicted; this row restores
+                # them if the process dies before the release completes.
+                self.connection.executescript("""
+                    BEGIN IMMEDIATE;
+                    CREATE TABLE IF NOT EXISTS releases (
+                        drive_id TEXT NOT NULL, item_id TEXT NOT NULL, payload TEXT NOT NULL,
+                        PRIMARY KEY(drive_id,item_id)
+                    );
+                    PRAGMA user_version=6;
+                    COMMIT;
+                """)
             # A durable job is retried explicitly, never from the display helper.
             self.connection.execute(
                 "UPDATE jobs SET status='pending', error='Worker interrupted; resume explicitly' WHERE status='running'"
@@ -176,6 +189,9 @@ class StateStore:
             self.connection.execute(
                 "UPDATE files SET operation='error', error='Transfer interrupted by restart' WHERE operation='active'"
             )
+            # The writer lock is exclusive, so a release row here belongs to a
+            # Free that died before finishing. Restore the user's selection.
+            self.restore_releases()
         except BaseException:
             self.close()
             raise
@@ -418,6 +434,85 @@ class StateStore:
             (*self.key(identity), *self.key(identity)),
         )
 
+    def pin_sources_owned(self, owner):
+        return self.connection.execute(
+            "SELECT drive_id,item_id,owner FROM pin_sources WHERE owner=?", (owner,)
+        ).fetchall()
+
+    def direct_pins(self, identity):
+        return self.connection.execute(
+            "SELECT drive_id,item_id,owner FROM pin_sources WHERE drive_id=? AND item_id=? AND owner='direct'",
+            self.key(identity),
+        ).fetchall()
+
+    def finish_job(self, identity):
+        self.connection.execute(
+            "UPDATE jobs SET status='done',error=NULL WHERE drive_id=? AND item_id=?", self.key(identity)
+        )
+
+    def begin_release(self, identity, pins, intent):
+        """Record the pins a Free is about to release, before releasing any of them.
+
+        ``intent`` is the folder intent's previous ``pinned`` value, or None
+        for a single file. Committed separately so the record survives any
+        later interruption.
+        """
+        self.config.validate_identity(identity)
+        payload = {"version": 1, "pins": [list(row) for row in pins], "intent": intent}
+        with self.transaction() as connection:
+            if connection.execute(
+                "SELECT 1 FROM releases WHERE drive_id=? AND item_id=?", self.key(identity)
+            ).fetchone():
+                raise ScopeError("An unfinished release for this selection needs recovery first")
+            connection.execute(
+                "INSERT INTO releases VALUES (?,?,?)", (*self.key(identity), json.dumps(payload))
+            )
+
+    def finish_release(self, identity):
+        with self.transaction() as connection:
+            connection.execute("DELETE FROM releases WHERE drive_id=? AND item_id=?", self.key(identity))
+
+    def pending_releases(self):
+        if self.schema_version() < 6:
+            return []
+        return self.connection.execute("SELECT drive_id,item_id FROM releases").fetchall()
+
+    def restore_releases(self, identity=None):
+        """Put back the pins and folder intent recorded by unfinished releases.
+
+        Idempotent: pins are re-added with INSERT OR IGNORE, and only for
+        items that still have an observation. Returns the number restored.
+        """
+        from .model import FileIdentity
+
+        query = "SELECT drive_id,item_id,payload FROM releases"
+        arguments = ()
+        if identity is not None:
+            query += " WHERE drive_id=? AND item_id=?"
+            arguments = self.key(identity)
+        with self.transaction() as connection:
+            rows = connection.execute(query, arguments).fetchall()
+            for row in rows:
+                payload = json.loads(row["payload"])
+                if payload.get("version") != 1:
+                    raise StorageError("Unknown release record; preserve state and review")
+                for drive_id, item_id, owner in payload["pins"]:
+                    connection.execute(
+                        "INSERT OR IGNORE INTO pin_sources SELECT ?,?,? "
+                        "WHERE EXISTS(SELECT 1 FROM files WHERE drive_id=? AND item_id=?)",
+                        (drive_id, item_id, owner, drive_id, item_id),
+                    )
+                    self.recompute_pin(connection, FileIdentity(drive_id, item_id))
+                if payload["intent"] is not None:
+                    connection.execute(
+                        "UPDATE folder_intents SET pinned=? WHERE drive_id=? AND item_id=?",
+                        (payload["intent"], row["drive_id"], row["item_id"]),
+                    )
+                connection.execute(
+                    "DELETE FROM releases WHERE drive_id=? AND item_id=?", (row["drive_id"], row["item_id"])
+                )
+        return len(rows)
+
     def set_dirty(self, identity, dirty):
         if not isinstance(dirty, bool):
             raise ConfigurationError("Dirty state must be a boolean")
@@ -519,6 +614,7 @@ class ReadStore(StateStore):
                 2,
                 3,
                 4,
+                5,
                 SCHEMA_VERSION,
             ):
                 raise ConfigurationError("Unsupported read-only state schema")

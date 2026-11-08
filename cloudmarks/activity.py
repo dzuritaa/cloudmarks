@@ -13,11 +13,12 @@ import stat
 import threading
 import time
 
+from .backend import create as create_backend
 from .ipc import LEASE_MS, private_directory, read_private_json, same_user
 from .limits import CACHE_ENTRIES, OBSERVED_PATHS, PENDING_UPLOADS
 from .model import ConfigurationError, ScopeError, StorageError, canonical_drive
 from .offline_config import mounted_view
-from .onedrive import OneDrive, private_config
+from .onedrive import private_config
 from .paths import READ_FILE, fingerprint, open_absolute_directory, relative_parts
 from .telemetry import error_category, record
 
@@ -135,7 +136,7 @@ def cache_entries(data_path, meta_path, paths=None):
 class Activity:
     def __init__(self, config, offline, settings, *, backend=None, clock=time.time):
         self.config, self.offline, self.settings, self.clock = config, offline, settings, clock
-        self.backend = backend or OneDrive(config, offline)
+        self.backend = backend or create_backend(config, offline)
         self.lock = threading.Lock()
         self.stop = threading.Event()
         self.wake = threading.Event()

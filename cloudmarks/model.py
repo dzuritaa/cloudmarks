@@ -30,6 +30,10 @@ class VerificationRequired(CloudMarksError):
     pass
 
 
+class VerificationPending(CloudMarksError):
+    """A content check was queued to a background worker; ask again shortly."""
+
+
 def text(value, name):
     if not isinstance(value, str) or not value or value != value.strip() or len(value) > 1024:
         raise ConfigurationError(f"{name} must be nonempty, bounded text without surrounding whitespace")

@@ -3,7 +3,8 @@
 Publication and eviction require the managed view unmounted. Durable intent is
 recorded before changing names; restart rolls incomplete operations back. Old
 versions/ambiguous candidates remain in private recovery storage and count
-against the budget. No automatic garbage collection is performed.
+against the budget. Nothing is collected automatically; ``storage.collect``
+(``cloudmarks offline gc``) removes unreferenced old files only when asked.
 """
 
 import ctypes
@@ -108,9 +109,7 @@ class OfflineController:
         self.unmounted(self.settings)
 
     def entry(self, identity):
-        row = self.store.connection.execute(
-            "SELECT relative_path FROM local_entries WHERE drive_id=? AND item_id=?", self.store.key(identity)
-        ).fetchone()
+        row = self.store.local_entry(identity)
         copy = self.store.copy(identity)
         if row is None:
             if copy:
@@ -231,9 +230,7 @@ class OfflineController:
         observation = self.backend.describe(path)
         remote = observation.remote
         self.config.validate_remote(remote)
-        if self.store.connection.execute(
-            "SELECT 1 FROM issues WHERE drive_id=? AND item_id=?", self.store.key(remote.identity)
-        ).fetchone():
+        if self.store.issue(remote.identity):
             raise ScopeError("Unresolved change requires review; use offline conflicts")
         old = self.entry(remote.identity)
         if old and old["path"] != path:
@@ -400,9 +397,7 @@ class OfflineController:
         self.recover()
         identity = self.identity_at(path)
         row, entry = self.store.row(identity), self.entry(identity)
-        if self.store.connection.execute(
-            "SELECT 1 FROM issues WHERE drive_id=? AND item_id=?", self.store.key(identity)
-        ).fetchone():
+        if self.store.issue(identity):
             raise ScopeError("Unresolved change prevents eviction; preserve all versions")
         if not entry or row["dirty"] or row["pinned"] or row["operation"] != "idle":
             raise ScopeError("Unpin first; only a clean, idle completed copy may be evicted")

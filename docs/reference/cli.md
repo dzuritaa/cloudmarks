@@ -62,6 +62,7 @@ offline copies require the Offline folder to be unmounted unless noted.
 | `verify PATH` | Full checksum verification of a retained copy. |
 | `resolve PATH`, `archives`, `export-archive ID DIR` | Archive conflicting versions, list archives and export one. |
 | `mount [--offline]` | Mount the Offline folder in the foreground. |
+| `gc [--apply] [--min-age-days N]` | Report unreferenced old versions, rollback backups and partial downloads; with `--apply`, remove those untouched for N days (default 7). Works with the view mounted. |
 
 ## Environment
 

@@ -10,9 +10,9 @@ import threading
 import time
 
 from .activity import FRESH_SECONDS
+from .backend import create as create_backend
 from .limits import TREE_ENTRIES
 from .model import IntegrityError, ScopeError
-from .onedrive import OneDrive
 from .paths import DIRECTORY, SecureRoot
 from .state import ReadStore
 from .tracking import manifest
@@ -23,7 +23,7 @@ from .view import attest_view
 class FolderObserver:
     def __init__(self, config, offline, activity, *, backend=None, clock=time.time):
         self.config, self.offline, self.activity, self.clock = config, offline, activity, clock
-        self.backend = backend or OneDrive(config, offline)
+        self.backend = backend or create_backend(config, offline)
         self.lock = threading.Lock()
         self.stop = threading.Event()
         self.wake = threading.Event()
