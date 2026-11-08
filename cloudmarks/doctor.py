@@ -42,7 +42,8 @@ class Report:
         except Exception as error:
             return self.add(group, name, "fail", f"Unexpected {type(error).__name__}", hint)
         if isinstance(result, tuple):
-            return self.add(group, name, *result, hint=hint)
+            status, detail = result
+            return self.add(group, name, status, detail, hint=hint)
         return self.add(group, name, "ok", result or "OK")
 
     @property
@@ -56,7 +57,8 @@ class Report:
         return {"version": 1, "ok": not self.failed, "counts": counts, "checks": self.checks}
 
     def render(self):
-        lines, group = [], None
+        lines: list[str] = []
+        group = None
         for check in self.checks:
             if check["group"] != group:
                 group = check["group"]
@@ -379,7 +381,7 @@ def profile_group(report, settings, *, online, run):
             )
 
     def store_health():
-        from .diagnostics import doctor
+        from .diagnostics import doctor, state_healthy
         from .offline import OfflineController
         from .state import ReadStore
 
@@ -389,9 +391,9 @@ def profile_group(report, settings, *, online, run):
         unfinished = health.get("unfinished_jobs", 0)
         detail = (
             f"schema {health['schema']}; {health['counts'].get('copies', 0)} offline copies, "
-            f"{issues} issues, {unfinished} unfinished jobs"
+            f"{issues} issues, {unfinished} unfinished jobs, {len(health['state_problems'])} state problems"
         )
-        return ("warn", detail) if issues or unfinished or health["attention_files"] else detail
+        return detail if state_healthy(health) else ("warn", detail)
 
     report.attempt(
         group, "Offline state", store_health, "Review: cloudmarks offline --config ... conflicts/jobs"

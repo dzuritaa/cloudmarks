@@ -7,7 +7,8 @@ require the view unmounted"), this page is current. Decisions and their
 evidence are in [ADR 0001](decisions/0001-offline-backend.md),
 [ADR 0002](decisions/0002-live-view-updates.md) and
 [ADR 0003](decisions/0003-durable-free-background-checks-and-cleanup.md) and
-[ADR 0004](decisions/0004-bounded-status-reception-and-volume-proofs.md).
+[ADR 0004](decisions/0004-bounded-status-reception-and-volume-proofs.md) and
+[ADR 0005](decisions/0005-shared-badge-evidence-and-bounded-replies.md).
 
 ## Goal and limits
 
@@ -44,7 +45,8 @@ user services: cloudmarks-*-view.service (rclone read-only union mount),
   the Keep offline / Free local copy menu. It never blocks Files: all I/O is in
   a separate worker process, restarted with backoff if it exits.
 - **Desktop worker** (`desktop.py`): maps Files URIs to relative paths, sends
-  batches of at most 16 paths to the helper and caches each answer for its
+  batches of at most 16 paths, also bounded by encoded request and worst-case
+  response size, to the helper and caches each answer for its
   lease (`valid_for_ms`). Menu actions start the GTK window, which runs the
   `cloudmarks control` command and shows progress, cancellation and retry.
 - **Status helper** (`helper.py`): one listener, up to 16 nonblocking peers with
@@ -88,7 +90,9 @@ upgrade from every schema since 2. Job states change only through
 is a read-only check of SQLite structure, foreign keys and CloudMarks
 invariants (every copy has a publication, pin flags match their sources, no
 interrupted operation or unfinished release); `offline doctor` reports it and
-is not ready for use while it finds a problem.
+is not ready for use while it finds a problem. Both doctor commands share the
+same state-health classification. Only pending, running, error and blocked jobs
+are unfinished; done and cancelled jobs are terminal.
 
 ## Offline store on disk
 
@@ -132,12 +136,18 @@ during the check.
 
 The helper keeps the socket thread cheap:
 
-- Hash results are reused while the kernel fingerprint (device, inode, size,
-  mtime, ctime, links) is unchanged, and re-hashed every 60 seconds.
+- Single files and folder members use the same content policy (`copy_fingerprint`
+  and `HashMemo`). Hash results are reused while the kernel fingerprint (device,
+  inode, size, mtime, ctime, links) is unchanged, and re-hashed every 60 seconds.
+  Failed hashes are remembered by fingerprint for the same interval. The socket
+  hash worker may reuse an unchanged successful result for one additional
+  interval while rehashing; a failed rehash revokes it immediately.
 - Files up to 1 MiB are hashed inline. Larger misses go to a background worker
   and answer **Needs checking** with a 250 ms lease until the result is ready.
-- Files above 8 MiB are never hashed for a badge; they need an explicit
-  `offline verify` proof, valid for 5 minutes.
+- Files above 8 MiB are never hashed for a badge, including inside a folder;
+  they need an explicit `offline verify` proof, valid for 5 minutes and bound
+  to both retained copies and their current fingerprints. A folder lease cannot
+  outlive any member's explicit proof.
 - The storage-mount proof (`findmnt`) is reused for at most 10 seconds, measured
   from the start of its check. After 5 seconds, requests queue a refresh on one
   bounded background worker. Cold/expired proofs answer **Needs checking**; a
@@ -151,8 +161,14 @@ cause: database, storage, scope, configuration, permissions and unexpected
 errors each have their own fixed reason, and the helper logs the category.
 
 Folder badges come from `FolderObserver`, which enumerates the folder in the
-cloud and checks members in its own thread; requests only read its cache. The
-remote tree and derived manifest are reused for 15 seconds, without extending
+cloud and checks members in its own thread; requests only read its cache.
+Each check has a 16 MiB hashing budget across both copies and a 150 ms elapsed
+time budget, checked between members and between reads of at most 1 MiB.
+Hashes stop at the recorded file size and reject fingerprint changes. Exhausted
+budgets leave **Needs checking**; later checks can reuse completed hashes.
+These are cooperative time limits: an in-flight network or kernel operation
+cannot be interrupted. Very large folders may remain unverified within these
+limits. The remote tree and derived manifest are reused for 15 seconds, without extending
 the original metadata deadline. Trees above 10,000 entries remain **Needs
 checking**. The legacy engine aggregate path retains its 128-member/64-file/8 MiB
 budget; the desktop working set remains bounded at 512 items.
@@ -188,8 +204,10 @@ Core modules are type-checked with mypy (`check_untyped_defs`), configured in
 
 ## Security and privacy
 
-- The socket, settings, state and store directories must be owned by the user
-  and private (0700/0600); the helper rejects other peers.
+- The socket and JSON settings directories are user-owned and private. The core
+  TOML must be a private regular file owned by the user (not a symlink), and the
+  store root must be owned by the user with no group/other access. The helper
+  rejects other peers.
 - Paths are bounded relative paths; traversal and control characters are
   rejected before any lookup, and a case or Unicode alias never inherits
   another path's status.

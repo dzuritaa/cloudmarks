@@ -7,7 +7,7 @@ import threading
 import time
 from pathlib import Path
 
-from .config import absolute_path, integer, load_config
+from .config import Config, absolute_path, integer, load_config
 from .ipc import read_private_json
 from .model import CloudMarksError, ConfigurationError, StorageError, text
 
@@ -79,11 +79,13 @@ def check_binding(config, settings):
 
 # Status proofs are process-local and bounded. A single short-lived worker owns
 # findmnt refreshes; no socket request waits for it or renews stale evidence.
-_VOLUME_PROOFS = {}
-_VOLUME_PENDING = {}
-_VOLUME_RETRY = {}
+VolumeKey = tuple[str, int, int, str | None, str | None]
+VolumeSettings = dict[str, str | int]
+_VOLUME_PROOFS: dict[VolumeKey, float] = {}
+_VOLUME_PENDING: dict[VolumeKey, tuple[Config, VolumeSettings, Path, int]] = {}
+_VOLUME_RETRY: dict[VolumeKey, float] = {}
 _VOLUME_LOCK = threading.Lock()
-_VOLUME_THREAD = None
+_VOLUME_THREAD: threading.Thread | None = None
 # An invalidation also cancels publication of an already-running proof.
 _VOLUME_GENERATION = 0
 

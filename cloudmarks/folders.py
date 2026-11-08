@@ -16,8 +16,18 @@ from .model import IntegrityError, ScopeError
 from .paths import DIRECTORY, SecureRoot
 from .state import ReadStore
 from .tracking import manifest
-from .verification import VOLUME_REUSE_SECONDS
+from .verification import (
+    INLINE_LIMIT,
+    PROOF_SECONDS,
+    VOLUME_REUSE_SECONDS,
+    HashBudget,
+    HashMemo,
+    copy_fingerprint,
+)
 from .view import attest_view
+
+CHECK_BYTES = 16 * 1024 * 1024
+CHECK_SECONDS = 0.15
 
 
 class FolderObserver:
@@ -27,7 +37,8 @@ class FolderObserver:
         self.lock = threading.Lock()
         self.stop = threading.Event()
         self.wake = threading.Event()
-        self.interests, self.results, self.trees, self.hashes = {}, {}, {}, {}
+        self.interests, self.results, self.trees = {}, {}, {}
+        self.memo = HashMemo()
         self.thread = None
 
     def start(self):
@@ -47,7 +58,7 @@ class FolderObserver:
         with self.lock:
             self.interests[key] = now
             if len(self.interests) > 16:
-                oldest = min(self.interests, key=self.interests.get)
+                oldest = min(self.interests, key=lambda item: self.interests[item])
                 del self.interests[oldest]
                 self.results.pop(oldest, None)
             cached = self.results.get(key)
@@ -90,6 +101,7 @@ class FolderObserver:
             self.wake.wait(0.5)
 
     def check(self, path, view):
+        budget = HashBudget(CHECK_BYTES, CHECK_SECONDS, monotonic=time.monotonic)
         now = self.clock()
         tree = self.trees.get(path)
         if tree is None or not 0 <= now - tree[0] < 15:
@@ -125,6 +137,7 @@ class FolderObserver:
                 raise ScopeError("Offline read path is unavailable")
             verified, total, retained, directories = 0, 0, 0, True
             for value in observations:
+                budget.reserve()
                 if self.stop.is_set():
                     raise ScopeError("Folder verification stopped")
                 remote = value.remote
@@ -167,17 +180,32 @@ class FolderObserver:
                     and remote.sha256 != copy.sha256
                 ):
                     continue
-                paths = (copy.object_path, "local/" + remote.relative_path)
-                signatures = tuple(disk.current_fingerprint(p) for p in paths)
-                key = (copy, paths, signatures)
-                if key not in self.hashes:
-                    for source in paths:
-                        disk.verify(source, copy.size, copy.sha256)
-                    if tuple(disk.current_fingerprint(p) for p in paths) != signatures:
-                        raise IntegrityError("Folder content changed during verification")
-                    self.hashes[key] = True
-                    if len(self.hashes) > TREE_ENTRIES:
-                        del self.hashes[next(iter(self.hashes))]
+                fingerprint = copy_fingerprint(
+                    self.config,
+                    store,
+                    self.offline,
+                    disk,
+                    remote,
+                    copy,
+                    self.memo,
+                    clock=self.clock,
+                    budget=budget,
+                )
+                if copy.size <= INLINE_LIMIT:
+                    local_fingerprint = self.memo.verify(
+                        disk, "local/" + remote.relative_path, copy.size, copy.sha256, budget=budget
+                    )
+                else:
+                    # cached_fingerprint checked both sources and the explicit
+                    # proof; the aggregate lease must not outlive that proof.
+                    proof = json.loads(store.verification_payload(remote.identity))
+                    deadline = min(deadline, proof["verified_at"] + PROOF_SECONDS)
+                    local_fingerprint = tuple(proof["sources"]["local"]["fingerprint"])
+                if (
+                    disk.current_fingerprint(copy.object_path) != fingerprint
+                    or disk.current_fingerprint("local/" + remote.relative_path) != local_fingerprint
+                ):
+                    raise IntegrityError("Folder content changed during verification")
                 verified += 1
             # Extra retained publications, including renamed/deleted members,
             # invalidate aggregate completion rather than disappearing in a list.
@@ -188,6 +216,7 @@ class FolderObserver:
                 if not v.remote.is_directory
             }
             extras = any(expected.get(entry[0]) != entry[1] for entry in entries)
+            budget.reserve()
             disk.revalidate(self.config.volume_id)
             if (
                 store.data_version() != version

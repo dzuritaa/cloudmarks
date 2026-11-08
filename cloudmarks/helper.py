@@ -15,6 +15,7 @@ import sqlite3
 import stat
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .config import load_config
 from .engine import CHECKING_REASON, StatusEngine
@@ -23,6 +24,11 @@ from .model import CloudMarksError, ConfigurationError, FileIdentity
 from .paths import SecureRoot, relative_parts
 from .state import StateStore
 from .telemetry import enabled, error_category, record
+
+if TYPE_CHECKING:
+    from .activity import Activity, ObservedStore
+    from .config import Config
+    from .state import ReadStore
 
 MAX_VERIFY_BYTES = 8 * 1024 * 1024
 UNAVAILABLE_MS = 500
@@ -45,7 +51,10 @@ class BaseStatusService:
     """Shared read-only status protocol. Subclasses provide store, config and engine."""
 
     supports_large_files = False
-    activity = None
+    activity: Activity | None = None
+    store: StateStore | ReadStore | ObservedStore
+    config: Config
+    engine: StatusEngine
 
     def lookup(self, path):
         relative_parts(path)
@@ -75,6 +84,9 @@ class BaseStatusService:
         result.update(state=status.state.value, reason=status.reason, valid_for_ms=lease)
         return result
 
+    def lookup_view(self, path, view):
+        return self.lookup(path)
+
     def handle(self, value):
         if (
             not isinstance(value, dict)
@@ -96,7 +108,7 @@ class BaseStatusService:
             raise ValueError("Duplicate request paths")
         deadline = time.monotonic() + 0.15
         results = {}
-        failures = {}
+        failures: dict[str, int] = {}
         for path in paths:
             if time.monotonic() >= deadline:
                 results[path] = {
@@ -196,7 +208,7 @@ def serve(settings, store, *, stop=None, tick=None, ready=None, service=None):
         record("helper", "helper_started", mode=settings["mode"])
         with selectors.DefaultSelector() as selector:
             selector.register(listener, selectors.EVENT_READ)
-            clients = {}
+            clients: dict[socket.socket, tuple[float, bytearray, bytes | None]] = {}
 
             def discard(connection):
                 selector.unregister(connection)
@@ -211,6 +223,7 @@ def serve(settings, store, *, stop=None, tick=None, ready=None, service=None):
                         tick()
                     for key, _ in selector.select(0.05):
                         connection = key.fileobj
+                        assert isinstance(connection, socket.socket)
                         if connection is listener:
                             try:
                                 connection, _ = listener.accept()
@@ -253,7 +266,9 @@ def serve(settings, store, *, stop=None, tick=None, ready=None, service=None):
                                 raise ValueError("Expected one bounded frame")
                             # Only framing is multiplexed. The owning thread
                             # still evaluates every status and SQLite read.
-                            outgoing = encode(service.handle(json.loads(incoming)))
+                            # UTF-8 avoids expanding a valid near-limit Unicode
+                            # request path into an oversized response key.
+                            outgoing = encode(service.handle(json.loads(incoming)), ensure_ascii=False)
                             clients[connection] = (deadline, incoming, outgoing)
                             selector.modify(connection, selectors.EVENT_WRITE)
                         except BlockingIOError:
@@ -357,6 +372,7 @@ class OfflineStatusService(BaseStatusService):
             memo.close()
 
     def lookup_view(self, path, view):
+        assert self.activity is not None
         relative_parts(path)
         remote, result = self.activity.evidence(path)
         if remote is None:
