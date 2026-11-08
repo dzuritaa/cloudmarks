@@ -66,6 +66,27 @@ class BoundaryTests(unittest.TestCase):
         "verification",
     )
 
+    def test_state_transitions_live_in_state_store(self):
+        import ast
+        from pathlib import Path
+
+        package = Path(backend.__file__).parent
+        for name in ("controls", "offline", "recovery", "tracking"):
+            source = (package / f"{name}.py").read_text()
+            tree = ast.parse(source)
+            with self.subTest(module=name):
+                self.assertNotIn(".execute(", source)
+                private = [
+                    node.attr
+                    for node in ast.walk(tree)
+                    if isinstance(node, ast.Attribute)
+                    and node.attr.startswith("_")
+                    and not node.attr.startswith("__")
+                    and isinstance(node.value, ast.Attribute)
+                    and node.value.attr == "store"
+                ]
+                self.assertEqual(private, [])
+
     def test_core_modules_do_not_import_the_provider(self):
         import ast
         from pathlib import Path

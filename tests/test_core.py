@@ -559,8 +559,33 @@ os._exit(23)
 
 class ConfigurationTests(unittest.TestCase):
     def test_example_configuration_loads_without_connecting_to_any_account(self):
-        value = load_config(Path(__file__).resolve().parents[1] / "examples/config.toml")
+        value = load_config(Path(__file__).resolve().parents[1] / "examples/config.toml", private=False)
         self.assertEqual(value.expected_drive_id, "fixture-test-drive")
+
+    def test_runtime_configuration_must_be_a_private_regular_file(self):
+        template = (Path(__file__).resolve().parents[1] / "examples/config.toml").read_text()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.toml"
+            path.write_text(template)
+            path.chmod(0o600)
+            self.assertEqual(load_config(path).expected_drive_id, "fixture-test-drive")
+            for mode in (0o644, 0o660, 0o666):
+                path.chmod(mode)
+                with self.subTest(mode=oct(mode)), self.assertRaises(ConfigurationError):
+                    load_config(path)
+            path.chmod(0o600)
+            link = Path(directory) / "link.toml"
+            link.symlink_to(path)
+            with self.assertRaises(ConfigurationError):
+                load_config(link)
+            hard = Path(directory) / "hard.toml"
+            os.link(path, hard)
+            with self.assertRaises(ConfigurationError):
+                load_config(path)
+            hard.unlink()
+            path.write_bytes(b"#" * (64 * 1024 + 1))
+            with self.assertRaises(ConfigurationError):
+                load_config(path)
 
     def test_config_rejects_unknown_fields_unsupported_version_and_wrong_types(self):
         template = (Path(__file__).resolve().parents[1] / "examples/config.toml").read_text()
@@ -582,6 +607,7 @@ class ConfigurationTests(unittest.TestCase):
             path = Path(directory) / "config.toml"
             for index, contents in enumerate(invalid):
                 path.write_text(contents)
+                path.chmod(0o600)
                 with self.subTest(index=index), self.assertRaises(ConfigurationError):
                     load_config(path)
 
@@ -592,6 +618,7 @@ class ConfigurationTests(unittest.TestCase):
             path = Path(directory) / "config.toml"
             for contents in (template.replace(line, "blocked_drive_ids = []"), template.replace(line, "")):
                 path.write_text(contents)
+                path.chmod(0o600)
                 value = load_config(path)
                 self.assertEqual(value.blocked_drive_ids, ())
                 with self.assertRaises(ScopeError):

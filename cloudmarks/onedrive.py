@@ -15,7 +15,9 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Iterator
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .checksums import QuickXor, checksum  # noqa: F401  (re-exported for callers and tests)
 from .ipc import private_directory
@@ -198,7 +200,7 @@ class OneDrive:
         q = urllib.parse.quote
         return self.graph(f"drives/{q(self.config.expected_drive_id, safe='')}/items/{q(item_id, safe='')}")
 
-    def authenticate(self):
+    def authenticate(self) -> None:
         # Reuse account/root attestation briefly within one transport instance.
         # Each Graph call still reloads/validates the private config; credential
         # or expected-account changes invalidate this memo before reuse.
@@ -244,7 +246,7 @@ class OneDrive:
         if canonical_drive(parent.get("driveId")) != self.config.expected_drive_id:
             raise ScopeError("Allowed root belongs to another drive")
 
-    def describe(self, path, *, allow_directory=False):
+    def describe(self, path, *, allow_directory=False) -> Observation:
         relative_parts(path)
         self.authenticate()
         q = urllib.parse.quote
@@ -254,7 +256,7 @@ class OneDrive:
         )
         return self.observation(value, path, allow_directory=allow_directory)
 
-    def describe_identity(self, identity):
+    def describe_identity(self, identity) -> Observation:
         self.config.validate_identity(identity)
         self.authenticate()
         try:
@@ -267,7 +269,7 @@ class OneDrive:
             raise ScopeError("Stable item lookup returned another identity")
         return self.observation(value, allow_directory=True)
 
-    def describe_many(self, paths):
+    def describe_many(self, paths) -> dict[str, Observation | None]:
         """Observe a bounded working set; never enumerate the whole library.
 
         Microsoft Graph accepts 20 GETs per batch. Missing/failed individual
@@ -288,7 +290,7 @@ class OneDrive:
                 self[key] = value = backend.item(key)
                 return value
 
-        parents, results = Parents(), dict[str, object]()
+        parents, results = Parents(), dict[str, Observation | None]()
         q = urllib.parse.quote
         cached = getattr(self, "_batch_address", None)
         if cached and cached[0] == self._account_proof:
@@ -429,7 +431,7 @@ class OneDrive:
             return Observation(remote, kind, digest)
         raise IntegrityError("Remote file has no supported authoritative checksum")
 
-    def catalog(self, *, limit=128, cancelled=lambda: False):
+    def catalog(self, *, limit=128, cancelled=lambda: False) -> list[Observation]:
         """Observe the allowed root without pinning or inferring any deletions.
 
         A failed/truncated scan returns no catalog. Credentials and continuation
@@ -507,7 +509,7 @@ class OneDrive:
                     route = prefix + "?" + parsed.query
         return values
 
-    def tree(self, path, *, limit=TREE_ENTRIES, cancelled=lambda: False):
+    def tree(self, path, *, limit=TREE_ENTRIES, cancelled=lambda: False) -> list[Observation]:
         """Bounded complete manifest, independently repeated by the controller.
 
         Never infer deletions from listing omissions. Pages must stay on the
@@ -591,7 +593,7 @@ class OneDrive:
                     route = prefix + "?" + parsed.query
         return values
 
-    def verify_transport_root(self):
+    def verify_transport_root(self) -> None:
         """Prove the effective origin with a direct child, without downloading.
 
         rclone synthesizes root/directory stat responses without an ID. Its
@@ -649,7 +651,7 @@ class OneDrive:
         except (OSError, ValueError, subprocess.SubprocessError):
             raise StorageError("Cannot establish the effective transport root identity") from None
 
-    def verify_transport_item(self, observation):
+    def verify_transport_item(self, observation) -> None:
         self.config.validate_remote(observation.remote)
         try:
             result = subprocess.run(
@@ -672,7 +674,7 @@ class OneDrive:
         except (OSError, ValueError, KeyError, subprocess.SubprocessError):
             raise StorageError("Cannot establish the effective transport file identity") from None
 
-    def chunks(self, observation, *, cancelled=lambda: False):
+    def chunks(self, observation, *, cancelled=lambda: False) -> Iterator[bytes]:
         # A path race cannot publish different content: the caller checks the
         # server checksum and re-describes identity/revision after EOF.
         if cancelled():
@@ -719,3 +721,12 @@ class OneDrive:
                     process.wait(timeout=3)
             if process.stdout is not None:
                 process.stdout.close()
+
+
+if TYPE_CHECKING:
+    from .backend import ActivityBackend, OfflineBackend, TransportProof
+
+    # Static proof that OneDrive satisfies every provider contract.
+    _offline: type[OfflineBackend] = OneDrive
+    _activity: type[ActivityBackend] = OneDrive
+    _transport: type[TransportProof] = OneDrive

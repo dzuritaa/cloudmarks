@@ -47,6 +47,10 @@ Type=notify
 ExecStartPre={command(*guard, "--view", "upload", "--operation", "prepare")}
 ExecStart={
         command(
+            python,
+            "-m",
+            "cloudmarks",
+            "rclone-exec",
             rclone,
             "mount",
             "upload:",

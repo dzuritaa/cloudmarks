@@ -141,7 +141,9 @@ def init_store(config, values):
     from .state import StateStore
 
     OneDrive(config, values).authenticate()
-    initialize(config, values)
+    # The storage step refused an existing folder, so one found now was
+    # started by this setup's own interrupted store step.
+    initialize(config, values, resume=True)
     with StateStore(config):
         pass
 

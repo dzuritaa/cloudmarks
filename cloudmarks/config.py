@@ -1,6 +1,9 @@
 """Versioned TOML configuration and account/root containment."""
 
+import errno
 import math
+import os
+import stat
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -74,10 +77,39 @@ class Config:
         return relative_path if self.case_sensitive else relative_path.casefold()
 
 
-def load_config(path):
+MAX_CONFIG_BYTES = 64 * 1024
+
+
+def read_config_bytes(path, *, private=True):
+    """Read a core TOML file. ``private`` requires a regular, singly linked file
+    owned by this user with no group/other access, opened without following a
+    symlink. Only ``check-config`` on an example file passes ``private=False``."""
+    flags = os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC | (os.O_NOFOLLOW if private else 0)
     try:
-        with open(path, "rb") as stream:
-            value = tomllib.load(stream)
+        fd = os.open(path, flags)
+    except OSError as error:
+        if private and error.errno == errno.ELOOP:
+            raise ConfigurationError("The CloudMarks configuration must not be a symbolic link") from None
+        raise
+    with os.fdopen(fd, "rb") as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode):
+            raise ConfigurationError("The CloudMarks configuration must be a regular file")
+        if private and (
+            info.st_nlink != 1 or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077
+        ):
+            raise ConfigurationError(
+                "The CloudMarks configuration must be owned by you and private; run: chmod 600 <file>"
+            )
+        data = stream.read(MAX_CONFIG_BYTES + 1)
+    if len(data) > MAX_CONFIG_BYTES:
+        raise ConfigurationError("The CloudMarks configuration exceeds its size limit")
+    return data
+
+
+def load_config(path, *, private=True):
+    try:
+        value = tomllib.loads(read_config_bytes(path, private=private).decode("utf-8"))
         if (
             set(value) != {"version", "account", "storage", "status"}
             or integer(value["version"], "version", 1) != 1

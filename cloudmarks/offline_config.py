@@ -244,7 +244,17 @@ def require_unmounted(settings):
         raise StorageError("Unmount the experimental CloudMarks view before changing local content")
 
 
-def initialize(config, settings):
+STORE_AREAS = ("objects", "local", "recovery")
+
+
+def initialize(config, settings, *, resume=False):
+    """Create and bind a new, empty offline store. Never adopts existing data.
+
+    ``resume=True`` lets setup finish a store that its own interrupted run
+    began: the folder must be private, owned by this user and contain only
+    what this function creates, with a matching binding and empty areas.
+    Missing pieces are then created; anything else is refused.
+    """
     from .install import json_bytes, write_new
     from .paths import MARKER, open_absolute_directory
 
@@ -252,17 +262,72 @@ def initialize(config, settings):
     require_unmounted(settings)
     fd = open_absolute_directory(config.storage_root.parent)
     os.close(fd)
-    config.storage_root.mkdir(mode=0o700)  # Refuse to adopt/overwrite existing data.
-    write_new(config.storage_root / ".cloudmarks-binding", json_bytes(store_binding(config, settings)))
-    marker = config.storage_root / MARKER
-    marker.write_text(config.volume_id + "\n")
+    root = config.storage_root
+    binding = json_bytes(store_binding(config, settings))
+    if resume and (root.exists() or root.is_symlink()):
+        present = _resumable_store(root, binding, config.volume_id)
+    else:
+        root.mkdir(mode=0o700)  # Refuse to adopt/overwrite existing data.
+        present = set()
+    if ".cloudmarks-binding" not in present:
+        write_new(root / ".cloudmarks-binding", binding)
+    marker = root / MARKER
+    if MARKER not in present:
+        write_new(marker, (config.volume_id + "\n").encode())
     with marker.open("rb") as stream:
         os.fsync(stream.fileno())
-    for name in ("objects", "local", "recovery"):
-        (config.storage_root / name).mkdir(mode=0o700)
-    for path in (config.storage_root, config.storage_root.parent):
+    for name in STORE_AREAS:
+        if name not in present:
+            (root / name).mkdir(mode=0o700)
+    for path in (root, root.parent):
         fd = open_absolute_directory(path)
         try:
             os.fsync(fd)
         finally:
             os.close(fd)
+
+
+def _resumable_store(root, binding, volume_id):
+    """Names an interrupted initialize left in ``root``; raises unless it is safely ours."""
+    import stat
+
+    from .paths import DIRECTORY, MARKER, open_absolute_directory
+
+    refuse = StorageError("The store folder already holds other data; choose a new folder")
+    try:
+        fd = open_absolute_directory(root)
+    except OSError:
+        raise refuse from None
+    try:
+        info = os.fstat(fd)
+        if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077:
+            raise refuse
+        present = set(os.listdir(fd))
+        if present - {".cloudmarks-binding", MARKER, *STORE_AREAS}:
+            raise refuse
+        if present and ".cloudmarks-binding" not in present:
+            raise refuse  # The binding is always written first.
+        for name in present:
+            entry = os.stat(name, dir_fd=fd, follow_symlinks=False)
+            if name in STORE_AREAS:
+                if not stat.S_ISDIR(entry.st_mode):
+                    raise refuse
+                area = os.open(name, DIRECTORY, dir_fd=fd)
+                try:
+                    if os.listdir(area):
+                        raise refuse
+                finally:
+                    os.close(area)
+                continue
+            if not stat.S_ISREG(entry.st_mode) or entry.st_nlink != 1 or entry.st_uid != os.getuid():
+                raise refuse
+            expected = binding if name == ".cloudmarks-binding" else (volume_id + "\n").encode()
+            value = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=fd)
+            try:
+                if os.read(value, len(expected) + 1) != expected:
+                    raise refuse
+            finally:
+                os.close(value)
+        return present
+    finally:
+        os.close(fd)

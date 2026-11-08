@@ -71,19 +71,13 @@ class ConflictRecovery:
         self.config, self.store = controller.config, controller.store
 
     def archives(self):
-        return [
-            json.loads(row[0])
-            for row in self.store.connection.execute("SELECT payload FROM archives ORDER BY archive_id")
-        ]
+        return [json.loads(payload) for payload in self.store.archive_payloads()]
 
     def resolve(self, path, *, retry_remote=False):
         control = self.control
         control.recover()
         identity = ChangeTracker(control).identity_at(path)
-        key = self.store.key(identity)
-        issue = self.store.connection.execute(
-            "SELECT * FROM issues WHERE drive_id=? AND item_id=?", key
-        ).fetchone()
+        issue = self.store.issue(identity)
         if issue is None:
             raise ScopeError("No recorded conflict at this path; inspect offline conflicts first")
         remote, old = self.store.remote(identity), control.entry(identity)
@@ -117,12 +111,7 @@ class ConflictRecovery:
                 "entry": old,
                 "issue": dict(issue),
                 "sources": sources,
-                "pin_sources": [
-                    r[0]
-                    for r in self.store.connection.execute(
-                        "SELECT owner FROM pin_sources WHERE drive_id=? AND item_id=?", key
-                    )
-                ],
+                "pin_sources": self.store.pin_owners(identity),
                 "outcome": "retry_queued" if retry_remote else "retired",
             }
             if observation:
@@ -154,28 +143,9 @@ class ConflictRecovery:
                 control.guard()
                 for source in sources.values():
                     unchanged(root, source)
-                with self.store.transaction() as connection:
-                    connection.execute("INSERT INTO archives VALUES (?,?)", (archive_id, json.dumps(receipt)))
-                    for table in ("local_entries", "copies", "issues", "verifications", "jobs"):
-                        connection.execute(f"DELETE FROM {table} WHERE drive_id=? AND item_id=?", key)
-                    if observation:
-                        self.store.observe(observation.remote, connection=connection)
-                        connection.execute(
-                            "UPDATE files SET dirty=0,operation='idle',error=NULL WHERE drive_id=? AND item_id=?",
-                            key,
-                        )
-                        # Preserve existing folder/direct intent; explicitly retrying an unpinned file pins it.
-                        if not receipt["pin_sources"]:
-                            connection.execute("INSERT INTO pin_sources VALUES (?,?,'direct')", key)
-                        connection.execute("UPDATE files SET pinned=1 WHERE drive_id=? AND item_id=?", key)
-                        connection.execute(
-                            "INSERT INTO jobs(drive_id,item_id,requested_path) VALUES (?,?,?)",
-                            (*key, observation.remote.relative_path),
-                        )
-                    else:
-                        connection.execute("DELETE FROM pin_sources WHERE drive_id=? AND item_id=?", key)
-                        connection.execute("DELETE FROM files WHERE drive_id=? AND item_id=?", key)
-                    connection.execute("DELETE FROM publications WHERE drive_id=? AND item_id=?", key)
+                self.store.commit_archive(
+                    identity, archive_id, receipt, retry=None if observation is None else observation.remote
+                )
                 control.hook("archive-committed")
             except Exception:
                 if payload:
@@ -188,12 +158,9 @@ class ConflictRecovery:
         self.control.guard()
         if self.control.cancelled():
             raise Cancelled("Export cancelled; all versions retained")
-        row = self.store.connection.execute(
-            "SELECT payload FROM archives WHERE archive_id=?", (archive_id,)
-        ).fetchone()
-        if row is None:
+        receipt = self.store.archive(archive_id)
+        if receipt is None:
             raise ScopeError("Unknown archive ID")
-        receipt = json.loads(row[0])
         destination = Path(destination)
         if not destination.is_absolute():
             raise ScopeError("Export requires a new absolute destination directory")

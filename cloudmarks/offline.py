@@ -10,7 +10,6 @@ against the budget. Nothing is collected automatically; ``storage.collect``
 import ctypes
 import errno
 import hashlib
-import json
 import os
 import stat
 import uuid
@@ -124,20 +123,12 @@ class OfflineController:
         root.verify("local/" + entry["path"], value["size"], value["sha256"])
 
     def journal(self, identity, payload):
-        with self.store.transaction() as connection:
-            connection.execute(
-                "INSERT INTO publications VALUES (?,?,?)", (*self.store.key(identity), json.dumps(payload))
-            )
+        self.store.begin_intent(identity, payload)
 
     def recover(self):
         self.guard()
         with SecureRoot(self.config.storage_root, self.config.volume_id) as root:
-            rows = self.store.connection.execute("SELECT * FROM publications").fetchall()
-            for row in rows:
-                payload = json.loads(row["payload"])
-                from .model import FileIdentity
-
-                identity = FileIdentity(row["drive_id"], row["item_id"])
+            for identity, payload in self.store.pending_intents():
                 self.config.validate_identity(identity)
                 if payload.get("action") == "publish":
                     self.rollback_publication(root, identity, payload)
@@ -149,17 +140,7 @@ class OfflineController:
                     rollback_archive(self, root, identity, payload)
                 else:
                     raise IntegrityError("Unknown recovery intent; preserve all data")
-                with self.store.transaction() as connection:
-                    connection.execute(
-                        "DELETE FROM publications WHERE drive_id=? AND item_id=?", self.store.key(identity)
-                    )
-                    connection.execute(
-                        "UPDATE files SET operation='error',error=? WHERE drive_id=? AND item_id=?",
-                        (
-                            "Interrupted local operation recovered; previous data retained",
-                            *self.store.key(identity),
-                        ),
-                    )
+                self.store.finish_recovered_intent(identity)
             root.revalidate(self.config.volume_id)
 
     def rollback_publication(self, root, identity, payload):
@@ -308,16 +289,7 @@ class OfflineController:
                 root.verify("local/" + path, remote.size, sha)
                 self.guard()
                 root.revalidate(self.config.volume_id)
-                with self.store.transaction() as connection:
-                    self.store._record_complete(connection, copy)
-                    connection.execute(
-                        "INSERT INTO local_entries VALUES (?,?,?) ON CONFLICT(drive_id,item_id) DO UPDATE SET relative_path=excluded.relative_path",
-                        (*self.store.key(remote.identity), path),
-                    )
-                    connection.execute(
-                        "DELETE FROM publications WHERE drive_id=? AND item_id=?",
-                        self.store.key(remote.identity),
-                    )
+                self.store.commit_publication(copy, path)
                 self.hook("committed")
                 self.progress(phase="complete", completed=remote.size, total=remote.size)
                 return copy
@@ -382,15 +354,10 @@ class OfflineController:
 
     def identity_at(self, path):
         relative_parts(path)
-        row = self.store.connection.execute(
-            "SELECT item_id,relative_path FROM files WHERE drive_id=? AND path_key=?",
-            (self.config.expected_drive_id, self.config.path_key(path)),
-        ).fetchone()
-        if not row or row[1] != path:
+        identity = self.store.exact_identity_at(path)
+        if identity is None:
             raise ScopeError("No exact managed observation for this path")
-        from .model import FileIdentity
-
-        return FileIdentity(self.config.expected_drive_id, row[0])
+        return identity
 
     def free(self, path):
         self.recover()
@@ -442,16 +409,7 @@ class OfflineController:
                 self.hook("evict-object")
                 root.verify(payload["view_backup"], value["size"], value["sha256"])
                 root.verify(payload["object_backup"], value["size"], value["sha256"])
-                with self.store.transaction() as connection:
-                    connection.execute(
-                        "DELETE FROM local_entries WHERE drive_id=? AND item_id=?", self.store.key(identity)
-                    )
-                    connection.execute(
-                        "DELETE FROM copies WHERE drive_id=? AND item_id=?", self.store.key(identity)
-                    )
-                    connection.execute(
-                        "DELETE FROM publications WHERE drive_id=? AND item_id=?", self.store.key(identity)
-                    )
+                self.store.commit_eviction(identity)
                 for backup in (payload["view_backup"], payload["object_backup"]):
                     remove(root, backup, value["size"], value["sha256"])
             except BaseException:

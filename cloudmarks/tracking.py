@@ -57,15 +57,12 @@ class ChangeTracker:
             return self.control.identity_at(path)
         except ScopeError:
             relative_parts(path)
-            row = self.store.connection.execute(
-                "SELECT drive_id,item_id FROM local_entries WHERE relative_path=?", (path,)
-            ).fetchone()
-            if row is None:
+            identity = self.store.retained_identity_at(path)
+            if identity is None:
                 raise
-            return FileIdentity(*row)
+            return identity
 
     def issue(self, remote, reason, candidate=None):
-        key = self.store.key(remote.identity)
         old = self.store.issue(remote.identity)
         if (
             candidate is None
@@ -73,18 +70,7 @@ class ChangeTracker:
             and (old["revision"], old["relative_path"]) == (remote.revision, remote.relative_path)
         ):
             candidate = json.loads(old["candidate"]) if old["candidate"] else None
-        self.store.connection.execute(
-            "INSERT INTO issues VALUES(?,?,?,?,?,?) ON CONFLICT(drive_id,item_id) DO UPDATE SET "
-            "reason=excluded.reason,revision=excluded.revision,relative_path=excluded.relative_path,"
-            "candidate=excluded.candidate",
-            (
-                *key,
-                reason,
-                remote.revision,
-                remote.relative_path,
-                json.dumps(candidate) if candidate else None,
-            ),
-        )
+        self.store.record_issue(remote, reason, candidate)
         self.store.fail_transfer(remote.identity, reason)
 
     def observe(self, identity):
@@ -143,11 +129,7 @@ class ChangeTracker:
             raise ScopeError("Only observed live files can be queued")
         if direct:
             self.store.set_pin(remote.identity, True)
-        self.store.connection.execute(
-            "INSERT INTO jobs(drive_id,item_id,requested_path) VALUES(?,?,?) "
-            "ON CONFLICT(drive_id,item_id) DO UPDATE SET status='pending',error=NULL",
-            (*self.store.key(remote.identity), remote.relative_path),
-        )
+        self.store.enqueue_job(remote)
 
     def queue(self, path):
         self.control.recover()
@@ -215,18 +197,7 @@ class ChangeTracker:
             root.verify(path, remote.size, sha)
             root.revalidate(self.config.volume_id)
             copy = asdict(LocalCopy(remote.identity, remote.revision, path, remote.size, sha))
-            self.store.connection.execute(
-                "INSERT INTO snapshots VALUES(?,?,?,?,?,?,?,?)",
-                (
-                    path,
-                    *self.store.key(remote.identity),
-                    remote.revision,
-                    remote.relative_path,
-                    remote.size,
-                    sha,
-                    time.time(),
-                ),
-            )
+            self.store.record_snapshot(path, remote, sha)
             return copy
 
     def current(self, observation):
@@ -246,16 +217,14 @@ class ChangeTracker:
         if expected.digest() != observation.digest:
             return False
         self.store.observe(replace(remote, sha256=copy.sha256))
-        self.store._update(remote.identity, "operation='idle',error=NULL", ())
+        self.store.mark_idle(remote.identity)
         return True
 
     def resume(self, *, limit=TREE_ENTRIES):
         if type(limit) is not int or not 1 <= limit <= TREE_ENTRIES:
             raise ScopeError(f"Worker limit must be between 1 and {TREE_ENTRIES}")
         self.control.recover()
-        jobs = self.store.connection.execute(
-            "SELECT * FROM jobs WHERE status IN ('pending','error') ORDER BY rowid LIMIT ?", (limit,)
-        ).fetchall()
+        jobs = self.store.resumable_jobs(limit)
         for job in jobs:
             self.control.check_cancelled()
             identity = FileIdentity(job["drive_id"], job["item_id"])
@@ -298,39 +267,16 @@ class ChangeTracker:
         return self.jobs()
 
     def jobs(self):
-        return [
-            dict(row)
-            for row in self.store.connection.execute(
-                "SELECT requested_path,status,attempts,error FROM jobs ORDER BY rowid"
-            )
-        ]
+        return self.store.report("jobs")
 
     def snapshots(self):
-        return [
-            dict(row)
-            for row in self.store.connection.execute(
-                "SELECT relative_path,revision,object_path,size,sha256,created_at FROM snapshots ORDER BY created_at"
-            )
-        ]
+        return self.store.report("snapshots")
 
     def changes(self):
-        return [
-            dict(row)
-            for row in self.store.connection.execute(
-                "SELECT kind,previous,current,observed_at FROM changes ORDER BY sequence"
-            )
-        ]
+        return self.store.report("changes")
 
     def conflicts(self):
-        return [
-            dict(row)
-            for row in self.store.connection.execute(
-                "SELECT files.relative_path,issues.reason,issues.revision,issues.candidate,"
-                "local_entries.relative_path AS retained_path,copies.object_path AS original_object "
-                "FROM issues JOIN files USING(drive_id,item_id) LEFT JOIN local_entries USING(drive_id,item_id) "
-                "LEFT JOIN copies USING(drive_id,item_id) ORDER BY files.relative_path"
-            )
-        ]
+        return self.store.report("conflicts")
 
     def queue_tree(self, path, *, limit=TREE_ENTRIES):
         self.control.recover()
@@ -360,57 +306,19 @@ class ChangeTracker:
                 raise ScopeError("Resolve retained renames before replacing folder intent")
         # All-or-nothing metadata, membership and queue intent; no network or
         # filesystem publication happens in this transaction.
-        owner = "folder:" + roots[0].remote.identity.item_id
-        connection = self.store.connection
         self.control.check_cancelled()
-        with self.store.transaction():
-            for value in second:
-                self.store.observe(value.remote, connection=connection)
-            old_members = connection.execute(
-                "SELECT drive_id,item_id FROM pin_sources WHERE owner=?", (owner,)
-            ).fetchall()
-            connection.execute("DELETE FROM pin_sources WHERE owner=?", (owner,))
-            connection.execute(
-                "INSERT INTO folder_intents VALUES(?,?,?,?,1) ON CONFLICT(drive_id,item_id) DO UPDATE SET "
-                "manifest=excluded.manifest,scanned_at=excluded.scanned_at,pinned=1",
-                (*self.store.key(roots[0].remote.identity), json.dumps(description), time.time()),
-            )
-            for value in second:
-                remote = value.remote
-                connection.execute(
-                    "INSERT OR IGNORE INTO pin_sources VALUES(?,?,?)",
-                    (*self.store.key(remote.identity), owner),
-                )
-                self.store.recompute_pin(connection, remote.identity)
-                if not remote.is_directory:
-                    self.enqueue(remote, direct=False)
-            for member in old_members:
-                self.store.recompute_pin(connection, FileIdentity(*member))
+        self.store.replace_folder_intent(roots[0].remote.identity, description, [v.remote for v in second])
         return second
 
     def unpin_tree(self, path):
         self.control.recover()
-        identity = self.identity_at(path)
-        with self.store.transaction() as connection:
-            cursor = connection.execute(
-                "UPDATE folder_intents SET pinned=0 WHERE drive_id=? AND item_id=?", self.store.key(identity)
-            )
-            if cursor.rowcount != 1:
-                raise ScopeError("Folder has no recursive intent")
-            members = connection.execute(
-                "SELECT drive_id,item_id FROM pin_sources WHERE owner=?", ("folder:" + identity.item_id,)
-            ).fetchall()
-            connection.execute("DELETE FROM pin_sources WHERE owner=?", ("folder:" + identity.item_id,))
-            for member in members:
-                self.store.recompute_pin(connection, FileIdentity(*member))
+        self.store.release_folder_intent(self.identity_at(path))
 
     def check_online(self):
         """Do not let a stale local-first path shadow changed cloud content."""
-        rows = self.store.connection.execute("SELECT drive_id,item_id FROM local_entries")
         found = False
-        for row in rows:
+        for identity in self.store.retained_identities():
             found = True
-            identity = FileIdentity(*row)
             observation = self.observe(identity)
             if not observation or self.assess(observation):
                 raise ScopeError("Changed retained snapshot requires offline conflicts review")
