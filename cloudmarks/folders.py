@@ -95,7 +95,7 @@ class FolderObserver:
         if tree is None or not 0 <= now - tree[0] < 15:
             observations = self.backend.tree(path, limit=TREE_ENTRIES, cancelled=self.stop.is_set)
             # Timestamp the beginning, not completion, of remote enumeration.
-            tree = (now, observations)
+            tree = (now, observations, manifest(observations))
             self.trees[path] = tree
             if len(self.trees) > 16:
                 del self.trees[min(self.trees, key=lambda p: self.trees[p][0])]
@@ -103,7 +103,7 @@ class FolderObserver:
         observations = tree[1]
         if self.clock() >= deadline:
             raise ScopeError("Folder metadata expired during enumeration")
-        current_manifest = manifest(observations)
+        current_manifest = tree[2]
         roots = [v.remote for v in observations if v.remote.relative_path == path and v.remote.is_directory]
         if len(roots) != 1:
             raise ScopeError("Folder scan has no exact root")
@@ -144,10 +144,11 @@ class FolderObserver:
                         directories = False
                     continue
                 total += 1
-                row, copy = store.row(remote.identity), store.copy(remote.identity)
+                copy = store.copy(remote.identity)
                 if copy is None:
                     continue
                 retained += 1
+                row = store.row(remote.identity)
                 issue = store.issue(remote.identity)
                 if issue or row["dirty"] or row["operation"] == "error":
                     return self.activity.result(

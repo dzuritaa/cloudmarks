@@ -6,7 +6,8 @@ this page (for example, "Nautilus actions remain deferred" or "all controls
 require the view unmounted"), this page is current. Decisions and their
 evidence are in [ADR 0001](decisions/0001-offline-backend.md),
 [ADR 0002](decisions/0002-live-view-updates.md) and
-[ADR 0003](decisions/0003-durable-free-background-checks-and-cleanup.md).
+[ADR 0003](decisions/0003-durable-free-background-checks-and-cleanup.md) and
+[ADR 0004](decisions/0004-bounded-status-reception-and-volume-proofs.md).
 
 ## Goal and limits
 
@@ -46,10 +47,11 @@ user services: cloudmarks-*-view.service (rclone read-only union mount),
   batches of at most 16 paths to the helper and caches each answer for its
   lease (`valid_for_ms`). Menu actions start the GTK window, which runs the
   `cloudmarks control` command and shows progress, cancellation and retry.
-- **Status helper** (`helper.py`): one listener, one request at a time, 150 ms
-  work budget per batch, same-UID peers only. The socket protocol has no
+- **Status helper** (`helper.py`): one listener, up to 16 nonblocking peers with
+  a 600 ms absolute framing/response deadline, 150 ms work budget per batch,
+  same-UID peers only. Status evaluation stays on the SQLite owner thread. The socket protocol has no
   mutation operation. It opens the state database read-only (`ReadStore`).
-  In account mode the same process runs two observer threads that hold
+  In account mode the same process runs upload and folder observer workers that hold
   read-only OneDrive transport for metadata; the socket thread never
   constructs transport or reads credentials.
 - **Controls** (`controls.py`, `offline.py`, `tracking.py`, `recovery.py`): the
@@ -130,12 +132,20 @@ The helper keeps the socket thread cheap:
   and answer **Needs checking** with a 250 ms lease until the result is ready.
 - Files above 8 MiB are never hashed for a badge; they need an explicit
   `offline verify` proof, valid for 5 minutes.
-- The storage-mount proof (`findmnt`) is reused for 10 seconds.
+- The storage-mount proof (`findmnt`) is reused for at most 10 seconds, measured
+  from the start of its check. After 5 seconds, requests queue a refresh on one
+  bounded background worker. Cold/expired proofs answer **Needs checking**; a
+  failed refresh revokes the proof immediately. Every reuse checks device/inode
+  and the private binding. Mutating callers always run `findmnt` synchronously.
 - A database, disk or configuration error for one path answers
   **Needs checking** for that path (500 ms lease) and the helper keeps serving.
 
 Folder badges come from `FolderObserver`, which enumerates the folder in the
-cloud and checks members in its own thread; requests only read its cache.
+cloud and checks members in its own thread; requests only read its cache. The
+remote tree and derived manifest are reused for 15 seconds, without extending
+the original metadata deadline. Trees above 10,000 entries remain **Needs
+checking**. The legacy engine aggregate path retains its 128-member/64-file/8 MiB
+budget; the desktop working set remains bounded at 512 items.
 
 ## Provider boundary
 
@@ -167,4 +177,9 @@ package checks. Opt-in runners cover a real test account
 ([`tests/integration`](../tests/integration/README.md)), an isolated Files
 session ([`tests/desktop`](../tests/desktop/README.md)) and physical
 reconnect/logout acceptance. `scripts/bench_status.py` measures status-socket
-latency with a cold page cache.
+latency with a cold page cache. `scripts/bench_scale.py` measures artificial
+1k/10k/50k folder work, desktop queue admission, idle-peer isolation and cold
+volume proofs; [results and limits](dev/status-performance.md) are recorded.
+The installed-wheel gate runs install → enable → doctor → disable → uninstall
+and reinstall in a temporary HOME with fake tools; generated units are checked
+with `systemd-analyze --user verify` when available, without starting services.

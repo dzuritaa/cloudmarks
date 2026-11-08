@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .config import absolute_path, integer, load_config
 from .ipc import read_private_json
-from .model import ConfigurationError, StorageError, text
+from .model import CloudMarksError, ConfigurationError, StorageError, text
 
 KEYS = {
     "version",
@@ -77,47 +77,32 @@ def check_binding(config, settings):
         raise StorageError("Store belongs to another state database, account, root or visible view")
 
 
+# Status proofs are process-local and bounded. A single short-lived worker owns
+# findmnt refreshes; no socket request waits for it or renews stale evidence.
 _VOLUME_PROOFS = {}
+_VOLUME_PENDING = {}
+_VOLUME_RETRY = {}
 _VOLUME_LOCK = threading.Lock()
+_VOLUME_THREAD = None
+# An invalidation also cancels publication of an already-running proof.
+_VOLUME_GENERATION = 0
 
 
-def check_volume(config, settings, *, reuse_seconds=0):
-    """Verify the storage mount. Mutating callers always run findmnt.
+def _volume_key(probe, settings):
+    info = os.stat(probe)
+    return (
+        str(probe),
+        info.st_dev,
+        info.st_ino,
+        settings.get("storage_mount_uuid"),
+        settings.get("storage_mount_target"),
+    )
 
-    Read-only status callers may pass reuse_seconds to reuse a recent mount
-    proof for the same probe inode, device and expected mount identity. The
-    store binding file is still checked on every call.
-    """
-    # A marker in an ordinary empty mountpoint alone is not a disk identity.
-    probe = config.storage_root if config.storage_root.exists() else config.storage_root.parent
-    key = None
-    if reuse_seconds > 0:
-        try:
-            info = os.stat(probe)
-        except OSError:
-            raise StorageError("Expected storage volume cannot be verified") from None
-        key = (
-            str(probe),
-            info.st_dev,
-            info.st_ino,
-            settings.get("storage_mount_uuid"),
-            settings.get("storage_mount_target"),
-        )
-        with _VOLUME_LOCK:
-            stamp = _VOLUME_PROOFS.get(key)
-        if stamp is not None and 0 <= time.monotonic() - stamp < reuse_seconds:
-            try:
-                if config.storage_root.exists():
-                    check_binding(config, settings)
-                return
-            except BaseException as error:
-                with _VOLUME_LOCK:
-                    _VOLUME_PROOFS.pop(key, None)
-                if isinstance(error, (OSError, ValueError, KeyError, IndexError)):
-                    raise StorageError("Expected storage volume cannot be verified") from None
-                raise
-    with _VOLUME_LOCK:
-        _VOLUME_PROOFS.pop(key, None)
+
+def _verify_volume(config, settings, probe):
+    """Synchronous authority for both mutations and background refreshes."""
+    started = time.monotonic()
+    before = _volume_key(probe, settings)
     try:
         result = subprocess.run(
             ["findmnt", "--json", "--target", str(probe), "--output", "UUID,TARGET,FSTYPE,OPTIONS,MAJ:MIN"],
@@ -126,6 +111,8 @@ def check_volume(config, settings, *, reuse_seconds=0):
             check=True,
         )
         rows = json.loads(result.stdout)["filesystems"]
+        if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+            raise StorageError("Storage mount response is invalid")
         device = os.stat(probe).st_dev
         expected_device = f"{os.major(device)}:{os.minor(device)}"
         # systemd automounts can return both the autofs trigger and the real
@@ -138,18 +125,96 @@ def check_volume(config, settings, *, reuse_seconds=0):
             len(rows) != 1
             or row["uuid"] != settings["storage_mount_uuid"]
             or row["target"] != settings["storage_mount_target"]
+            or not isinstance(row.get("options"), str)
             or "rw" not in row["options"].split(",")
         ):
             raise StorageError("Expected writable storage volume is not mounted at its configured location")
         if config.storage_root.exists():
             check_binding(config, settings)
-    except (OSError, ValueError, KeyError, IndexError, subprocess.SubprocessError):
+    except (OSError, ValueError, TypeError, KeyError, IndexError, subprocess.SubprocessError):
         raise StorageError("Expected storage volume cannot be verified") from None
-    if key is not None:
+    if _volume_key(probe, settings) != before:
+        raise StorageError("Storage device changed during verification")
+    return started
+
+
+def _refresh_volumes():
+    global _VOLUME_THREAD
+    while True:
         with _VOLUME_LOCK:
-            if len(_VOLUME_PROOFS) >= 16:
-                _VOLUME_PROOFS.clear()
-            _VOLUME_PROOFS[key] = time.monotonic()
+            if not _VOLUME_PENDING:
+                _VOLUME_THREAD = None
+                return
+            key = next(iter(_VOLUME_PENDING))
+            config, settings, probe, generation = _VOLUME_PENDING[key]
+        stamp = None
+        try:
+            stamp = _verify_volume(config, settings, probe)
+            if _volume_key(probe, settings) != key:
+                stamp = None
+        except (CloudMarksError, OSError, ValueError, KeyError, IndexError):
+            stamp = None  # A failed refresh revokes the previous proof immediately.
+        with _VOLUME_LOCK:
+            _VOLUME_PENDING.pop(key, None)
+            _VOLUME_PROOFS.pop(key, None)
+            if generation != _VOLUME_GENERATION:
+                stamp = None
+            if stamp is not None:
+                if len(_VOLUME_PROOFS) >= 16:
+                    _VOLUME_PROOFS.clear()
+                _VOLUME_PROOFS[key] = stamp
+            else:
+                if len(_VOLUME_RETRY) >= 16:
+                    _VOLUME_RETRY.clear()
+                _VOLUME_RETRY[key] = time.monotonic() + 1
+
+
+def check_volume(config, settings, *, reuse_seconds=0):
+    """Mutations verify synchronously; status refreshes never block on findmnt.
+
+    Status checks refresh after half the reuse interval. An absent/expired proof
+    fails closed until the worker succeeds: there is no stale grace. Every reuse
+    still checks the probe device/inode and private binding. Failure or mismatch
+    revokes the proof, including failures observed by synchronous callers.
+    """
+    global _VOLUME_THREAD, _VOLUME_GENERATION
+    probe = config.storage_root if config.storage_root.exists() else config.storage_root.parent
+    try:
+        key = _volume_key(probe, settings)
+        if config.storage_root.exists():
+            check_binding(config, settings)
+    except (OSError, ValueError, KeyError, IndexError, CloudMarksError):
+        with _VOLUME_LOCK:
+            _VOLUME_PROOFS.clear()
+            _VOLUME_GENERATION += 1
+        raise StorageError(
+            "Expected storage volume cannot be verified; connect the configured disk"
+        ) from None
+    if reuse_seconds <= 0:
+        try:
+            _verify_volume(config, settings, probe)
+        finally:
+            # Mutations cannot authorize a status cache entry, nor leave a
+            # previous proof alive after observing a failed synchronous check.
+            with _VOLUME_LOCK:
+                _VOLUME_PROOFS.pop(key, None)
+                _VOLUME_GENERATION += 1
+        return
+    now = time.monotonic()
+    with _VOLUME_LOCK:
+        stamp = _VOLUME_PROOFS.get(key)
+        age = None if stamp is None else now - stamp
+        if (age is None or not 0 <= age < reuse_seconds / 2) and key not in _VOLUME_PENDING:
+            if len(_VOLUME_PENDING) < 16 and now >= _VOLUME_RETRY.get(key, 0):
+                _VOLUME_PENDING[key] = (config, dict(settings), probe, _VOLUME_GENERATION)
+                if _VOLUME_THREAD is None:
+                    _VOLUME_THREAD = threading.Thread(
+                        target=_refresh_volumes, name="cloudmarks-volume-proof", daemon=True
+                    )
+                    _VOLUME_THREAD.start()
+        if age is not None and 0 <= age < reuse_seconds:
+            return
+    raise StorageError("Storage mount proof is being checked; retry status shortly")
 
 
 def mounted_view(settings):

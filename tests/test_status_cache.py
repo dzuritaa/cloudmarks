@@ -187,6 +187,7 @@ class CheckingStateTests(unittest.TestCase):
 class VolumeReuseTests(unittest.TestCase):
     def setUp(self):
         offline_config._VOLUME_PROOFS.clear()
+        offline_config._VOLUME_RETRY.clear()
         self.temp = tempfile.TemporaryDirectory(prefix="cm-volume-", dir="/tmp")
         self.config = type("Config", (), {"storage_root": Path(self.temp.name)})()
         info = os.stat(self.temp.name)
@@ -200,7 +201,9 @@ class VolumeReuseTests(unittest.TestCase):
         self.settings = {"storage_mount_uuid": "uuid-1", "storage_mount_target": "/"}
 
     def tearDown(self):
+        self.drain()
         offline_config._VOLUME_PROOFS.clear()
+        offline_config._VOLUME_RETRY.clear()
         self.temp.cleanup()
 
     def findmnt(self, *args, **kwargs):
@@ -209,15 +212,26 @@ class VolumeReuseTests(unittest.TestCase):
 
         return subprocess.CompletedProcess(args, 0, json.dumps({"filesystems": [self.row]}).encode(), b"")
 
+    def drain(self):
+        worker = offline_config._VOLUME_THREAD
+        if worker:
+            worker.join(2)
+            self.assertFalse(worker.is_alive())
+
+    def warm(self):
+        with self.assertRaises(StorageError):
+            offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
+        self.drain()
+
     def test_status_reuse_skips_findmnt_but_mutations_never_do(self):
         with (
             patch("cloudmarks.offline_config.subprocess.run", side_effect=self.findmnt) as run,
             patch("cloudmarks.offline_config.check_binding") as binding,
         ):
-            offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
+            self.warm()
             offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
             self.assertEqual(run.call_count, 1)
-            self.assertEqual(binding.call_count, 2)
+            self.assertGreaterEqual(binding.call_count, 2)
             offline_config.check_volume(self.config, self.settings)
             self.assertEqual(run.call_count, 2)
 
@@ -227,23 +241,137 @@ class VolumeReuseTests(unittest.TestCase):
             patch("cloudmarks.offline_config.subprocess.run", side_effect=self.findmnt) as run,
             patch("cloudmarks.offline_config.check_binding"),
         ):
-            for _ in range(2):
-                with self.assertRaises(StorageError):
-                    offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
-        self.assertEqual(run.call_count, 2)
+            self.warm()
+            with self.assertRaises(StorageError):
+                offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
+            self.assertEqual(run.call_count, 1)  # Bounded one-second failure backoff.
+            with self.assertRaises(StorageError):
+                offline_config.check_volume(self.config, self.settings)
+            self.assertEqual(run.call_count, 2)
 
     def test_binding_failure_drops_the_reused_proof(self):
         with (
-            patch("cloudmarks.offline_config.subprocess.run", side_effect=self.findmnt) as run,
+            patch("cloudmarks.offline_config.subprocess.run", side_effect=self.findmnt),
             patch("cloudmarks.offline_config.check_binding") as binding,
         ):
-            offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
+            self.warm()
             binding.side_effect = StorageError("other store")
             with self.assertRaises(StorageError):
                 offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
-            binding.side_effect = None
+            self.assertFalse(offline_config._VOLUME_PROOFS)
+
+    def test_slow_refresh_never_runs_on_caller_or_uses_expired_proof(self):
+        gate, entered = threading.Event(), threading.Event()
+        threads = []
+
+        def slow(*args, **kwargs):
+            threads.append(threading.current_thread().name)
+            entered.set()
+            gate.wait(2)
+            return self.findmnt(*args, **kwargs)
+
+        with (
+            patch("cloudmarks.offline_config.subprocess.run", side_effect=slow),
+            patch("cloudmarks.offline_config.check_binding"),
+        ):
+            try:
+                with self.assertRaises(StorageError):
+                    offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
+                self.assertTrue(entered.wait(1))
+                for _ in range(20):
+                    with self.assertRaises(StorageError):
+                        offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
+                self.assertEqual(len(offline_config._VOLUME_PENDING), 1)
+            finally:
+                gate.set()
+                self.drain()
+            self.assertEqual(threads, ["cloudmarks-volume-proof"])
             offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
-        self.assertEqual(run.call_count, 2)
+            key = next(iter(offline_config._VOLUME_PROOFS))
+            offline_config._VOLUME_PROOFS[key] -= 11
+            with self.assertRaises(StorageError):
+                offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
+            self.drain()
+
+    def test_early_refresh_failure_revokes_even_unexpired_proof(self):
+        with (
+            patch("cloudmarks.offline_config.subprocess.run", side_effect=self.findmnt),
+            patch("cloudmarks.offline_config.check_binding"),
+        ):
+            self.warm()
+            key = next(iter(offline_config._VOLUME_PROOFS))
+            offline_config._VOLUME_PROOFS[key] -= 6
+            self.row["uuid"] = "wrong-disk"
+            offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
+            self.drain()
+            with self.assertRaises(StorageError):
+                offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
+
+    def test_sync_failure_also_revokes_cached_proof(self):
+        with (
+            patch("cloudmarks.offline_config.subprocess.run", side_effect=self.findmnt),
+            patch("cloudmarks.offline_config.check_binding"),
+        ):
+            self.warm()
+            self.row["target"] = "/wrong"
+            with self.assertRaises(StorageError):
+                offline_config.check_volume(self.config, self.settings)
+            self.assertFalse(offline_config._VOLUME_PROOFS)
+
+    def test_malformed_findmnt_rows_and_options_never_authorize_a_volume(self):
+        import json
+        from types import SimpleNamespace
+
+        for rows in (None, ["not a mount"], [dict(self.row, options=None)], []):
+            with (
+                self.subTest(rows=rows),
+                patch("cloudmarks.offline_config.check_binding"),
+                patch(
+                    "cloudmarks.offline_config.subprocess.run",
+                    return_value=SimpleNamespace(stdout=json.dumps({"filesystems": rows})),
+                ),
+            ):
+                with self.assertRaises(StorageError):
+                    offline_config.check_volume(self.config, self.settings)
+
+        for payload in (None, []):
+            with (
+                patch("cloudmarks.offline_config.check_binding"),
+                patch(
+                    "cloudmarks.offline_config.subprocess.run",
+                    return_value=SimpleNamespace(stdout=json.dumps(payload)),
+                ),
+            ):
+                with self.assertRaises(StorageError):
+                    offline_config.check_volume(self.config, self.settings)
+
+    def test_pending_proof_cannot_reappear_after_binding_invalidation(self):
+        import time
+
+        gate, entered = threading.Event(), threading.Event()
+
+        def verify(*args):
+            stamp = time.monotonic()
+            entered.set()
+            gate.wait(2)
+            return stamp
+
+        with (
+            patch("cloudmarks.offline_config._verify_volume", side_effect=verify),
+            patch("cloudmarks.offline_config.check_binding") as binding,
+        ):
+            try:
+                with self.assertRaises(StorageError):
+                    offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
+                self.assertTrue(entered.wait(1))
+                binding.side_effect = StorageError("Binding changed")
+                with self.assertRaises(StorageError):
+                    offline_config.check_volume(self.config, self.settings, reuse_seconds=10)
+                binding.side_effect = None
+            finally:
+                gate.set()
+                self.drain()
+            self.assertFalse(offline_config._VOLUME_PROOFS)
 
 
 if __name__ == "__main__":
