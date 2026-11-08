@@ -1,8 +1,11 @@
 """User controls must preserve bytes, pins, cloud content and mount ownership."""
 
 import json
+import os
+import sqlite3
 import subprocess
 import sys
+import warnings
 from pathlib import Path
 from unittest.mock import patch
 
@@ -336,3 +339,52 @@ class ControlsTests(test_tracking.TrackingCase):
         self.reopen()
         self.assertTrue(self.store.row(self.identity)["pinned"])
         self.assertEqual(self.store.connection.execute("SELECT pinned FROM folder_intents").fetchone()[0], 1)
+
+    def releases(self):
+        # Inspect the journal without opening a writer, which would restore it.
+        connection = sqlite3.connect(self.config.state_path)
+        try:
+            return connection.execute("SELECT count(*) FROM releases").fetchone()[0]
+        finally:
+            connection.close()
+
+    def test_free_killed_between_evictions_restores_pin_intent_on_next_open(self):
+        self.run_control("keep")
+        original = OfflineController.free
+        calls = []
+
+        def free(controller, path):
+            calls.append(path)
+            if len(calls) == 2:
+                os._exit(0)  # Abrupt death after one eviction: no except/finally runs.
+            return original(controller, path)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            pid = os.fork()
+        if pid == 0:
+            try:
+                with patch.object(OfflineController, "free", free):
+                    self.run_control("free")
+            finally:
+                os._exit(1)
+        _, status = os.waitpid(pid, 0)
+        self.assertEqual(os.waitstatus_to_exitcode(status), 0)
+        self.assertEqual(self.releases(), 1)
+        self.reopen()
+        self.assertTrue(self.store.row(self.identity)["pinned"])
+        other = self.store.connection.execute("SELECT pinned FROM files WHERE item_id='other'").fetchone()[0]
+        self.assertEqual(other, 1)
+        self.assertEqual(self.store.connection.execute("SELECT pinned FROM folder_intents").fetchone()[0], 1)
+        self.assertEqual(self.releases(), 0)
+        self.store.close()
+        # The selection is intact, so Free can simply be retried.
+        self.assertEqual(self.run_control("free")["completed"], 1)
+        self.assertEqual(self.releases(), 0)
+
+    def test_completed_free_leaves_no_release_record(self):
+        self.run_control("keep", self.path)
+        self.run_control("free", self.path)
+        self.assertEqual(self.releases(), 0)
+        self.reopen()
+        self.assertFalse(self.store.row(self.identity)["pinned"])

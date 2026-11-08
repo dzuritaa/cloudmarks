@@ -5,6 +5,7 @@ import json
 import os
 import queue
 import socket
+import sqlite3
 import tempfile
 import threading
 import time
@@ -98,6 +99,23 @@ class ServiceTests(FixtureCase):
         self.store.observe(replace(remote, size=MAX_VERIFY_BYTES + 1))
         with patch.object(self.service.engine, "status", side_effect=AssertionError("must not hash")):
             self.assertEqual(self.service.lookup(remote.relative_path)["state"], "unknown")
+
+    def test_locked_state_degrades_only_the_affected_lookup(self):
+        locked = sqlite3.OperationalError("database is locked")
+        original = self.store.file_at
+        with patch.object(
+            self.store,
+            "file_at",
+            side_effect=lambda p: (_ for _ in ()).throw(locked) if p == "02-local.txt" else original(p),
+        ):
+            response = self.service.handle(
+                {"version": 1, "op": "status", "paths": ["01-cloud.txt", "02-local.txt"]}
+            )
+        self.assertEqual(response["results"]["01-cloud.txt"]["state"], "cloud_only")
+        result = response["results"]["02-local.txt"]
+        self.assertEqual(result["state"], "unknown")
+        self.assertEqual(result["valid_for_ms"], 500)
+        self.assertEqual(self.service.lookup("02-local.txt")["state"], "saved_locally")
 
     def test_strict_request_schema_blocks_actions_and_escapes(self):
         cases = [
@@ -199,6 +217,20 @@ class SocketTests(unittest.TestCase):
         self.shutdown()
         self.assertFalse(Path(self.settings["socket"]).exists())
         self.assertEqual(self.query("07-refresh.txt")["07-refresh.txt"], UNKNOWN)
+
+    def test_database_errors_do_not_stop_the_helper(self):
+        event = threading.Event()
+
+        def lock(store):
+            store.file_at = lambda path: (_ for _ in ()).throw(sqlite3.OperationalError("database is locked"))
+
+        self.edits.put((lock, event))
+        self.assertTrue(event.wait(2))
+        self.assertEqual(self.query("02-local.txt")["02-local.txt"]["state"], "unknown")
+        event = threading.Event()
+        self.edits.put((lambda store: store.__dict__.pop("file_at"), event))
+        self.assertTrue(event.wait(2))
+        self.assertEqual(self.query("02-local.txt")["02-local.txt"]["state"], "saved_locally")
 
     def test_malformed_requests_do_not_crash_helper(self):
         frames = [

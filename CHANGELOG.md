@@ -2,6 +2,22 @@
 
 ## 0.1.0a3.dev0 — unreleased
 
+- An interrupted **Free local copy** no longer loses the offline selection.
+  The pins it releases are recorded first (state schema 6) and restored if
+  the operation fails or the process is killed; run Free again to finish.
+- The status helper keeps running when the state database is briefly locked
+  or a disk check fails: the affected file shows **Needs checking** for half a
+  second instead of every badge disappearing.
+- Badge requests no longer hash files above 1 MiB on the request thread. A
+  background worker checks them and the file shows **Needs checking** until
+  it finishes. On a cold NTFS3 disk with 8 MiB files, per-request latency fell
+  from 214 ms (p50) and up to 462 ms to 5 ms and at most 12 ms.
+- New `cloudmarks offline gc`: reports old versions, rollback backups and
+  interrupted downloads that no record uses, and removes those older than 7
+  days with `--apply`.
+- Internal: provider contracts in `cloudmarks/backend.py` with a single
+  factory; more state SQL moved into `StateStore`; `scripts/bench_status.py`;
+  [architecture overview](docs/architecture.md) and ADR 0003.
 - Badge requests no longer hash each visible offline file (up to 8 MiB) twice
   per second. The status helper reuses a full SHA-256 result while the file's
   kernel fingerprint is unchanged and hashes again every 60 seconds; it reuses

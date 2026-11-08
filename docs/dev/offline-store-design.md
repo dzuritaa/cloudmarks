@@ -1,5 +1,8 @@
 # Read-only offline-store design and M1 review
 
+> Historical design record. The current architecture is described in
+> [docs/architecture.md](../architecture.md).
+
 Status: accepted for the fixture-backed M1 engine after
 [ADR 0001](../decisions/0001-offline-backend.md). M3 now implements real CLI controls and a read-only view; see
 [the M3 review and evidence](m3-offline-controls.md). M4 adds [explicit change tracking and bounded recursive intent](m4-change-tracking.md). Nautilus actions remain deferred. The M0 spike is not production code.

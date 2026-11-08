@@ -126,6 +126,7 @@ and removal. See [compatibility](docs/compatibility.md) for exact tested version
 the [configuration](docs/reference/configuration.md) and
 [command](docs/reference/cli.md) references, and the
 [operations guide](docs/operations.md) for manual setup, upgrades and rollback.
+The [architecture overview](docs/architecture.md) explains how the pieces fit.
 
 ## Testing and current limits
 

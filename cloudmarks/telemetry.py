@@ -35,6 +35,7 @@ EVENTS = {
     "request_rejected",
     "request_completed",
     "budget_exhausted",
+    "lookup_failed",
     "ipc_failed",
     "mount_starting",
     "mount_ready",
@@ -73,6 +74,7 @@ ENUMS = {
         "scope",
         "integrity",
         "storage",
+        "database",
         "unexpected",
     },
     "command": {
@@ -114,6 +116,7 @@ ENUMS = {
         "resolve",
         "export-archive",
         "mount",
+        "gc",
     },
 }
 COUNTS = {"count", "unknown_count", "positive_count", "error_count", "exit_code", "status_code"}
@@ -130,9 +133,12 @@ def enabled(level="info"):
 
 
 def error_category(error):
+    import sqlite3
+
     from .model import ConfigurationError, IntegrityError, ScopeError, StorageError
 
     for kind, category in (
+        (sqlite3.Error, "database"),
         (TimeoutError, "timeout"),
         (PermissionError, "permissions"),
         (ConfigurationError, "configuration"),

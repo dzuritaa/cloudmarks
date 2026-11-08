@@ -3,8 +3,10 @@
 import math
 import time
 
-from .model import FileStatus, IntegrityError, State, VerificationRequired
+from .model import FileStatus, IntegrityError, State, VerificationPending, VerificationRequired
 from .paths import SecureRoot
+
+CHECKING_REASON = "Checking the local copy in the background"
 
 
 class StatusEngine:
@@ -75,6 +77,8 @@ class StatusEngine:
                     State.KEPT_OFFLINE if current["pinned"] else State.SAVED_LOCALLY,
                     "Complete local bytes, revision and offline read path verified",
                 )
+        except VerificationPending:
+            return FileStatus(State.UNKNOWN, CHECKING_REASON)
         except VerificationRequired:
             return FileStatus(
                 State.UNKNOWN, "Verification evidence expired or missing; run offline verify for this file"

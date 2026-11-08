@@ -13,13 +13,14 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
+from .backend import create as create_backend
 from .install import atomic_json
 from .ipc import load_settings, private_directory, read_private_json
 from .limits import TREE_ENTRIES
 from .model import ConfigurationError, IntegrityError, ScopeError, StorageError
 from .offline import OfflineController
 from .offline_config import load_offline, mounted_view
-from .onedrive import Cancelled, OneDrive
+from .onedrive import Cancelled
 from .paths import SecureRoot, relative_parts
 from .state import ReadStore, StateStore
 from .tracking import ChangeTracker, manifest
@@ -234,9 +235,7 @@ def reuse_current(tracker, store, observation, *, pin):
         or row["operation"] != "idle"
         or entry is None
         or entry["path"] != remote.relative_path
-        or store.connection.execute(
-            "SELECT 1 FROM issues WHERE drive_id=? AND item_id=?", store.key(remote.identity)
-        ).fetchone()
+        or store.issue(remote.identity)
     ):
         return False
     fresh = tracker.backend.describe(remote.relative_path)
@@ -259,11 +258,8 @@ def plan(config, offline, backend, path, operation, *, cancelled=lambda: False):
     else:
         observations = [root]
     with ReadStore(config) as store:
-        intent = store.connection.execute(
-            "SELECT manifest FROM folder_intents WHERE drive_id=? AND item_id=?",
-            store.key(root.remote.identity),
-        ).fetchone()
-        if operation == "free" and intent and json.loads(intent[0]) != manifest(observations):
+        intent = store.folder_intent(root.remote.identity)
+        if operation == "free" and intent and json.loads(intent["manifest"]) != manifest(observations):
             raise ScopeError(
                 "Cloud folder changed; refresh its offline selection before freeing local copies"
             )
@@ -273,9 +269,7 @@ def plan(config, offline, backend, path, operation, *, cancelled=lambda: False):
             config.validate_remote(remote)
             if remote.relative_path != path and not remote.relative_path.startswith(path + "/"):
                 raise ScopeError("Control plan escaped its selected path")
-            issue = store.connection.execute(
-                "SELECT 1 FROM issues WHERE drive_id=? AND item_id=?", store.key(remote.identity)
-            ).fetchone()
+            issue = store.issue(remote.identity)
             row = store.row(remote.identity)
             retained += int(store.copy(remote.identity) is not None)
             if issue or row is not None and (row["dirty"] or row["operation"] == "active"):
@@ -301,39 +295,31 @@ def plan(config, offline, backend, path, operation, *, cancelled=lambda: False):
 
 @contextmanager
 def release_intent(store, tracker, controller, root):
-    """Restore selection intent if an eviction stops part way through."""
-    owner = "folder:" + root.identity.item_id if root.is_directory else "direct"
+    """Release selection intent for a Free, restoring it unless the Free completes.
+
+    The previous pins are committed to the ``releases`` journal before any pin
+    is removed. An exception restores them immediately; abrupt process death
+    leaves the journal row, and the next state writer restores it on open.
+    """
     if root.is_directory:
-        pins = store.connection.execute("SELECT * FROM pin_sources WHERE owner=?", (owner,)).fetchall()
-        intent = store.connection.execute(
-            "SELECT pinned FROM folder_intents WHERE drive_id=? AND item_id=?", store.key(root.identity)
-        ).fetchone()
+        pins = store.pin_sources_owned("folder:" + root.identity.item_id)
+        row = store.folder_intent(root.identity)
+        intent = None if row is None else row["pinned"]
     else:
-        pins = store.connection.execute(
-            "SELECT * FROM pin_sources WHERE drive_id=? AND item_id=? AND owner='direct'",
-            store.key(root.identity),
-        ).fetchall()
+        pins = store.direct_pins(root.identity)
         intent = None
+    store.begin_release(root.identity, pins, intent)
     try:
         if root.is_directory:
-            if intent:
+            if intent is not None:
                 tracker.unpin_tree(root.relative_path)
         else:
             controller.unpin(root.relative_path)
-        yield bool(intent)
+        yield intent is not None
     except BaseException:
-        from .model import FileIdentity
-
-        with store.transaction() as connection:
-            for row in pins:
-                connection.execute("INSERT OR IGNORE INTO pin_sources VALUES(?,?,?)", tuple(row))
-                store.recompute_pin(connection, FileIdentity(row["drive_id"], row["item_id"]))
-            if intent:
-                connection.execute(
-                    "UPDATE folder_intents SET pinned=? WHERE drive_id=? AND item_id=?",
-                    (intent[0], *store.key(root.identity)),
-                )
+        store.restore_releases(root.identity)
         raise
+    store.finish_release(root.identity)
 
 
 def execute(
@@ -353,7 +339,7 @@ def execute(
     config, offline, control_settings = profile(settings)
     if expected_binding is not None and expected_binding != settings["control_binding"]:
         raise ScopeError("This selection belongs to an older profile; reopen its folder and retry")
-    backend = backend or OneDrive(config, offline)
+    backend = backend or create_backend(config, offline)
     root, observations, summary = plan(config, offline, backend, path, operation, cancelled=cancelled)
     live = control_settings.get("live_updates", False)
     summary["requires_unmount"] = not live
@@ -430,10 +416,7 @@ def execute(
                         pin = not root.remote.is_directory
                         if not reuse_current(tracker, store, value, pin=pin):
                             controller.keep(value.remote.relative_path, pin=pin)
-                        store.connection.execute(
-                            "UPDATE jobs SET status='done',error=NULL WHERE drive_id=? AND item_id=?",
-                            store.key(value.remote.identity),
-                        )
+                        store.finish_job(value.remote.identity)
                         done += 1
                         progress.update(completed=done)
                 else:

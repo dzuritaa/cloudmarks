@@ -1,15 +1,22 @@
-"""Single-owner local status service. IPC exposes no transfer or state writes."""
+"""Single-owner local status service. IPC exposes no transfer or state writes.
+
+The socket protocol is status-only. In account mode (settings v3/v4) the same
+process also runs the upload Activity and FolderObserver workers, which hold
+read-only OneDrive transport access for metadata; the socket thread itself
+never constructs transport or reads credentials.
+"""
 
 import fcntl
 import json
 import os
 import socket
+import sqlite3
 import stat
 import time
 from pathlib import Path
 
 from .config import load_config
-from .engine import StatusEngine
+from .engine import CHECKING_REASON, StatusEngine
 from .ipc import LEASE_MS, MAX_BATCH, VERSION, encode, private_directory, receive, same_user
 from .model import CloudMarksError, ConfigurationError, FileIdentity
 from .paths import SecureRoot, relative_parts
@@ -17,6 +24,20 @@ from .state import StateStore
 from .telemetry import enabled, error_category, record
 
 MAX_VERIFY_BYTES = 8 * 1024 * 1024
+UNAVAILABLE_MS = 500
+# Ask again soon while a background content check is running.
+CHECKING_MS = 250
+# Errors from state, disk or configuration that make one path's evidence
+# temporarily unavailable. They must degrade that path, never stop the helper.
+PATH_ERRORS = (sqlite3.Error, OSError, CloudMarksError)
+
+
+def unavailable():
+    return {
+        "state": "unknown",
+        "reason": "Status evidence is temporarily unavailable",
+        "valid_for_ms": UNAVAILABLE_MS,
+    }
 
 
 class BaseStatusService:
@@ -44,13 +65,13 @@ class BaseStatusService:
             return result
         status = self.engine.status(identity)
         remaining = self.config.max_age_seconds - (time.time() - remote.observed_at)
-        result.update(
-            state=status.state.value,
-            reason=status.reason,
-            valid_for_ms=LEASE_MS
-            if status.state.value == "unknown"
-            else max(1, min(LEASE_MS, int(remaining * 1000))),
-        )
+        if status.reason == CHECKING_REASON:
+            lease = CHECKING_MS
+        elif status.state.value == "unknown":
+            lease = LEASE_MS
+        else:
+            lease = max(1, min(LEASE_MS, int(remaining * 1000)))
+        result.update(state=status.state.value, reason=status.reason, valid_for_ms=lease)
         return result
 
     def handle(self, value):
@@ -74,6 +95,7 @@ class BaseStatusService:
             raise ValueError("Duplicate request paths")
         deadline = time.monotonic() + 0.15
         results = {}
+        failures = {}
         for path in paths:
             if time.monotonic() >= deadline:
                 results[path] = {
@@ -81,11 +103,20 @@ class BaseStatusService:
                     "reason": "Helper work budget exhausted",
                     "valid_for_ms": 500,
                 }
-            else:
+                continue
+            try:
                 results[path] = self.lookup_view(path, view) if self.activity else self.lookup(path)
+            except PATH_ERRORS as error:
+                # A locked or busy SQLite file, a vanished disk or a changed
+                # profile affects this answer only; the next lease retries.
+                category = error_category(error)
+                failures[category] = failures.get(category, 0) + 1
+                results[path] = unavailable()
         exhausted = sum(result["reason"] == "Helper work budget exhausted" for result in results.values())
         if exhausted:
             record("helper", "budget_exhausted", count=exhausted)
+        for category, count in failures.items():
+            record("helper", "lookup_failed", error=category, count=count)
         if enabled("debug"):
             record(
                 "helper",
@@ -177,7 +208,7 @@ def serve(settings, store, *, stop=None, tick=None, ready=None, service=None):
                         continue
                     response = service.handle(receive(connection))
                     connection.sendall(encode(response))
-                except (OSError, ValueError, TypeError, KeyError, CloudMarksError) as error:
+                except (OSError, ValueError, TypeError, KeyError, sqlite3.Error, CloudMarksError) as error:
                     # Close malformed requests without paths or raw private error text.
                     record("helper", "request_rejected", error=error_category(error))
                     continue
@@ -216,7 +247,10 @@ def run(settings):
 
                     folders = FolderObserver(config, offline, activity).start()
                 service = OfflineStatusService(settings, store, offline, activity=activity, folders=folders)
-                serve(settings, store, service=service)
+                try:
+                    serve(settings, store, service=service)
+                finally:
+                    service.close()
             finally:
                 if folders:
                     folders.close()
@@ -229,7 +263,8 @@ def run(settings):
 
 
 class OfflineStatusService(BaseStatusService):
-    """Read-only account status: no transport construction or credential reads."""
+    """Read-only account status. This class never constructs transport or reads credentials;
+    the optional activity/folder workers passed in do (see the module docstring)."""
 
     supports_large_files = True
 
@@ -245,7 +280,12 @@ class OfflineStatusService(BaseStatusService):
         self.settings, self.store, self.config = settings, store, store.config
         if settings["visible_root"] != offline["visible_root"]:
             raise ConfigurationError("Desktop and offline view roots disagree")
-        self.engine = status_engine(store.config, store, offline)
+        self.engine = status_engine(store.config, store, offline, background=True)
+
+    def close(self):
+        memo = getattr(self.engine, "memo", None)
+        if memo is not None and hasattr(memo, "close"):
+            memo.close()
 
     def lookup_view(self, path, view):
         relative_parts(path)

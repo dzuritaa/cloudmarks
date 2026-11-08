@@ -518,7 +518,7 @@ class StatusReaderTests(OfflineCase):
             "DROP TABLE local_entries; DROP TABLE publications; PRAGMA user_version=1;"
         )
         self.reopen()
-        self.assertEqual(self.store.connection.execute("PRAGMA user_version").fetchone()[0], 5)
+        self.assertEqual(self.store.connection.execute("PRAGMA user_version").fetchone()[0], 6)
         self.assertEqual(self.store.copy(self.identity), copy)
         self.assertTrue(self.store.row(self.identity)["pinned"])
 

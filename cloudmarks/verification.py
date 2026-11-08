@@ -13,7 +13,7 @@ import time
 from dataclasses import asdict
 
 from .engine import StatusEngine
-from .model import IntegrityError, ScopeError, VerificationRequired
+from .model import IntegrityError, ScopeError, VerificationPending, VerificationRequired
 from .onedrive import Cancelled
 from .paths import SecureRoot
 from .recovery import measure
@@ -28,6 +28,10 @@ PROOF_SECONDS = 300
 REHASH_SECONDS = 60
 VOLUME_REUSE_SECONDS = 10
 MEMO_ENTRIES = 4096
+# Files up to this size are hashed on the request thread (about a millisecond
+# from page cache). Larger misses go to the background worker.
+INLINE_HASH_BYTES = 1024 * 1024
+QUEUE_LIMIT = 256
 
 
 class HashMemo:
@@ -57,6 +61,98 @@ class HashMemo:
                 del self.entries[next(iter(self.entries))]
             self.entries[(root.device, relative_path, size, sha256, verified)] = self.monotonic()
         return verified
+
+
+class BackgroundHashMemo(HashMemo):
+    """HashMemo whose expensive misses never run on the status socket thread.
+
+    A miss above ``inline_bytes`` queues one deduplicated job and raises
+    VerificationPending, which the engine reports as a short-lived "checking"
+    state. A worker thread hashes with its own SecureRoot and stores the
+    result under the verified fingerprint, so the next request is a memo hit.
+
+    After the rehash interval an unchanged file keeps its result for one more
+    interval while the worker rehashes it, instead of flickering to
+    "checking". Failures are remembered by fingerprint for one interval so a
+    corrupt copy reports an error rather than "checking" forever.
+    """
+
+    def __init__(self, config, *, inline_bytes=INLINE_HASH_BYTES, queue_limit=QUEUE_LIMIT, **kwargs):
+        super().__init__(**kwargs)
+        self.config, self.inline_bytes, self.queue_limit = config, inline_bytes, queue_limit
+        self.pending, self.failures = {}, {}
+        self.ready = threading.Condition(self.lock)
+        self.stopped = False
+        self.thread = None
+
+    def verify(self, root, relative_path, size, sha256):
+        current = tuple(root.current_fingerprint(relative_path))
+        key = (root.device, relative_path, size, sha256, current)
+        now = self.monotonic()
+        with self.lock:
+            stamp, failed = self.entries.get(key), self.failures.get(key)
+        if stamp is not None and 0 <= now - stamp < self.seconds:
+            return current
+        if failed is not None and 0 <= now - failed < self.seconds:
+            raise IntegrityError("Local file is partial, changed, or corrupt")
+        if size <= self.inline_bytes:
+            return super().verify(root, relative_path, size, sha256)
+        self.submit(key, relative_path, size, sha256)
+        if stamp is not None and 0 <= now - stamp < 2 * self.seconds:
+            return current
+        raise VerificationPending()
+
+    def submit(self, key, relative_path, size, sha256):
+        with self.ready:
+            if self.stopped or key in self.pending or len(self.pending) >= self.queue_limit:
+                return
+            self.pending[key] = (relative_path, size, sha256)
+            if self.thread is None:
+                self.thread = threading.Thread(target=self.worker, name="cloudmarks-hash", daemon=True)
+                self.thread.start()
+            self.ready.notify()
+
+    def worker(self):
+        while True:
+            with self.ready:
+                while not self.pending and not self.stopped:
+                    self.ready.wait()
+                if self.stopped:
+                    return
+                key, job = next(iter(self.pending.items()))
+            try:
+                with SecureRoot(self.config.storage_root, self.config.volume_id) as root:
+                    HashMemo.verify(self, root, *job)
+            except IntegrityError:
+                with self.lock:
+                    while len(self.failures) >= self.limit:
+                        del self.failures[next(iter(self.failures))]
+                    self.failures[key] = self.monotonic()
+            except Exception:
+                # Storage unavailable or the file vanished: the next request
+                # re-queues it and the engine re-checks all other evidence.
+                pass
+            finally:
+                with self.lock:
+                    self.pending.pop(key, None)
+
+    def drain(self, timeout=5.0):
+        """Wait until queued checks finish. For tests and benchmarks."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            with self.lock:
+                if not self.pending:
+                    return True
+            time.sleep(0.005)
+        return False
+
+    def close(self):
+        with self.ready:
+            self.stopped = True
+            self.pending.clear()
+            self.ready.notify_all()
+        if self.thread is not None:
+            self.thread.join(timeout=1)
 
 
 def verify(control, path, *, clock=time.time):
@@ -171,8 +267,14 @@ def cached_fingerprint(config, store, settings, root, remote, copy, *, clock=tim
     return tuple(sources["object"]["fingerprint"])
 
 
-def status_engine(config, store, settings, *, clock=time.time, memo=None):
-    memo = memo or HashMemo()
+def status_engine(config, store, settings, *, clock=time.time, memo=None, background=False):
+    """Status engine for the offline view.
+
+    ``background=True`` is for the status socket: large content checks run on
+    a worker thread and report "checking" until done. CLI callers keep the
+    default, which hashes inline and returns a final answer.
+    """
+    memo = memo or (BackgroundHashMemo(config) if background else HashMemo())
 
     def check(root, remote, copy):
         if copy.size <= INLINE_LIMIT:

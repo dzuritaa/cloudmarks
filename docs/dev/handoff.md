@@ -10,6 +10,7 @@ Physical reconnect/logout and daily-use acceptance remain open.
 
 ## Start here
 
+- [Current architecture](../architecture.md); the milestone notes below are historical.
 - [M5 release gates and publication status](release-checklist.md).
 - [Installation, upgrades, rollback and recovery](../operations.md).
 - [Tested compatibility and limits](../compatibility.md).

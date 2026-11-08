@@ -307,7 +307,7 @@ a sanitized current health snapshot; it is not a historical log.
 | Disk absent/wrong marker/binding | Reconnect the expected filesystem at its original mountpoint; verify UUID/device/marker. Do not initialize over existing data or manufacture a new binding. |
 | Interrupted publication | Stop view/writers, then recover. It rolls uncommitted names back and retains ambiguous candidates; do not promote them by hand. |
 | Blocked job/conflict | Inspect private conflicts/snapshots/changes reports and copy desired versions to independent backup. There is no in-place merge/resolve command in this alpha. |
-| Quota/free-space error | Retained history and partials count. Unpin and free only verified clean individual files. No automatic history GC exists; do not delete raw objects as cleanup. |
+| Quota/free-space error | Retained history and partials count. Run `cloudmarks offline --config FILE gc` to see reclaimable bytes, then `gc --apply` to remove unreferenced files older than 7 days. Never delete raw objects by hand. |
 | Authentication expired | Reauthenticate the dedicated rclone origin locally. Check expected account/drive/root again. Never reconnect the personal account as a fallback. |
 | Busy unmount | Close applications using the experimental view and use its normal shutdown again. Never force/lazy-unmount it. |
 
