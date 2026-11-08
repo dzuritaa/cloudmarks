@@ -4,6 +4,8 @@ Credentials are explicit private configuration. No cloud write/delete operation
 is implemented. Downloaded bytes must match a server checksum and stable item.
 """
 
+from __future__ import annotations
+
 import base64
 import configparser
 import hashlib

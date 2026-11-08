@@ -6,6 +6,8 @@ read-only OneDrive transport access for metadata; the socket thread itself
 never constructs transport or reads credentials.
 """
 
+from __future__ import annotations
+
 import fcntl
 import json
 import os
