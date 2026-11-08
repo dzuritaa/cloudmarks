@@ -55,13 +55,18 @@ class HelperLoopTests(unittest.TestCase):
             self.assertFalse(self.thread.is_alive())
         self.assertFalse(self.errors)
 
-    def connect(self, frame=b""):
+    def connect(self, frame=b"", *, may_close=False):
         peer = socket.socket(socket.AF_UNIX)
         self.addCleanup(peer.close)
         peer.settimeout(2)
         peer.connect(str(self.path))
         if frame:
-            peer.sendall(frame)
+            try:
+                peer.sendall(frame)
+            except (BrokenPipeError, ConnectionResetError):
+                # An over-capacity peer may be closed before it writes.
+                if not may_close:
+                    raise
         return peer
 
     def test_idle_and_fragmented_clients_do_not_block_healthy_peers(self):
@@ -98,7 +103,7 @@ class HelperLoopTests(unittest.TestCase):
         self.start()
         peers = []
         for _ in range(20):
-            peers.append(self.connect(b"{"))
+            peers.append(self.connect(b"{", may_close=True))
             time.sleep(0.005)
         # Overflow closes immediately; admitted peers close at the absolute deadline.
         for peer in peers:

@@ -2,6 +2,16 @@
 
 ## 0.1.0a3.dev0 — unreleased
 
+- Status answers and resumed jobs keep the cause of a failure (database,
+  disk, scope, configuration, permissions or unexpected) in a fixed message,
+  and the helper logs its category, instead of one generic message.
+- `cloudmarks offline doctor` reports state consistency problems
+  (`state_problems`) and is not ready for use while any exists.
+- Internal: Keep/Free run as named stages (`ControlRun`); core modules no
+  longer import the OneDrive module (`checksums.py`, provider-neutral
+  `Observation`); setup split into `units.py` and `signin.py`; job state
+  changes go through `StateStore.set_job`; mypy checks 14 core modules in CI;
+  tests upgrade every state schema since 2.
 - Storage-volume proof refreshes run on a bounded background worker; cold or
   expired evidence stays **Needs checking**. Mutations still verify synchronously.
 - Up to 16 socket peers can send/receive independently, so an incomplete request

@@ -266,12 +266,13 @@ def cached_fingerprint(config, store, settings, root, remote, copy, *, clock=tim
     return tuple(sources["object"]["fingerprint"])
 
 
-def status_engine(config, store, settings, *, clock=time.time, memo=None, background=False):
+def status_engine(config, store, settings, *, clock=time.time, memo=None, background=False, report=None):
     """Status engine for the offline view.
 
     ``background=True`` is for the status socket: large content checks run on
     a worker thread and report "checking" until done. CLI callers keep the
-    default, which hashes inline and returns a final answer.
+    default, which hashes inline and returns a final answer. ``report(category)``
+    is told about evidence that was unavailable (see StatusEngine).
     """
     memo = memo or (BackgroundHashMemo(config) if background else HashMemo())
 
@@ -285,6 +286,6 @@ def status_engine(config, store, settings, *, clock=time.time, memo=None, backgr
             config, settings, remote, copy, verify=memo.verify, volume_reuse_seconds=VOLUME_REUSE_SECONDS
         )
 
-    engine = StatusEngine(config, store, clock=clock, verify_copy=check, read_path=read_path)
+    engine = StatusEngine(config, store, clock=clock, verify_copy=check, read_path=read_path, report=report)
     engine.memo = memo
     return engine

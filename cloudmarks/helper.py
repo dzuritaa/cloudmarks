@@ -343,7 +343,13 @@ class OfflineStatusService(BaseStatusService):
         self.settings, self.store, self.config = settings, store, store.config
         if settings["visible_root"] != offline["visible_root"]:
             raise ConfigurationError("Desktop and offline view roots disagree")
-        self.engine = status_engine(store.config, store, offline, background=True)
+        self.engine = status_engine(
+            store.config,
+            store,
+            offline,
+            background=True,
+            report=lambda category: record("helper", "lookup_failed", error=category),
+        )
 
     def close(self):
         memo = getattr(self.engine, "memo", None)

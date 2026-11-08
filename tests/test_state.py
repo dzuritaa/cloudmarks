@@ -121,6 +121,7 @@ class JobStateTests(TrackingCase):
         with self.assertRaises(ConfigurationError):
             self.store.set_job(self.identity, "paused")
 
+
 class IntegrityTests(OfflineCase):
     def test_clean_store_has_no_problems(self):
         self.keep()

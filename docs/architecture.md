@@ -82,7 +82,13 @@ timeout for the helper and inspection commands.
 | `jobs`, `changes`, `issues`, `snapshots` | Queued downloads, observed cloud changes, conflicts and their retained candidates. |
 | `archives`, `verifications` | Conflict archive receipts and explicit large-file proofs. |
 
-Schema upgrades run forward only, on writer open, in numbered steps.
+Schema upgrades run forward only, on writer open, in numbered steps; tests
+upgrade from every schema since 2. Job states change only through
+`StateStore.set_job`, which accepts a fixed set of states. `check_integrity()`
+is a read-only check of SQLite structure, foreign keys and CloudMarks
+invariants (every copy has a publication, pin flags match their sources, no
+interrupted operation or unfinished release); `offline doctor` reports it and
+is not ready for use while it finds a problem.
 
 ## Offline store on disk
 
@@ -140,6 +146,10 @@ The helper keeps the socket thread cheap:
 - A database, disk or configuration error for one path answers
   **Needs checking** for that path (500 ms lease) and the helper keeps serving.
 
+When evidence is unavailable the engine still fails closed, but keeps the
+cause: database, storage, scope, configuration, permissions and unexpected
+errors each have their own fixed reason, and the helper logs the category.
+
 Folder badges come from `FolderObserver`, which enumerates the folder in the
 cloud and checks members in its own thread; requests only read its cache. The
 remote tree and derived manifest are reused for 15 seconds, without extending
@@ -154,8 +164,27 @@ budget; the desktop working set remains bounded at 512 items.
 `TransportProof`) and `backend.create()` builds the configured provider.
 `OneDrive` (`onedrive.py`, Microsoft Graph for metadata, rclone for bytes) is
 the only implementation, and a contract test keeps its signatures aligned.
-Provider checksums (`onedrive.checksum`) and the rclone configuration in
-`view.py` and `setup.py` are still OneDrive-specific.
+Observations, `Cancelled` and `RemoteMissing` are provider-neutral types in
+`model.py`, and `Observation.hasher()` picks the server checksum from
+`checksums.py`. Core modules (controls, offline, tracking, recovery, state,
+storage, engine, verification, folders) do not import `onedrive`; a test
+enforces it. The rclone configuration in `view.py` and setup's sign-in
+(`signin.py`) are still OneDrive-specific.
+
+## Code layout
+
+| Area | Modules |
+| --- | --- |
+| Model and contracts | `model.py`, `backend.py`, `checksums.py`, `limits.py` |
+| State and store | `state.py`, `paths.py`, `offline.py`, `tracking.py`, `recovery.py`, `storage.py` |
+| Controls | `controls.py` (`ControlRun` stages), `offline_cli.py`, `control_gui.py` |
+| Status | `engine.py`, `verification.py`, `helper.py`, `ipc.py`, `activity.py`, `folders.py` |
+| Desktop | `nautilus_extension.py`, `desktop.py` |
+| Provider | `onedrive.py`, `view.py` |
+| Setup and operation | `setup.py`, `signin.py`, `units.py`, `install.py`, `doctor.py`, `diagnostics.py`, `telemetry.py` |
+
+Core modules are type-checked with mypy (`check_untyped_defs`), configured in
+`pyproject.toml` and run in CI.
 
 ## Security and privacy
 

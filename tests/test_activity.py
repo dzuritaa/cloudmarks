@@ -46,6 +46,11 @@ class ActivityTests(test_offline.OfflineCase):
     def state(self, view="upload"):
         return self.service.lookup_view(self.path, view)["state"]
 
+    def test_unavailable_status_evidence_is_logged_by_category(self):
+        with patch("cloudmarks.helper.record") as record:
+            self.service.engine.report("database")
+        record.assert_called_once_with("helper", "lookup_failed", error="database")
+
     def test_untracked_cloud_file_is_automatic_without_pinning_or_db_writes(self):
         self.assertEqual(self.state(), "cloud_only")
         self.assertEqual(self.state("offline"), "cloud_only")
