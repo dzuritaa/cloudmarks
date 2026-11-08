@@ -31,7 +31,7 @@ from cloudmarks.folders import FolderObserver  # noqa: E402
 from cloudmarks.helper import serve  # noqa: E402
 from cloudmarks.ipc import request  # noqa: E402
 from cloudmarks.limits import TREE_ENTRIES  # noqa: E402
-from cloudmarks.model import FileIdentity, RemoteFile, ScopeError, StorageError  # noqa: E402
+from cloudmarks.model import FileIdentity, RemoteFile, ScopeError, StorageError, VerificationPending  # noqa: E402
 from cloudmarks.onedrive import Observation  # noqa: E402
 from cloudmarks.paths import MARKER  # noqa: E402
 from cloudmarks.state import StateStore  # noqa: E402
@@ -85,7 +85,7 @@ def folder(base, count, rounds):
         intent = {"manifest": json.dumps(manifest(observations)), "scanned_at": time.time(), "pinned": True}
         store.folder_intent = lambda identity: intent
         engine = StatusEngine(config, store)
-        samples, engine_samples = [], []
+        samples, engine_samples, exhausted = [], [], 0
         with patch("cloudmarks.folders.attest_view", return_value=True):
             for _ in range(rounds):
                 start = time.perf_counter()
@@ -93,13 +93,17 @@ def folder(base, count, rounds):
                     result, _ = observer.check("folder", "offline")
                 except ScopeError:
                     result = {"state": "unknown"}
+                except VerificationPending:
+                    # The worker answers Needs checking and tries again later.
+                    result = {"state": "unknown"}
+                    exhausted += 1
                 samples.append((time.perf_counter() - start) * 1000)
                 start = time.perf_counter()
                 engine_result = engine.folder_status(root)
                 engine_samples.append((time.perf_counter() - start) * 1000)
     return {
         "entries": count,
-        "observer": dict(percentiles(samples), state=result["state"]),
+        "observer": dict(percentiles(samples), state=result["state"], budget_exhausted=exhausted),
         "engine": dict(percentiles(engine_samples), state=engine_result.state.value),
         "desktop": desktop_queue(count),
         "tree_limit": TREE_ENTRIES,
