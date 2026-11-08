@@ -58,6 +58,30 @@ class DoctorProfileTests(OfflineCase):
         transport.return_value.authenticate.assert_not_called()
         self.assertEqual(checks["Offline state"]["status"], "ok")
 
+    def test_pin_flag_mismatch_warns_in_main_doctor(self):
+        self.keep()
+        self.store.connection.execute("UPDATE files SET pinned=0")
+        checks, _ = self.report()
+        self.assertEqual(checks["Offline state"]["status"], "warn")
+        self.assertIn("1 state problem", checks["Offline state"]["detail"])
+
+    def test_doctors_agree_for_every_job_state(self):
+        from cloudmarks.diagnostics import doctor as offline_doctor
+        from cloudmarks.tracking import ChangeTracker
+
+        self.keep()
+        ChangeTracker(self.controller).enqueue(self.store.remote(self.identity))
+        for state in sorted(self.store.JOB_STATES):
+            with self.subTest(state=state):
+                self.store.set_job(self.identity, state)
+                with patch("cloudmarks.diagnostics.mounted_view", return_value=None):
+                    health = offline_doctor(self.controller)
+                checks, _ = self.report()
+                terminal = state in {"done", "cancelled"}
+                self.assertEqual(health["unfinished_jobs"], 0 if terminal else 1)
+                self.assertEqual(health["ready_for_trial"], terminal)
+                self.assertEqual(checks["Offline state"]["status"], "ok" if terminal else "warn")
+
     def test_foreign_mounts_and_invalid_upload_socket_fail_closed(self):
         self.desktop["upload_socket"] = str(self.private / "upload.conf")
         checks, transport = self.report(mounted={"type": "ext4"})

@@ -218,6 +218,39 @@ class SocketTests(unittest.TestCase):
         self.assertFalse(Path(self.settings["socket"]).exists())
         self.assertEqual(self.query("07-refresh.txt")["07-refresh.txt"], UNKNOWN)
 
+    def test_long_valid_paths_get_answers_over_real_socket(self):
+        paths = [str(i) + "/" + "/".join(["x" * 240] * 4) + "xx" for i in range(16)]
+        self.assertLessEqual(len(encode({"version": 1, "op": "status", "paths": paths})), MAX_FRAME)
+        event = threading.Event()
+
+        def observe(store):
+            base = store.remote(FileIdentity(store.config.expected_drive_id, "01-cloud.txt"))
+            for i, path in enumerate(paths):
+                store.observe(
+                    replace(
+                        base, identity=FileIdentity(base.identity.drive_id, f"long-{i}"), relative_path=path
+                    )
+                )
+
+        self.edits.put((observe, event))
+        self.assertTrue(event.wait(2))
+        results = request(self.settings["socket"], paths)
+        self.assertEqual(set(results), set(paths))
+        self.assertEqual({value["state"] for value in results.values()}, {"cloud_only"})
+
+    def test_near_frame_unicode_path_gets_its_answer(self):
+        path = "/".join(["漢" * 85] * 31 + ["漢" * 82])
+        self.assertLessEqual(len(encode({"version": 1, "op": "status", "paths": [path]})), MAX_FRAME)
+        event = threading.Event()
+
+        def observe(store):
+            remote = store.remote(FileIdentity(store.config.expected_drive_id, "01-cloud.txt"))
+            store.observe(replace(remote, relative_path=path))
+
+        self.edits.put((observe, event))
+        self.assertTrue(event.wait(2))
+        self.assertEqual(request(self.settings["socket"], [path])[path]["state"], "cloud_only")
+
     def test_database_errors_do_not_stop_the_helper(self):
         event = threading.Event()
 

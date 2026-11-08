@@ -2,6 +2,19 @@
 
 ## 0.1.0a3.dev0 — unreleased
 
+- Folder badges now share single-file evidence: 60-second fingerprint hash
+  reuse and failure memory, and explicit five-minute proofs above 8 MiB.
+  Each folder check limits hashing to 16 MiB and checks a 150 ms time budget
+  between bounded reads; incomplete checks remain Needs checking.
+- Status clients split batches by encoded request and worst-case response size;
+  UTF-8 replies also preserve valid Unicode paths near the 16 KiB frame limit.
+- Both doctors share state-health classification, including consistency problems;
+  completed Free operations no longer report cancelled jobs as unfinished.
+- Mypy now checks 21 core modules, including folder proofs, verification, IPC,
+  offline configuration, the helper and both diagnostics commands.
+- Configuration documentation distinguishes core TOML and store-root permission
+  requirements from JSON settings and other installed artifacts.
+
 - Status answers and resumed jobs keep the cause of a failure (database,
   disk, scope, configuration, permissions or unexpected) in a fixed message,
   and the helper logs its category, instead of one generic message.
@@ -10,7 +23,7 @@
 - Internal: Keep/Free run as named stages (`ControlRun`); core modules no
   longer import the OneDrive module (`checksums.py`, provider-neutral
   `Observation`); setup split into `units.py` and `signin.py`; job state
-  changes go through `StateStore.set_job`; mypy checks 14 core modules in CI;
+  changes go through `StateStore.set_job`; mypy checks core modules in CI;
   tests upgrade every state schema since 2.
 - Storage-volume proof refreshes run on a bounded background worker; cold or
   expired evidence stays **Needs checking**. Mutations still verify synchronously.
