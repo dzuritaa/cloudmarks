@@ -15,108 +15,24 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass
 from pathlib import Path
 
+from .checksums import QuickXor, checksum  # noqa: F401  (re-exported for callers and tests)
 from .ipc import private_directory
 from .limits import OBSERVED_PATHS, TREE_DEPTH, TREE_ENTRIES, TREE_PAGES, TREE_SECONDS
-from .model import ConfigurationError, IntegrityError, RemoteFile, ScopeError, StorageError, canonical_drive
+from .model import (  # noqa: F401  (Cancelled, Observation, RemoteMissing re-exported)
+    Cancelled,
+    ConfigurationError,
+    IntegrityError,
+    Observation,
+    RemoteFile,
+    RemoteMissing,
+    ScopeError,
+    StorageError,
+    canonical_drive,
+)
 from .paths import relative_parts
 from .telemetry import error_category, record
-
-
-class RemoteMissing(StorageError):
-    """Authenticated stable ID returned 404; absence is not proof of deletion."""
-
-
-class Cancelled(StorageError):
-    pass
-
-
-_MASK_160 = (1 << 160) - 1
-
-
-class QuickXor:
-    def __init__(self):
-        self.data = bytearray(20)
-        self.length = 0
-        self.shift = 0
-
-    def update(self, content):
-        # Byte j is XORed into the 160-bit little-endian register rotated left
-        # by (shift + 11*j) mod 160. Because gcd(11, 160) == 1, bytes 160
-        # positions apart use the same rotation, and XOR is linear: fold all
-        # 160-byte lanes together with big-integer XOR (C speed), then apply
-        # the 160 per-lane rotations once. Equivalent to the byte-wise loop.
-        content = memoryview(content).cast("B")
-        count = len(content)
-        if not count:
-            return
-        lanes = int.from_bytes(content, "little")
-        lane_bits = 160 * 8
-        width = -(-count // 160) * lane_bits
-        while width > lane_bits:
-            chunks = width // lane_bits
-            half = (chunks // 2) * lane_bits
-            lanes = (lanes >> half) ^ (lanes & ((1 << half) - 1))
-            width -= half
-        folded = lanes.to_bytes(160, "little")
-        register = int.from_bytes(self.data, "little")
-        shift = self.shift
-        for offset, value in enumerate(folded):
-            if value:
-                rotated = value << ((shift + 11 * offset) % 160)
-                register ^= (rotated & _MASK_160) | (rotated >> 160)
-        self.data = bytearray(register.to_bytes(20, "little"))
-        self.shift = (shift + 11 * count) % 160
-        self.length += count
-
-    def digest(self):
-        result = bytearray(self.data)
-        for index, value in enumerate(self.length.to_bytes(8, "little")):
-            result[12 + index] ^= value
-        return bytes(result)
-
-
-def checksum(kind):
-    if kind == "quickXorHash":
-        return QuickXor()
-    if kind == "sha1Hash":
-        return hashlib.sha1()  # Service checksum, not a signature/security primitive.
-    if kind == "sha256Hash":
-        return hashlib.sha256()
-    raise IntegrityError("No supported authoritative remote checksum")
-
-
-@dataclass(frozen=True)
-class Observation:
-    remote: RemoteFile
-    kind: str
-    digest: bytes
-
-    def same_version(self, other):
-        a, b = self.remote, other.remote
-        return (
-            a.identity,
-            a.root_id,
-            a.relative_path,
-            a.revision,
-            a.size,
-            a.deleted,
-            a.is_directory,
-            self.kind,
-            self.digest,
-        ) == (
-            b.identity,
-            b.root_id,
-            b.relative_path,
-            b.revision,
-            b.size,
-            b.deleted,
-            b.is_directory,
-            other.kind,
-            other.digest,
-        )
 
 
 def private_config(path):
@@ -344,7 +260,7 @@ class OneDrive:
         try:
             value = self.item(identity.item_id)
         except RemoteMissing:
-            self._account_proof = None
+            self._account_proof = None  # type: ignore[assignment]
             self.authenticate()  # Root/account must still be accessible.
             raise
         if value.get("id") != identity.item_id:
@@ -372,7 +288,7 @@ class OneDrive:
                 self[key] = value = backend.item(key)
                 return value
 
-        parents, results = Parents(), {}
+        parents, results = Parents(), dict[str, object]()
         q = urllib.parse.quote
         cached = getattr(self, "_batch_address", None)
         if cached and cached[0] == self._account_proof:
@@ -524,7 +440,10 @@ class OneDrive:
         self.authenticate()
         q = urllib.parse.quote
         pending = [(self.config.allowed_root_id, "", 0)]
-        values, seen, paths, ancestors = [], set(), set(), {}
+        values: list = []
+        seen: set = set()
+        paths: set = set()
+        ancestors: dict = {}
         deadline, pages = time.monotonic() + 60, 0
         while pending:
             item_id, parent_path, depth = pending.pop()
@@ -572,7 +491,7 @@ class OneDrive:
                     if remote.is_directory:
                         ancestors[remote.identity.item_id] = value
                         pending.append((remote.identity.item_id, remote.relative_path, depth + 1))
-                route = None
+                route = None  # type: ignore[assignment]
                 if (link := page.get("@odata.nextLink")) is not None:
                     if not isinstance(link, str) or len(link) > 8192 or any(ord(c) < 33 for c in link):
                         raise ScopeError("Invalid catalog continuation")
@@ -656,7 +575,7 @@ class OneDrive:
                         ancestors[remote.identity.item_id] = value
                         pending.append((child, depth + 1))
                 link = page.get("@odata.nextLink")
-                route = None
+                route = None  # type: ignore[assignment]
                 if link is not None:
                     if not isinstance(link, str) or len(link) > 8192 or any(ord(c) < 33 for c in link):
                         raise ScopeError("Invalid continuation link")
@@ -771,6 +690,7 @@ class OneDrive:
         deadline = time.monotonic() + 30
         try:
             with selectors.DefaultSelector() as selector:
+                assert process.stdout is not None
                 selector.register(process.stdout, selectors.EVENT_READ)
                 while True:
                     if cancelled():
@@ -797,4 +717,5 @@ class OneDrive:
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait(timeout=3)
-            process.stdout.close()
+            if process.stdout is not None:
+                process.stdout.close()

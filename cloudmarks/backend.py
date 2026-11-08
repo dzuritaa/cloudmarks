@@ -15,9 +15,9 @@ of methods one group of callers uses:
 - ``TransportProof``: checks that the separately mounted transport (rclone)
   serves the same account, root and item that metadata described.
 
-An ``Observation`` carries a provider checksum ``kind`` and ``digest``;
-``onedrive.checksum(kind)`` returns the matching hasher. Moving that hasher
-behind the contract is the remaining provider-specific seam.
+Observations, ``Cancelled`` and ``RemoteMissing`` are provider-neutral types
+in ``model``; ``Observation.hasher()`` returns the hasher for the provider's
+checksum ``kind`` from ``checksums``. Core modules do not import ``onedrive``.
 """
 
 from collections.abc import Callable, Iterator, Sequence

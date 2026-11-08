@@ -5,14 +5,27 @@ import time
 
 from .model import FileStatus, IntegrityError, State, VerificationPending, VerificationRequired
 from .paths import SecureRoot
+from .telemetry import error_category
 
 CHECKING_REASON = "Checking the local copy in the background"
+UNEXPECTED_REASON = "Unexpected status failure; see cloudmarks logs"
+UNAVAILABLE_REASONS = {
+    "storage": "Offline storage is unavailable or does not match its marker",
+    "database": "State database is busy or unavailable",
+    "scope": "Account, root or path evidence does not match this profile",
+    "configuration": "Offline profile or state binding needs checking",
+    "permissions": "Offline storage or state is not readable by this user",
+    "socket": "Local storage could not be read",
+    "timeout": "Local storage did not answer in time",
+}
 
 
 class StatusEngine:
-    def __init__(self, config, store, *, read_path=None, verify_copy=None, clock=time.time):
+    def __init__(self, config, store, *, read_path=None, verify_copy=None, clock=time.time, report=None):
         self.config = config
         self.store = store
+        # report(category) is told about unavailable evidence, e.g. to log it.
+        self.report = report or (lambda category: None)
         self.read_path = read_path or (lambda remote, copy: False)
         self.clock = clock
         self.verify_copy = verify_copy or (
@@ -85,8 +98,11 @@ class StatusEngine:
             )
         except IntegrityError:
             return FileStatus(State.ERROR, "Local content changed or failed verification; preserve it")
-        except Exception:
-            return FileStatus(State.UNKNOWN, "Account, storage, path or state evidence is unavailable")
+        except Exception as error:
+            # Fail closed, but keep causes apart so users and logs can act on them.
+            category = error_category(error)
+            self.report(category)
+            return FileStatus(State.UNKNOWN, UNAVAILABLE_REASONS.get(category, UNEXPECTED_REASON))
 
     def folder_status(self, remote):
         import json

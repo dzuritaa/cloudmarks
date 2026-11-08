@@ -19,7 +19,8 @@ SCHEMA_VERSION = 6
 class StateStore:
     def __init__(self, config):
         self.config = config
-        self.connection = None
+        # None only while constructing or after close().
+        self.connection: sqlite3.Connection = None  # type: ignore[assignment]
         self.lock = None
         self._directory_fd = None
         path = Path(config.state_path)
@@ -232,7 +233,7 @@ class StateStore:
     def close(self):
         if self.connection is not None:
             self.connection.close()
-            self.connection = None
+            self.connection = None  # type: ignore[assignment]
         if self.lock is not None:
             os.close(self.lock)
             self.lock = None
@@ -434,6 +435,49 @@ class StateStore:
             (*self.key(identity), *self.key(identity)),
         )
 
+    def check_integrity(self):
+        """Read-only consistency check. Returns sorted problem names; empty means consistent.
+
+        Covers SQLite structure and foreign keys plus CloudMarks invariants
+        that every writer maintains. Safe on a ReadStore while a writer runs:
+        interrupted-operation records are reported, not repaired.
+        """
+        version = self.schema_version()
+        connection = self.connection
+        problems = set()
+        if connection.execute("PRAGMA quick_check").fetchone()[0] != "ok":
+            problems.add("sqlite_structure")
+        if connection.execute("PRAGMA foreign_key_check").fetchone():
+            problems.add("foreign_keys")
+        checks = {
+            "copy_of_directory": (
+                1,
+                "SELECT 1 FROM copies c JOIN files f ON f.drive_id=c.drive_id AND f.item_id=c.item_id "
+                "WHERE f.is_directory=1 LIMIT 1",
+            ),
+            "copy_without_publication": (
+                2,
+                "SELECT 1 FROM copies c WHERE NOT EXISTS (SELECT 1 FROM local_entries l "
+                "WHERE l.drive_id=c.drive_id AND l.item_id=c.item_id) LIMIT 1",
+            ),
+            "publication_without_copy": (
+                2,
+                "SELECT 1 FROM local_entries l WHERE NOT EXISTS (SELECT 1 FROM copies c "
+                "WHERE c.drive_id=l.drive_id AND c.item_id=l.item_id) LIMIT 1",
+            ),
+            "interrupted_operation": (2, "SELECT 1 FROM publications LIMIT 1"),
+            "pin_flag_mismatch": (
+                3,
+                "SELECT 1 FROM files f WHERE f.pinned != EXISTS(SELECT 1 FROM pin_sources p "
+                "WHERE p.drive_id=f.drive_id AND p.item_id=f.item_id) LIMIT 1",
+            ),
+            "unfinished_release": (6, "SELECT 1 FROM releases LIMIT 1"),
+        }
+        for name, (since, query) in checks.items():
+            if version >= since and connection.execute(query).fetchone():
+                problems.add(name)
+        return sorted(problems)
+
     def pin_sources_owned(self, owner):
         return self.connection.execute(
             "SELECT drive_id,item_id,owner FROM pin_sources WHERE owner=?", (owner,)
@@ -445,10 +489,23 @@ class StateStore:
             self.key(identity),
         ).fetchall()
 
-    def finish_job(self, identity):
+    JOB_STATES = frozenset({"pending", "running", "done", "error", "blocked", "cancelled"})
+
+    def set_job(self, identity, status, error=None):
+        """Move a durable job to ``status``. Starting a run counts an attempt.
+
+        ``error`` must be a fixed public message: it is persisted and shown.
+        """
+        if status not in self.JOB_STATES:
+            raise ConfigurationError("Unknown job state")
+        attempt = ",attempts=attempts+1" if status == "running" else ""
         self.connection.execute(
-            "UPDATE jobs SET status='done',error=NULL WHERE drive_id=? AND item_id=?", self.key(identity)
+            f"UPDATE jobs SET status=?,error=?{attempt} WHERE drive_id=? AND item_id=?",
+            (status, None if error is None else error[:256], *self.key(identity)),
         )
+
+    def finish_job(self, identity):
+        self.set_job(identity, "done")
 
     def begin_release(self, identity, pins, intent):
         """Record the pins a Free is about to release, before releasing any of them.
@@ -582,7 +639,7 @@ class ReadStore(StateStore):
 
     def __init__(self, config):
         self.config = config
-        self.connection = self.lock = self._directory_fd = None
+        self.connection = self.lock = self._directory_fd = None  # type: ignore[assignment]
         try:
             path = Path(config.state_path)
             self._directory_fd = open_absolute_directory(path.parent)

@@ -17,10 +17,9 @@ from .backend import create as create_backend
 from .install import atomic_json
 from .ipc import load_settings, private_directory, read_private_json
 from .limits import TREE_ENTRIES
-from .model import ConfigurationError, IntegrityError, ScopeError, StorageError
+from .model import Cancelled, ConfigurationError, IntegrityError, ScopeError, StorageError
 from .offline import OfflineController
 from .offline_config import load_offline, mounted_view
-from .onedrive import Cancelled
 from .paths import SecureRoot, relative_parts
 from .state import ReadStore, StateStore
 from .tracking import ChangeTracker, manifest
@@ -79,7 +78,7 @@ def process_start(pid):
 class Progress:
     def __init__(self, config, path, operation, emit=lambda value: None):
         self.config, self.emit = config, emit
-        self.value = {
+        self.value: dict = {
             "version": 1,
             "path": path,
             "operation": operation,
@@ -90,7 +89,7 @@ class Progress:
             "total": 0,
             "active": True,
         }
-        self.last_emit = 0
+        self.last_emit = 0.0
 
     def update(self, **fields):
         changed = fields.get("phase", self.value["phase"]) != self.value["phase"]
@@ -322,32 +321,9 @@ def release_intent(store, tracker, controller, root):
     store.finish_release(root.identity)
 
 
-def execute(
-    settings,
-    path,
-    operation,
-    *,
-    dry_run=False,
-    cancelled=lambda: False,
-    emit=lambda value: None,
-    backend=None,
-    service=None,
-    expected_binding=None,
-):
-    if operation not in ("keep", "free"):
-        raise ConfigurationError("Choose keep or free")
-    config, offline, control_settings = profile(settings)
-    if expected_binding is not None and expected_binding != settings["control_binding"]:
-        raise ScopeError("This selection belongs to an older profile; reopen its folder and retry")
-    backend = backend or create_backend(config, offline)
-    root, observations, summary = plan(config, offline, backend, path, operation, cancelled=cancelled)
-    live = control_settings.get("live_updates", False)
-    summary["requires_unmount"] = not live
-    guard = {"unmounted": live_guard(config)} if live else {}
-    if dry_run:
-        return dict(summary, dry_run=True)
-    if operation == "free" and not summary["retained_files"] and not root.remote.is_directory:
-        return dict(summary, completed=0, already_cloud_only=True)
+@contextmanager
+def control_lock(config):
+    """Serialize control operations for one profile (separate from the state writer lock)."""
     parent = private_directory(config.state_path.parent)
     lock = os.open(
         "control.lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600, dir_fd=parent
@@ -361,153 +337,243 @@ def execute(
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise StorageError("Another offline operation is running; finish or cancel it first") from None
+        yield
+    finally:
+        os.close(lock)
+
+
+def view_manager(config, offline, control_settings, *, live, service=None):
+    if service:
+        return service
+    if live:
+        return LiveView(config, offline)
+    return ServiceView(config, offline, control_settings["view_service"])
+
+
+class ControlRun:
+    """The store-changing part of one Keep or Free, run under the state writer lock.
+
+    ``plan`` has already described the selection twice and checked it against
+    state. ``apply`` re-checks everything it relies on, because the cloud and
+    the store can change between planning and taking the locks.
+    """
+
+    def __init__(self, config, offline, backend, root, observations, summary, *, guard, cancelled, progress):
+        self.config, self.offline, self.backend = config, offline, backend
+        self.root, self.observations, self.summary = root, observations, summary
+        self.guard, self.cancelled, self.progress = guard, cancelled, progress
+        self.operation = summary["operation"]
+        self.done = self.skipped = 0
+
+    def controller(self, store):
+        phase = "downloading" if self.operation == "keep" else "freeing"
+        return OfflineController(
+            self.config,
+            store,
+            self.backend,
+            self.offline,
+            **self.guard,
+            cancelled=self.cancelled,
+            progress=lambda **v: self.progress.update(
+                phase=phase,
+                completed=self.done,
+                bytes_done=v.get("completed", 0),
+                bytes_total=v.get("total", 0),
+            ),
+        )
+
+    def apply(self):
+        with StateStore(self.config) as store:
+            controller = self.controller(store)
+            tracker = ChangeTracker(controller)
+            controller.recover()
+            if self.operation == "keep":
+                self.keep(store, controller, tracker)
+            else:
+                self.audit_retained(controller)
+                self.free(store, controller, tracker)
+
+    def keep(self, store, controller, tracker):
+        path, directory = self.root.remote.relative_path, self.root.remote.is_directory
+        if directory:
+            self.observations = tracker.queue_tree(path)
+            self.summary["files"] = sum(not v.remote.is_directory for v in self.observations)
+            self.progress.update(total=self.summary["files"])
+            self.create_folders()
+        else:
+            tracker.queue(path)
+        # Existing unrelated pending jobs are not consumed by a UI selection.
+        for value in self.observations:
+            if value.remote.is_directory:
+                continue
+            controller.check_cancelled()
+            self.progress.update(phase="downloading", completed=self.done, total=self.summary["files"])
+            if not reuse_current(tracker, store, value, pin=not directory):
+                controller.keep(value.remote.relative_path, pin=not directory)
+            store.finish_job(value.remote.identity)
+            self.done += 1
+            self.progress.update(completed=self.done)
+
+    def create_folders(self):
+        """Empty cloud folders are part of a kept folder: create them in the visible tree."""
+        with SecureRoot(self.config.storage_root, self.config.volume_id) as disk:
+            for value in self.observations:
+                if value.remote.is_directory:
+                    with disk.parent("local/" + value.remote.relative_path + "/.directory", create=True):
+                        pass
+
+    def audit_retained(self, controller):
+        """Check every retained copy against the planned cloud version before releasing any pin.
+
+        Free still repeats its own fresh checksum and version checks
+        immediately before each eviction.
+        """
+        with SecureRoot(self.config.storage_root, self.config.volume_id) as disk:
+            for value in self.observations:
+                entry = controller.entry(value.remote.identity)
+                if entry:
+                    controller.verify_entry(disk, entry)
+                    if (entry["copy"]["revision"], entry["copy"]["size"]) != (
+                        value.remote.revision,
+                        value.remote.size,
+                    ):
+                        raise IntegrityError(
+                            "Cloud version differs; preserve the offline copy and refresh it first"
+                        )
+
+    def free(self, store, controller, tracker):
+        with release_intent(store, tracker, controller, self.root.remote) as had_folder_intent:
+            for value in self.observations:
+                controller.check_cancelled()
+                if value.remote.is_directory or not controller.entry(value.remote.identity):
+                    continue
+                if store.row(value.remote.identity)["pinned"]:
+                    self.skipped += 1  # Another selection still keeps this file.
+                    continue
+                self.progress.update(phase="freeing", completed=self.done)
+                controller.free(value.remote.relative_path)
+                self.done += 1
+                self.progress.update(completed=self.done)
+            if self.root.remote.is_directory and had_folder_intent:
+                self.remove_empty_folders(store)
+
+    def remove_empty_folders(self, store):
+        """Deepest first; a folder still holding retained files (ENOTEMPTY) stays."""
+        with SecureRoot(self.config.storage_root, self.config.volume_id) as disk:
+            for value in sorted(self.observations, key=lambda v: len(v.remote.relative_path), reverse=True):
+                if not value.remote.is_directory or store.row(value.remote.identity)["pinned"]:
+                    continue
+                try:
+                    with disk.parent("local/" + value.remote.relative_path) as (fd, name):
+                        os.rmdir(name, dir_fd=fd)
+                        os.fsync(fd)
+                except OSError as exc:
+                    if exc.errno not in (errno.ENOENT, errno.ENOTEMPTY):
+                        raise
+
+    def verify_published(self):
+        """After Keep, prove each file through the mounted read-only view."""
+        from .verification import verify
+
+        with StateStore(self.config) as store:
+            controller = OfflineController(
+                self.config, store, self.backend, self.offline, **self.guard, cancelled=self.cancelled
+            )
+            files = [v for v in self.observations if not v.remote.is_directory]
+            for index, value in enumerate(files):
+                controller.check_cancelled()
+                self.progress.update(phase="verifying", completed=index, total=self.summary["files"])
+                verify(controller, value.remote.relative_path)
+
+
+def settle(manager, offline, progress, *, was_mounted, error):
+    """Restore a view that was mounted before the operation, and report how it ended."""
+    if was_mounted and not mounted_view(offline):
+        try:
+            manager.start()
+        except Exception:
+            progress.update(
+                phase="error",
+                active=False,
+                reason="Offline view needs attention; retry its launcher. Existing files are preserved",
+            )
+            if error is None:
+                raise
+    if error is not None:
+        progress.update(
+            phase="cancelled" if isinstance(error, Cancelled) else "error",
+            active=False,
+            reason=str(error)
+            if isinstance(error, (ScopeError, StorageError, Cancelled))
+            else "Offline operation failed; previous data is preserved",
+        )
+
+
+def execute(
+    settings,
+    path,
+    operation,
+    *,
+    dry_run=False,
+    cancelled=lambda: False,
+    emit=lambda value: None,
+    backend=None,
+    service=None,
+    expected_binding=None,
+):
+    """Keep or free one exact file or complete folder from the desktop menu.
+
+    Stages: validate the profile → plan (read-only) → take the control lock →
+    stop or guard the view → apply under the state writer lock → restore the
+    view → verify kept files through it → report.
+    """
+    if operation not in ("keep", "free"):
+        raise ConfigurationError("Choose keep or free")
+    config, offline, control_settings = profile(settings)
+    if expected_binding is not None and expected_binding != settings["control_binding"]:
+        raise ScopeError("This selection belongs to an older profile; reopen its folder and retry")
+    backend = backend or create_backend(config, offline)
+    root, observations, summary = plan(config, offline, backend, path, operation, cancelled=cancelled)
+    live = control_settings.get("live_updates", False)
+    summary["requires_unmount"] = not live
+    if dry_run:
+        return dict(summary, dry_run=True)
+    if operation == "free" and not summary["retained_files"] and not root.remote.is_directory:
+        return dict(summary, completed=0, already_cloud_only=True)
+    with control_lock(config):
         progress = Progress(config, path, operation, emit)
         progress.update(total=summary["files"], phase="waiting")
-        manager = service or (
-            LiveView(config, offline)
-            if live
-            else ServiceView(config, offline, control_settings["view_service"])
-        )
+        manager = view_manager(config, offline, control_settings, live=live, service=service)
         was_mounted = bool(mounted_view(offline)) or (hasattr(manager, "was_active") and manager.was_active())
+        run = ControlRun(
+            config,
+            offline,
+            backend,
+            root,
+            observations,
+            summary,
+            guard={"unmounted": live_guard(config)} if live else {},
+            cancelled=cancelled,
+            progress=progress,
+        )
         error = None
-        done, skipped = 0, 0
         try:
             if cancelled():
                 raise Cancelled("Offline operation cancelled; previous data is preserved")
             manager.stop()
-            with StateStore(config) as store:
-                controller = OfflineController(
-                    config,
-                    store,
-                    backend,
-                    offline,
-                    **guard,
-                    cancelled=cancelled,
-                    progress=lambda **v: progress.update(
-                        phase="downloading" if operation == "keep" else "freeing",
-                        completed=done,
-                        bytes_done=v.get("completed", 0),
-                        bytes_total=v.get("total", 0),
-                    ),
-                )
-                tracker = ChangeTracker(controller)
-                controller.recover()
-                if operation == "keep":
-                    if root.remote.is_directory:
-                        observations = tracker.queue_tree(path)
-                        summary["files"] = sum(not v.remote.is_directory for v in observations)
-                        progress.update(total=summary["files"])
-                        with SecureRoot(config.storage_root, config.volume_id) as disk:
-                            for value in observations:
-                                if value.remote.is_directory:
-                                    with disk.parent(
-                                        "local/" + value.remote.relative_path + "/.directory", create=True
-                                    ):
-                                        pass
-                    else:
-                        tracker.queue(path)
-                    selected = {v.remote.identity for v in observations if not v.remote.is_directory}
-                    # Existing unrelated pending jobs are not consumed by a UI selection.
-                    for value in observations:
-                        if value.remote.identity not in selected:
-                            continue
-                        controller.check_cancelled()
-                        progress.update(phase="downloading", completed=done, total=summary["files"])
-                        pin = not root.remote.is_directory
-                        if not reuse_current(tracker, store, value, pin=pin):
-                            controller.keep(value.remote.relative_path, pin=pin)
-                        store.finish_job(value.remote.identity)
-                        done += 1
-                        progress.update(completed=done)
-                else:
-                    # Audit all retained publications and matching cloud revisions
-                    # before releasing any pin intent. Free still performs its
-                    # own fresh checksum/version checks immediately before eviction.
-                    with SecureRoot(config.storage_root, config.volume_id) as disk:
-                        for value in observations:
-                            entry = controller.entry(value.remote.identity)
-                            if entry:
-                                controller.verify_entry(disk, entry)
-                                if (entry["copy"]["revision"], entry["copy"]["size"]) != (
-                                    value.remote.revision,
-                                    value.remote.size,
-                                ):
-                                    raise IntegrityError(
-                                        "Cloud version differs; preserve the offline copy and refresh it first"
-                                    )
-                    with release_intent(store, tracker, controller, root.remote) as existing:
-                        for value in observations:
-                            controller.check_cancelled()
-                            if value.remote.is_directory:
-                                continue
-                            entry = controller.entry(value.remote.identity)
-                            if not entry:
-                                continue
-                            if store.row(value.remote.identity)["pinned"]:
-                                skipped += 1
-                                continue
-                            progress.update(phase="freeing", completed=done)
-                            controller.free(value.remote.relative_path)
-                            done += 1
-                            progress.update(completed=done)
-                        if root.remote.is_directory and existing:
-                            with SecureRoot(config.storage_root, config.volume_id) as disk:
-                                for value in sorted(
-                                    observations, key=lambda v: len(v.remote.relative_path), reverse=True
-                                ):
-                                    if (
-                                        not value.remote.is_directory
-                                        or store.row(value.remote.identity)["pinned"]
-                                    ):
-                                        continue
-                                    try:
-                                        with disk.parent("local/" + value.remote.relative_path) as (fd, name):
-                                            os.rmdir(name, dir_fd=fd)
-                                            os.fsync(fd)
-                                    except OSError as exc:
-                                        if exc.errno not in (errno.ENOENT, errno.ENOTEMPTY):
-                                            raise
+            run.apply()
             if was_mounted:
                 progress.update(phase="restoring")
                 manager.start()
             if operation == "keep" and mounted_view(offline):
-                from .verification import verify
-
-                with StateStore(config) as store:
-                    controller = OfflineController(
-                        config, store, backend, offline, **guard, cancelled=cancelled
-                    )
-                    for i, value in enumerate(v for v in observations if not v.remote.is_directory):
-                        controller.check_cancelled()
-                        progress.update(phase="verifying", completed=i, total=summary["files"])
-                        verify(controller, value.remote.relative_path)
-            progress.update(phase="complete", completed=done, active=False, skipped=skipped)
-            return dict(summary, completed=done, retained_by_other_pins=skipped)
+                run.verify_published()
+            progress.update(phase="complete", completed=run.done, active=False, skipped=run.skipped)
+            return dict(summary, completed=run.done, retained_by_other_pins=run.skipped)
         except BaseException as exc:
             error = exc
             raise
         finally:
-            if was_mounted and not mounted_view(offline):
-                try:
-                    manager.start()
-                except Exception:
-                    progress.update(
-                        phase="error",
-                        active=False,
-                        reason="Offline view needs attention; retry its launcher. Existing files are preserved",
-                    )
-                    if error is None:
-                        raise
-            if error is not None:
-                progress.update(
-                    phase="cancelled" if isinstance(error, Cancelled) else "error",
-                    active=False,
-                    reason=str(error)
-                    if isinstance(error, (ScopeError, StorageError, Cancelled))
-                    else "Offline operation failed; previous data is preserved",
-                )
-    finally:
-        os.close(lock)
+            settle(manager, offline, progress, was_mounted=was_mounted, error=error)
 
 
 def configure(commands):

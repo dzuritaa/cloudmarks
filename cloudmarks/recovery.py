@@ -12,9 +12,8 @@ import uuid
 from dataclasses import asdict
 from pathlib import Path
 
-from .model import IntegrityError, ScopeError, StorageError
+from .model import Cancelled, IntegrityError, ScopeError, StorageError
 from .offline import exists, rename
-from .onedrive import Cancelled
 from .paths import SecureRoot, fingerprint, open_absolute_directory
 from .tracking import ChangeTracker
 

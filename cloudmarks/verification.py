@@ -13,8 +13,7 @@ import time
 from dataclasses import asdict
 
 from .engine import StatusEngine
-from .model import IntegrityError, ScopeError, VerificationPending, VerificationRequired
-from .onedrive import Cancelled
+from .model import Cancelled, IntegrityError, ScopeError, VerificationPending, VerificationRequired
 from .paths import SecureRoot
 from .recovery import measure
 from .view import attest_view, prove_view

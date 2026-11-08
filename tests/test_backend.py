@@ -53,5 +53,34 @@ class ContractTests(unittest.TestCase):
         provider.assert_called_once_with("config", "settings")
 
 
+class BoundaryTests(unittest.TestCase):
+    CORE = (
+        "controls",
+        "engine",
+        "folders",
+        "offline",
+        "recovery",
+        "state",
+        "storage",
+        "tracking",
+        "verification",
+    )
+
+    def test_core_modules_do_not_import_the_provider(self):
+        import ast
+        from pathlib import Path
+
+        package = Path(backend.__file__).parent
+        for name in self.CORE:
+            tree = ast.parse((package / f"{name}.py").read_text())
+            imported = {
+                node.module
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom) and node.module and node.level
+            }
+            with self.subTest(module=name):
+                self.assertNotIn("onedrive", imported)
+
+
 if __name__ == "__main__":
     unittest.main()

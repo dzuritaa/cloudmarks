@@ -47,8 +47,10 @@ def doctor(control):
         report["unfinished_jobs"] = control.store.connection.execute(
             "SELECT count(*) FROM jobs WHERE status!='done'"
         ).fetchone()[0]
+    report["state_problems"] = control.store.check_integrity()
     report["ready_for_trial"] = (
-        report["storage"] == "verified"
+        not report["state_problems"]
+        and report["storage"] == "verified"
         and report.get("reserve_satisfied", False)
         and report["view"] in ("unmounted", "verified_read_only")
         and not report["counts"].get("issues", 0)

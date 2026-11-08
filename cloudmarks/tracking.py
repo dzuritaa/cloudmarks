@@ -12,9 +12,21 @@ import time
 from dataclasses import asdict, replace
 
 from .limits import TREE_ENTRIES
-from .model import FileIdentity, IntegrityError, LocalCopy, ScopeError, StorageError
-from .onedrive import Cancelled, RemoteMissing, checksum
+from .model import Cancelled, FileIdentity, IntegrityError, LocalCopy, RemoteMissing, ScopeError, StorageError
 from .paths import SecureRoot, relative_parts
+from .telemetry import error_category, record
+
+RESUME_REASONS = {
+    "storage": "Check account, disk and connection; resume explicitly",
+    "socket": "Check account, disk and connection; resume explicitly",
+    "timeout": "Connection or disk timed out; resume explicitly",
+    "database": "State database was busy; resume explicitly",
+    "integrity": "Downloaded or local bytes failed verification; previous data kept; resume explicitly",
+    "scope": "Path, account or selection changed; review it, then resume explicitly",
+    "configuration": "Check the offline profile and account; resume explicitly",
+    "permissions": "Disk or state permissions changed; fix them, then resume explicitly",
+    "unexpected": "Unexpected failure; see cloudmarks logs, then resume explicitly",
+}
 
 
 def manifest(observations):
@@ -54,9 +66,7 @@ class ChangeTracker:
 
     def issue(self, remote, reason, candidate=None):
         key = self.store.key(remote.identity)
-        old = self.store.connection.execute(
-            "SELECT * FROM issues WHERE drive_id=? AND item_id=?", key
-        ).fetchone()
+        old = self.store.issue(remote.identity)
         if (
             candidate is None
             and old
@@ -122,12 +132,7 @@ class ChangeTracker:
                 reason = "Remote rename detected; retained path is unchanged; review both paths"
         if row["dirty"]:
             reason = "Modified local data requires review; no automatic replacement"
-        if (
-            self.store.connection.execute(
-                "SELECT 1 FROM issues WHERE drive_id=? AND item_id=?", self.store.key(remote.identity)
-            ).fetchone()
-            and reason is None
-        ):
+        if self.store.issue(remote.identity) and reason is None:
             reason = "Earlier change remains unresolved; review retained versions"
         if reason:
             self.issue(remote, reason)
@@ -169,9 +174,7 @@ class ChangeTracker:
 
     def candidate(self, observation):
         remote = observation.remote
-        issue = self.store.connection.execute(
-            "SELECT * FROM issues WHERE drive_id=? AND item_id=?", self.store.key(remote.identity)
-        ).fetchone()
+        issue = self.store.issue(remote.identity)
         if (
             issue
             and issue["candidate"]
@@ -180,7 +183,7 @@ class ChangeTracker:
             copy = json.loads(issue["candidate"])
             with SecureRoot(self.config.storage_root, self.config.volume_id) as root:
                 root.verify(copy["object_path"], copy["size"], copy["sha256"])
-                expected = checksum(observation.kind)
+                expected = observation.hasher()
                 with root.open_regular(copy["object_path"]) as fd:
                     while block := os.read(fd, 256 * 1024):
                         self.control.check_cancelled()
@@ -232,7 +235,7 @@ class ChangeTracker:
         copy = self.store.copy(remote.identity)
         if copy is None or (copy.revision, copy.size) != (remote.revision, remote.size):
             return False
-        expected = checksum(observation.kind)
+        expected = observation.hasher()
         with SecureRoot(self.config.storage_root, self.config.volume_id) as root:
             self.control.verify_entry(root, self.control.entry(remote.identity))
             with root.open_regular(copy.object_path) as fd:
@@ -257,16 +260,10 @@ class ChangeTracker:
             self.control.check_cancelled()
             identity = FileIdentity(job["drive_id"], job["item_id"])
             self.config.validate_identity(identity)
-            key = self.store.key(identity)
             if not self.store.row(identity)["pinned"]:
-                self.store.connection.execute(
-                    "UPDATE jobs SET status='cancelled',error=NULL WHERE drive_id=? AND item_id=?", key
-                )
+                self.store.set_job(identity, "cancelled")
                 continue
-            self.store.connection.execute(
-                "UPDATE jobs SET status='running',attempts=attempts+1,error=NULL WHERE drive_id=? AND item_id=?",
-                key,
-            )
+            self.store.set_job(identity, "running")
             try:
                 observation = self.observe(identity)
                 reason = (
@@ -279,32 +276,24 @@ class ChangeTracker:
                     if observation and not observation.remote.is_directory:
                         copy = self.candidate(observation)
                         self.issue(observation.remote, reason, copy)
-                    self.store.connection.execute(
-                        "UPDATE jobs SET status='blocked',error=? WHERE drive_id=? AND item_id=?",
-                        (reason, *key),
-                    )
+                    self.store.set_job(identity, "blocked", reason)
                     continue
                 if observation.remote.is_directory:
                     raise ScopeError("Queued file became a folder; review its intent")
                 if not self.current(observation):
                     self.control.keep(observation.remote.relative_path, pin=False)
-                self.store.connection.execute(
-                    "UPDATE jobs SET status='done',error=NULL WHERE drive_id=? AND item_id=?", key
-                )
+                self.store.set_job(identity, "done")
             except Cancelled:
-                self.store.connection.execute(
-                    "UPDATE jobs SET status='pending',error='Cancelled; resume explicitly' WHERE drive_id=? AND item_id=?",
-                    key,
-                )
+                self.store.set_job(identity, "pending", "Cancelled; resume explicitly")
                 raise
             except Exception as error:
+                category = error_category(error)
                 self.control.progress(phase="retryable_error", error_type=type(error).__name__)
-                # Network/disk/config failures are retryable; private adapter
-                # diagnostics never enter persisted public error text.
-                self.store.connection.execute(
-                    "UPDATE jobs SET status='error',error='Check account, disk and connection; resume explicitly' "
-                    "WHERE drive_id=? AND item_id=?",
-                    key,
+                record("cli", "queue_failed", error=category)
+                # Failures stay retryable; persisted text is a fixed message per
+                # cause, never private adapter diagnostics.
+                self.store.set_job(
+                    identity, "error", RESUME_REASONS.get(category, RESUME_REASONS["unexpected"])
                 )
         return self.jobs()
 
@@ -430,7 +419,7 @@ class ChangeTracker:
                 if self.store.row(identity)["pinned"]:
                     self.enqueue(remote, direct=False)
                 raise ScopeError("Remote revision changed; run offline resume before online mounting")
-            check = checksum(observation.kind)
+            check = observation.hasher()
             with SecureRoot(self.config.storage_root, self.config.volume_id) as root:
                 with root.open_regular(copy.object_path) as fd:
                     while block := os.read(fd, 256 * 1024):

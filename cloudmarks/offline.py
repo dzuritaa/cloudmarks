@@ -16,9 +16,8 @@ import stat
 import uuid
 from dataclasses import asdict, replace
 
-from .model import IntegrityError, LocalCopy, ScopeError, StorageError
+from .model import Cancelled, IntegrityError, LocalCopy, ScopeError, StorageError
 from .offline_config import check_volume, require_unmounted
-from .onedrive import Cancelled, checksum
 from .paths import SecureRoot, relative_parts
 
 
@@ -339,7 +338,7 @@ class OfflineController:
     def download(self, root, observation):
         remote = observation.remote
         relative = "objects/.partial-" + uuid.uuid4().hex
-        sha, expected = hashlib.sha256(), checksum(observation.kind)
+        sha, expected = hashlib.sha256(), observation.hasher()
         with root.parent(relative) as (parent, name):
             fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=parent)
             try:
@@ -413,7 +412,7 @@ class OfflineController:
         self.config.validate_remote(remote)
         with SecureRoot(self.config.storage_root, self.config.volume_id) as root:
             self.verify_entry(root, entry)
-            check = checksum(observation.kind)
+            check = observation.hasher()
             with root.open_regular(value["object_path"]) as fd:
                 while block := os.read(fd, 256 * 1024):
                     self.check_cancelled()

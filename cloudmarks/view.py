@@ -14,7 +14,7 @@ from .ipc import read_private_json
 from .model import FileIdentity, IntegrityError, ScopeError, StorageError
 from .offline import OfflineController
 from .offline_config import check_volume, mounted_view, require_unmounted
-from .onedrive import OneDrive, checksum, clean_environment
+from .onedrive import OneDrive, clean_environment
 from .paths import SecureRoot, open_absolute_directory
 from .state import StateStore
 from .telemetry import error_category, record
@@ -75,7 +75,7 @@ def refresh_online_probe(config, store, transport):
     copy = store.copy(identity)
     remote = observation.remote
     if copy and (copy.revision, copy.size) == (remote.revision, remote.size):
-        value = checksum(observation.kind)
+        value = observation.hasher()
         with SecureRoot(config.storage_root, config.volume_id) as root:
             with root.open_regular(copy.object_path) as fd:
                 while block := os.read(fd, 256 * 1024):
