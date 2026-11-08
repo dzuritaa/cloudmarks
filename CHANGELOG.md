@@ -2,6 +2,23 @@
 
 ## 0.1.0a3.dev0 — unreleased
 
+- The Upload service starts rclone through `cloudmarks rclone-exec`, which
+  removes inherited `RCLONE_*` variables first: rclone honours them even with
+  `--config`, so an unrelated variable could change the mounted remote.
+  **Existing installs** keep their old unit until it is regenerated: back up
+  `~/.config/systemd/user/cloudmarks-upload.service`, then replace its
+  `ExecStart=<rclone> mount …` with `ExecStart=<python> -m cloudmarks
+  rclone-exec <rclone> mount …` and run `systemctl --user daemon-reload`.
+- CloudMarks refuses a core TOML that is a symlink, has other links, or is
+  readable by other users (`chmod 600` fixes it), and a store folder that is
+  not private (`chmod 700`). `check-config` still only checks syntax.
+- Setup resumes cleanly when it was interrupted after creating the offline
+  store; it still refuses a folder holding anything it did not create.
+- New directories in the store are synced into their parent before work that
+  depends on them is committed.
+- Internal: every state change and query of controls, offline, recovery and
+  tracking goes through `StateStore`; provider contracts have typed returns
+  and mypy checks that OneDrive satisfies them.
 - Folder badges now share single-file evidence: 60-second fingerprint hash
   reuse and failure memory, and explicit five-minute proofs above 8 MiB.
   Each folder check limits hashing to 16 MiB and checks a 150 ms time budget

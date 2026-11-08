@@ -199,6 +199,10 @@ enforces it. The rclone configuration in `view.py` and setup's sign-in
 | Provider | `onedrive.py`, `view.py` |
 | Setup and operation | `setup.py`, `signin.py`, `units.py`, `install.py`, `doctor.py`, `diagnostics.py`, `telemetry.py` |
 
+`state.py` is the only module that runs state SQL: controls, offline,
+recovery and tracking use public `StateStore` methods, and a test forbids SQL
+or private store calls in them.
+
 Core modules are type-checked with mypy (`check_untyped_defs`), configured in
 `pyproject.toml` and run in CI.
 
@@ -213,6 +217,9 @@ Core modules are type-checked with mypy (`check_untyped_defs`), configured in
   another path's status.
 - Cloud observations are checked against the expected drive, allowed root and
   ancestry; the account binding is stored and enforced.
+- rclone never inherits `RCLONE_*` variables: CloudMarks passes a cleaned
+  environment to every rclone it runs, and the Upload service starts rclone
+  through `cloudmarks rclone-exec`, which does the same before `exec`.
 - Diagnostics go to the user journal with allow-listed components, events and
   enum fields only: no paths, names, identifiers, tokens or error text.
 
