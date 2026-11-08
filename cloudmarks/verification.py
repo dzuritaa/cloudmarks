@@ -6,18 +6,23 @@ or downloads content. This trusts the kernel and the user's private state, as do
 small-file checks. It does not defend against a privileged local attacker.
 """
 
+import hashlib
 import json
 import math
+import os
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import asdict
 
 from .engine import StatusEngine
-from .model import IntegrityError, ScopeError, VerificationPending, VerificationRequired
-from .onedrive import Cancelled
-from .paths import SecureRoot
+from .model import Cancelled, IntegrityError, ScopeError, VerificationPending, VerificationRequired
+from .paths import SecureRoot, fingerprint
 from .recovery import measure
 from .view import attest_view, prove_view
+
+Fingerprint = tuple[int, ...]
+MemoKey = tuple[int, str, int, str, Fingerprint]
 
 INLINE_LIMIT = 8 * 1024 * 1024
 PROOF_SECONDS = 300
@@ -34,6 +39,51 @@ INLINE_HASH_BYTES = 1024 * 1024
 QUEUE_LIMIT = 256
 
 
+class HashBudget:
+    """Reserve bytes before each hash and check elapsed time between reads.
+
+    A blocked kernel call cannot be interrupted; no hash reads past its recorded
+    size, even if another process keeps appending to the file.
+    """
+
+    def __init__(self, max_bytes: int, seconds: float, *, monotonic: Callable[[], float] = time.monotonic):
+        self.remaining = max_bytes
+        self.monotonic = monotonic
+        self.deadline = monotonic() + seconds
+
+    def reserve(self, size: int = 0) -> None:
+        if size > self.remaining or self.monotonic() >= self.deadline:
+            raise VerificationPending()
+        self.remaining -= size
+
+
+def hash_file(
+    root: SecureRoot, path: str, size: int, sha256: str, budget: HashBudget | None = None
+) -> Fingerprint:
+    if budget is None:
+        return tuple(root.verify(path, size, sha256))
+    budget.reserve(size)
+    with root.open_regular(path) as fd:
+        before = os.fstat(fd)
+        if before.st_size != size:
+            raise IntegrityError("Local file length does not match the completed copy")
+        value = hashlib.sha256()
+        count = 0
+        while count < size:
+            budget.reserve()
+            block = os.read(fd, min(1024 * 1024, size - count))
+            if not block:
+                break
+            count += len(block)
+            value.update(block)
+        budget.reserve()
+        if fingerprint(before) != fingerprint(os.fstat(fd)):
+            raise IntegrityError("Local file changed during verification")
+        if count != size or value.hexdigest() != sha256:
+            raise IntegrityError("Local file is partial, changed, or corrupt")
+        return tuple(fingerprint(before))
+
+
 class HashMemo:
     """Status-only reuse of full-content checks, keyed by kernel fingerprint.
 
@@ -42,19 +92,44 @@ class HashMemo:
     Mutating operations never use this memo; they always hash.
     """
 
-    def __init__(self, *, seconds=REHASH_SECONDS, limit=MEMO_ENTRIES, monotonic=time.monotonic):
+    def __init__(
+        self,
+        *,
+        seconds: float = REHASH_SECONDS,
+        limit: int = MEMO_ENTRIES,
+        monotonic: Callable[[], float] = time.monotonic,
+    ):
         self.seconds, self.limit, self.monotonic = seconds, limit, monotonic
-        self.entries = {}
+        self.entries: dict[MemoKey, float] = {}
+        self.failures: dict[MemoKey, float] = {}
         self.lock = threading.Lock()
 
-    def verify(self, root, relative_path, size, sha256):
+    def verify(
+        self,
+        root: SecureRoot,
+        relative_path: str,
+        size: int,
+        sha256: str,
+        *,
+        budget: HashBudget | None = None,
+    ) -> Fingerprint:
         current = tuple(root.current_fingerprint(relative_path))
         key = (root.device, relative_path, size, sha256, current)
         with self.lock:
-            stamp = self.entries.get(key)
+            stamp, failed = self.entries.get(key), self.failures.get(key)
         if stamp is not None and 0 <= self.monotonic() - stamp < self.seconds:
             return current
-        verified = tuple(root.verify(relative_path, size, sha256))
+        if failed is not None and 0 <= self.monotonic() - failed < self.seconds:
+            raise IntegrityError("Local file is partial, changed, or corrupt")
+        try:
+            verified = hash_file(root, relative_path, size, sha256, budget)
+        except IntegrityError:
+            with self.lock:
+                self.entries.pop(key, None)
+                while len(self.failures) >= self.limit:
+                    del self.failures[next(iter(self.failures))]
+                self.failures[key] = self.monotonic()
+            raise
         with self.lock:
             self.entries.pop(key, None)
             while len(self.entries) >= self.limit:
@@ -80,12 +155,20 @@ class BackgroundHashMemo(HashMemo):
     def __init__(self, config, *, inline_bytes=INLINE_HASH_BYTES, queue_limit=QUEUE_LIMIT, **kwargs):
         super().__init__(**kwargs)
         self.config, self.inline_bytes, self.queue_limit = config, inline_bytes, queue_limit
-        self.pending, self.failures = {}, {}
+        self.pending: dict[MemoKey, tuple[str, int, str]] = {}
         self.ready = threading.Condition(self.lock)
         self.stopped = False
-        self.thread = None
+        self.thread: threading.Thread | None = None
 
-    def verify(self, root, relative_path, size, sha256):
+    def verify(
+        self,
+        root: SecureRoot,
+        relative_path: str,
+        size: int,
+        sha256: str,
+        *,
+        budget: HashBudget | None = None,
+    ) -> Fingerprint:
         current = tuple(root.current_fingerprint(relative_path))
         key = (root.device, relative_path, size, sha256, current)
         now = self.monotonic()
@@ -95,14 +178,14 @@ class BackgroundHashMemo(HashMemo):
             return current
         if failed is not None and 0 <= now - failed < self.seconds:
             raise IntegrityError("Local file is partial, changed, or corrupt")
-        if size <= self.inline_bytes:
-            return super().verify(root, relative_path, size, sha256)
+        if size <= self.inline_bytes or budget is not None:
+            return super().verify(root, relative_path, size, sha256, budget=budget)
         self.submit(key, relative_path, size, sha256)
         if stamp is not None and 0 <= now - stamp < 2 * self.seconds:
             return current
         raise VerificationPending()
 
-    def submit(self, key, relative_path, size, sha256):
+    def submit(self, key: MemoKey, relative_path: str, size: int, sha256: str) -> None:
         with self.ready:
             if self.stopped or key in self.pending or len(self.pending) >= self.queue_limit:
                 return
@@ -124,10 +207,7 @@ class BackgroundHashMemo(HashMemo):
                 with SecureRoot(self.config.storage_root, self.config.volume_id) as root:
                     HashMemo.verify(self, root, *job)
             except IntegrityError:
-                with self.lock:
-                    while len(self.failures) >= self.limit:
-                        del self.failures[next(iter(self.failures))]
-                    self.failures[key] = self.monotonic()
+                pass  # HashMemo remembers failed fingerprints for both callers.
             except Exception:
                 # Storage unavailable or the file vanished: the next request
                 # re-queues it and the engine re-checks all other evidence.
@@ -267,25 +347,48 @@ def cached_fingerprint(config, store, settings, root, remote, copy, *, clock=tim
     return tuple(sources["object"]["fingerprint"])
 
 
-def status_engine(config, store, settings, *, clock=time.time, memo=None, background=False):
+def copy_fingerprint(
+    config,
+    store,
+    settings,
+    root,
+    remote,
+    copy,
+    memo: HashMemo,
+    *,
+    clock=time.time,
+    budget: HashBudget | None = None,
+):
+    """One badge policy for single files and folder members, never for mutations."""
+    if copy.size <= INLINE_LIMIT:
+        return memo.verify(root, copy.object_path, copy.size, copy.sha256, budget=budget)
+    return cached_fingerprint(config, store, settings, root, remote, copy, clock=clock)
+
+
+class VerifiedStatusEngine(StatusEngine):
+    memo: HashMemo
+
+
+def status_engine(config, store, settings, *, clock=time.time, memo=None, background=False, report=None):
     """Status engine for the offline view.
 
     ``background=True`` is for the status socket: large content checks run on
     a worker thread and report "checking" until done. CLI callers keep the
-    default, which hashes inline and returns a final answer.
+    default, which hashes inline and returns a final answer. ``report(category)``
+    is told about evidence that was unavailable (see StatusEngine).
     """
     memo = memo or (BackgroundHashMemo(config) if background else HashMemo())
 
     def check(root, remote, copy):
-        if copy.size <= INLINE_LIMIT:
-            return memo.verify(root, copy.object_path, copy.size, copy.sha256)
-        return cached_fingerprint(config, store, settings, root, remote, copy, clock=clock)
+        return copy_fingerprint(config, store, settings, root, remote, copy, memo, clock=clock)
 
     def read_path(remote, copy):
         return copy.size > INLINE_LIMIT or prove_view(
             config, settings, remote, copy, verify=memo.verify, volume_reuse_seconds=VOLUME_REUSE_SECONDS
         )
 
-    engine = StatusEngine(config, store, clock=clock, verify_copy=check, read_path=read_path)
+    engine = VerifiedStatusEngine(
+        config, store, clock=clock, verify_copy=check, read_path=read_path, report=report
+    )
     engine.memo = memo
     return engine

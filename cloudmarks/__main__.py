@@ -96,6 +96,10 @@ def main():
     guard.add_argument("--settings", type=Path, required=True)
     guard.add_argument("--view", choices=("upload", "offline"), required=True)
     guard.add_argument("--operation", choices=("prepare", "protect"), required=True)
+    launcher = commands.add_parser(
+        "rclone-exec", help="Used by the Upload service: run rclone without inherited RCLONE_* variables"
+    )
+    launcher.add_argument("argv", nargs=argparse.REMAINDER, help="Absolute rclone path and its arguments")
     fixture = commands.add_parser("fixture-session", help="Create disposable fixtures and serve their status")
     fixture.add_argument(
         "--directory", type=Path, required=True, help="New absolute private directory (short path)"
@@ -118,6 +122,14 @@ def main():
 
     configure_controls(commands)
     args = parser.parse_args()
+    if args.command == "rclone-exec":
+        # Replaces this process; nothing below would run or be logged.
+        from .launch import exec_clean
+
+        try:
+            exec_clean(args.argv)
+        except (CloudMarksError, OSError) as error:
+            parser.exit(1, f"CloudMarks: {error}\n")
     started = time.monotonic()
     outcome = "ok"
     context = {"command": args.command, "action": getattr(args, "action", None)}
@@ -220,7 +232,7 @@ def main():
             finally:
                 store.close()
         else:
-            load_config(args.path)
+            load_config(args.path, private=False)  # Syntax and settings only.
             print("Configuration version 1 is valid; storage and account connectivity were not checked.")
     except KeyboardInterrupt:
         outcome = "interrupted"

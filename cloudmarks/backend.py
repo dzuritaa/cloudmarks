@@ -15,30 +15,32 @@ of methods one group of callers uses:
 - ``TransportProof``: checks that the separately mounted transport (rclone)
   serves the same account, root and item that metadata described.
 
-An ``Observation`` carries a provider checksum ``kind`` and ``digest``;
-``onedrive.checksum(kind)`` returns the matching hasher. Moving that hasher
-behind the contract is the remaining provider-specific seam.
+Observations, ``Cancelled`` and ``RemoteMissing`` are provider-neutral types
+in ``model``; ``Observation.hasher()`` returns the hasher for the provider's
+checksum ``kind`` from ``checksums``. Core modules do not import ``onedrive``.
 """
 
 from collections.abc import Callable, Iterator, Sequence
 from typing import Protocol, runtime_checkable
 
 from .limits import TREE_ENTRIES
-from .model import FileIdentity
+from .model import FileIdentity, Observation
 
 
 @runtime_checkable
 class Metadata(Protocol):
-    def describe(self, path: str, *, allow_directory: bool = False): ...
+    def describe(self, path: str, *, allow_directory: bool = False) -> Observation: ...
 
-    def describe_identity(self, identity: FileIdentity): ...
+    def describe_identity(self, identity: FileIdentity) -> Observation: ...
 
-    def tree(self, path: str, *, limit: int = TREE_ENTRIES, cancelled: Callable[[], bool] = ...): ...
+    def tree(
+        self, path: str, *, limit: int = TREE_ENTRIES, cancelled: Callable[[], bool] = ...
+    ) -> list[Observation]: ...
 
 
 @runtime_checkable
 class Transfer(Protocol):
-    def chunks(self, observation, *, cancelled: Callable[[], bool] = ...) -> Iterator[bytes]: ...
+    def chunks(self, observation: Observation, *, cancelled: Callable[[], bool] = ...) -> Iterator[bytes]: ...
 
 
 @runtime_checkable
@@ -48,21 +50,21 @@ class OfflineBackend(Metadata, Transfer, Protocol):
 
 @runtime_checkable
 class ActivityBackend(Metadata, Protocol):
-    def describe_many(self, paths: Sequence[str]): ...
+    def describe_many(self, paths: Sequence[str]) -> dict[str, Observation | None]: ...
 
-    def catalog(self, *, limit: int = 128, cancelled: Callable[[], bool] = ...): ...
+    def catalog(self, *, limit: int = 128, cancelled: Callable[[], bool] = ...) -> list[Observation]: ...
 
 
 @runtime_checkable
 class TransportProof(Protocol):
-    def authenticate(self): ...
+    def authenticate(self) -> None: ...
 
-    def verify_transport_root(self): ...
+    def verify_transport_root(self) -> None: ...
 
-    def verify_transport_item(self, observation): ...
+    def verify_transport_item(self, observation: Observation) -> None: ...
 
 
-def create(config, settings):
+def create(config, settings) -> OfflineBackend:
     """The configured provider for one offline profile. Today always OneDrive."""
     from . import onedrive
 

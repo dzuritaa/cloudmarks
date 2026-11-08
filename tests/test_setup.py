@@ -122,7 +122,7 @@ class SetupTests(unittest.TestCase):
         from cloudmarks.state import StateStore
 
         with mock.patch("cloudmarks.offline_config.check_volume"):
-            initialize(config, values)
+            initialize(config, values, resume=True)  # As cloudmarks.setup.init_store does.
             with StateStore(config):
                 pass
 
@@ -192,6 +192,50 @@ class SetupTests(unittest.TestCase):
         self.assertEqual(record["completed"], ["account", "folder", "storage", "files"])
         self.setup().execute()
         self.assertEqual(self.signins, 1)
+
+    def test_setup_interrupted_after_creating_the_store_resumes(self):
+        def created_then_killed(config, values):
+            self.initializer(config, values)
+            raise KeyboardInterrupt  # Before setup records the store step.
+
+        with self.assertRaises(KeyboardInterrupt):
+            self.setup(initializer=created_then_killed).execute()
+        self.assertNotIn("store", json.loads(Layout.current().file("setup.json").read_text())["completed"])
+        self.setup().execute()
+        record = json.loads(Layout.current().file("setup.json").read_text())
+        self.assertEqual(record["completed"][-3:], ["store", "install", "services"])
+
+    def test_setup_interrupted_mid_initialize_resumes_from_a_partial_store(self):
+        from cloudmarks.offline_config import load_offline
+
+        def partial(config, values):
+            config.storage_root.mkdir(mode=0o700)
+            raise KeyboardInterrupt
+
+        with self.assertRaises(KeyboardInterrupt):
+            self.setup(initializer=partial).execute()
+        self.setup().execute()
+        config, _ = load_offline(Layout.current().file("offline.json"))
+        self.assertEqual(
+            sorted(p.name for p in config.storage_root.iterdir())[-3:], ["local", "objects", "recovery"]
+        )
+
+    def test_resumed_store_step_never_adopts_other_data(self):
+        from cloudmarks.offline_config import initialize, load_offline
+
+        def foreign(config, values):
+            config.storage_root.mkdir(mode=0o700)
+            (config.storage_root / "photos.jpg").write_bytes(b"user data")
+            raise KeyboardInterrupt
+
+        with self.assertRaises(KeyboardInterrupt):
+            self.setup(initializer=foreign).execute()
+        with self.assertRaises(StorageError):
+            self.setup().execute()
+        config, values = load_offline(Layout.current().file("offline.json"))
+        self.assertEqual((config.storage_root / "photos.jpg").read_bytes(), b"user data")
+        with mock.patch("cloudmarks.offline_config.check_volume"), self.assertRaises(FileExistsError):
+            initialize(config, values)  # `offline init` stays strict.
 
     def test_service_start_failure_is_reported_and_resumable(self):
         def failing(argv, **kwargs):
@@ -346,6 +390,47 @@ class UnitTests(unittest.TestCase):
         self.assertIn("--view offline --operation protect", units[VIEW_UNIT])
         self.assertIn("--rc-addr=unix:///run/user/1000/cloudmarks-upload/rc.sock", units[UPLOAD_UNIT])
         self.assertIn('"/home/u/CloudMarks/My Upload"', units[UPLOAD_UNIT])
+
+    def test_upload_rclone_starts_through_the_environment_launcher(self):
+        units = render_units(self.paths("/home/u"), python="/usr/bin/python3", rclone="/usr/bin/rclone")
+        start = next(line for line in units[UPLOAD_UNIT].splitlines() if line.startswith("ExecStart="))
+        self.assertTrue(
+            start.startswith("ExecStart=/usr/bin/python3 -m cloudmarks rclone-exec /usr/bin/rclone mount")
+        )
+
+    def test_launcher_removes_rclone_overrides_and_keeps_service_variables(self):
+        from cloudmarks.launch import exec_clean
+
+        calls = []
+        environment = {"RCLONE_CONFIG_UPLOAD_REMOTE": "/elsewhere", "NOTIFY_SOCKET": "/run/n", "HOME": "/h"}
+        with mock.patch.dict("os.environ", environment, clear=True):
+            exec_clean(["/usr/bin/rclone", "mount", "upload:"], execve=lambda *a: calls.append(a))
+        program, argv, env = calls[0]
+        self.assertEqual((program, argv), ("/usr/bin/rclone", ["/usr/bin/rclone", "mount", "upload:"]))
+        self.assertEqual(env, {"NOTIFY_SOCKET": "/run/n", "HOME": "/h"})
+        for bad in ([], ["rclone", "mount"], ["/bin/sh", "-c", "x"]):
+            with self.subTest(argv=bad), self.assertRaises(ConfigurationError):
+                exec_clean(bad, execve=lambda *a: calls.append(a))
+
+    def test_launcher_runs_rclone_with_a_clean_environment_end_to_end(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fake = Path(directory) / "rclone"
+            fake.write_text("#!/bin/sh\nenv\n")
+            fake.chmod(0o755)
+            result = subprocess.run(
+                [sys.executable, "-m", "cloudmarks", "rclone-exec", str(fake), "version"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                env={
+                    **os.environ,
+                    "RCLONE_CONFIG_UPLOAD_REMOTE": "/elsewhere",
+                    "CLOUDMARKS_LOG_LEVEL": "off",
+                },
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("RCLONE_", result.stdout)
+        self.assertIn("PATH=", result.stdout)
 
     @unittest.skipUnless(shutil.which("systemd-analyze"), "systemd-analyze unavailable")
     def test_generated_units_pass_systemd_verification(self):

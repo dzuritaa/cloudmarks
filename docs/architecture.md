@@ -6,7 +6,9 @@ this page (for example, "Nautilus actions remain deferred" or "all controls
 require the view unmounted"), this page is current. Decisions and their
 evidence are in [ADR 0001](decisions/0001-offline-backend.md),
 [ADR 0002](decisions/0002-live-view-updates.md) and
-[ADR 0003](decisions/0003-durable-free-background-checks-and-cleanup.md).
+[ADR 0003](decisions/0003-durable-free-background-checks-and-cleanup.md) and
+[ADR 0004](decisions/0004-bounded-status-reception-and-volume-proofs.md) and
+[ADR 0005](decisions/0005-shared-badge-evidence-and-bounded-replies.md).
 
 ## Goal and limits
 
@@ -43,13 +45,15 @@ user services: cloudmarks-*-view.service (rclone read-only union mount),
   the Keep offline / Free local copy menu. It never blocks Files: all I/O is in
   a separate worker process, restarted with backoff if it exits.
 - **Desktop worker** (`desktop.py`): maps Files URIs to relative paths, sends
-  batches of at most 16 paths to the helper and caches each answer for its
+  batches of at most 16 paths, also bounded by encoded request and worst-case
+  response size, to the helper and caches each answer for its
   lease (`valid_for_ms`). Menu actions start the GTK window, which runs the
   `cloudmarks control` command and shows progress, cancellation and retry.
-- **Status helper** (`helper.py`): one listener, one request at a time, 150 ms
-  work budget per batch, same-UID peers only. The socket protocol has no
+- **Status helper** (`helper.py`): one listener, up to 16 nonblocking peers with
+  a 600 ms absolute framing/response deadline, 150 ms work budget per batch,
+  same-UID peers only. Status evaluation stays on the SQLite owner thread. The socket protocol has no
   mutation operation. It opens the state database read-only (`ReadStore`).
-  In account mode the same process runs two observer threads that hold
+  In account mode the same process runs upload and folder observer workers that hold
   read-only OneDrive transport for metadata; the socket thread never
   constructs transport or reads credentials.
 - **Controls** (`controls.py`, `offline.py`, `tracking.py`, `recovery.py`): the
@@ -80,7 +84,15 @@ timeout for the helper and inspection commands.
 | `jobs`, `changes`, `issues`, `snapshots` | Queued downloads, observed cloud changes, conflicts and their retained candidates. |
 | `archives`, `verifications` | Conflict archive receipts and explicit large-file proofs. |
 
-Schema upgrades run forward only, on writer open, in numbered steps.
+Schema upgrades run forward only, on writer open, in numbered steps; tests
+upgrade from every schema since 2. Job states change only through
+`StateStore.set_job`, which accepts a fixed set of states. `check_integrity()`
+is a read-only check of SQLite structure, foreign keys and CloudMarks
+invariants (every copy has a publication, pin flags match their sources, no
+interrupted operation or unfinished release); `offline doctor` reports it and
+is not ready for use while it finds a problem. Both doctor commands share the
+same state-health classification. Only pending, running, error and blocked jobs
+are unfinished; done and cancelled jobs are terminal.
 
 ## Offline store on disk
 
@@ -124,18 +136,42 @@ during the check.
 
 The helper keeps the socket thread cheap:
 
-- Hash results are reused while the kernel fingerprint (device, inode, size,
-  mtime, ctime, links) is unchanged, and re-hashed every 60 seconds.
+- Single files and folder members use the same content policy (`copy_fingerprint`
+  and `HashMemo`). Hash results are reused while the kernel fingerprint (device,
+  inode, size, mtime, ctime, links) is unchanged, and re-hashed every 60 seconds.
+  Failed hashes are remembered by fingerprint for the same interval. The socket
+  hash worker may reuse an unchanged successful result for one additional
+  interval while rehashing; a failed rehash revokes it immediately.
 - Files up to 1 MiB are hashed inline. Larger misses go to a background worker
   and answer **Needs checking** with a 250 ms lease until the result is ready.
-- Files above 8 MiB are never hashed for a badge; they need an explicit
-  `offline verify` proof, valid for 5 minutes.
-- The storage-mount proof (`findmnt`) is reused for 10 seconds.
+- Files above 8 MiB are never hashed for a badge, including inside a folder;
+  they need an explicit `offline verify` proof, valid for 5 minutes and bound
+  to both retained copies and their current fingerprints. A folder lease cannot
+  outlive any member's explicit proof.
+- The storage-mount proof (`findmnt`) is reused for at most 10 seconds, measured
+  from the start of its check. After 5 seconds, requests queue a refresh on one
+  bounded background worker. Cold/expired proofs answer **Needs checking**; a
+  failed refresh revokes the proof immediately. Every reuse checks device/inode
+  and the private binding. Mutating callers always run `findmnt` synchronously.
 - A database, disk or configuration error for one path answers
   **Needs checking** for that path (500 ms lease) and the helper keeps serving.
 
+When evidence is unavailable the engine still fails closed, but keeps the
+cause: database, storage, scope, configuration, permissions and unexpected
+errors each have their own fixed reason, and the helper logs the category.
+
 Folder badges come from `FolderObserver`, which enumerates the folder in the
 cloud and checks members in its own thread; requests only read its cache.
+Each check has a 16 MiB hashing budget across both copies and a 150 ms elapsed
+time budget, checked between members and between reads of at most 1 MiB.
+Hashes stop at the recorded file size and reject fingerprint changes. Exhausted
+budgets leave **Needs checking**; later checks can reuse completed hashes.
+These are cooperative time limits: an in-flight network or kernel operation
+cannot be interrupted. Very large folders may remain unverified within these
+limits. The remote tree and derived manifest are reused for 15 seconds, without extending
+the original metadata deadline. Trees above 10,000 entries remain **Needs
+checking**. The legacy engine aggregate path retains its 128-member/64-file/8 MiB
+budget; the desktop working set remains bounded at 512 items.
 
 ## Provider boundary
 
@@ -144,18 +180,46 @@ cloud and checks members in its own thread; requests only read its cache.
 `TransportProof`) and `backend.create()` builds the configured provider.
 `OneDrive` (`onedrive.py`, Microsoft Graph for metadata, rclone for bytes) is
 the only implementation, and a contract test keeps its signatures aligned.
-Provider checksums (`onedrive.checksum`) and the rclone configuration in
-`view.py` and `setup.py` are still OneDrive-specific.
+Observations, `Cancelled` and `RemoteMissing` are provider-neutral types in
+`model.py`, and `Observation.hasher()` picks the server checksum from
+`checksums.py`. Core modules (controls, offline, tracking, recovery, state,
+storage, engine, verification, folders) do not import `onedrive`; a test
+enforces it. The rclone configuration in `view.py` and setup's sign-in
+(`signin.py`) are still OneDrive-specific.
+
+## Code layout
+
+| Area | Modules |
+| --- | --- |
+| Model and contracts | `model.py`, `backend.py`, `checksums.py`, `limits.py` |
+| State and store | `state.py`, `paths.py`, `offline.py`, `tracking.py`, `recovery.py`, `storage.py` |
+| Controls | `controls.py` (`ControlRun` stages), `offline_cli.py`, `control_gui.py` |
+| Status | `engine.py`, `verification.py`, `helper.py`, `ipc.py`, `activity.py`, `folders.py` |
+| Desktop | `nautilus_extension.py`, `desktop.py` |
+| Provider | `onedrive.py`, `view.py` |
+| Setup and operation | `setup.py`, `signin.py`, `units.py`, `install.py`, `doctor.py`, `diagnostics.py`, `telemetry.py` |
+
+`state.py` is the only module that runs state SQL: controls, offline,
+recovery and tracking use public `StateStore` methods, and a test forbids SQL
+or private store calls in them.
+
+Core modules are type-checked with mypy (`check_untyped_defs`), configured in
+`pyproject.toml` and run in CI.
 
 ## Security and privacy
 
-- The socket, settings, state and store directories must be owned by the user
-  and private (0700/0600); the helper rejects other peers.
+- The socket and JSON settings directories are user-owned and private. The core
+  TOML must be a private regular file owned by the user (not a symlink), and the
+  store root must be owned by the user with no group/other access. The helper
+  rejects other peers.
 - Paths are bounded relative paths; traversal and control characters are
   rejected before any lookup, and a case or Unicode alias never inherits
   another path's status.
 - Cloud observations are checked against the expected drive, allowed root and
   ancestry; the account binding is stored and enforced.
+- rclone never inherits `RCLONE_*` variables: CloudMarks passes a cleaned
+  environment to every rclone it runs, and the Upload service starts rclone
+  through `cloudmarks rclone-exec`, which does the same before `exec`.
 - Diagnostics go to the user journal with allow-listed components, events and
   enum fields only: no paths, names, identifiers, tokens or error text.
 
@@ -167,4 +231,9 @@ package checks. Opt-in runners cover a real test account
 ([`tests/integration`](../tests/integration/README.md)), an isolated Files
 session ([`tests/desktop`](../tests/desktop/README.md)) and physical
 reconnect/logout acceptance. `scripts/bench_status.py` measures status-socket
-latency with a cold page cache.
+latency with a cold page cache. `scripts/bench_scale.py` measures artificial
+1k/10k/50k folder work, desktop queue admission, idle-peer isolation and cold
+volume proofs; [results and limits](dev/status-performance.md) are recorded.
+The installed-wheel gate runs install → enable → doctor → disable → uninstall
+and reinstall in a temporary HOME with fake tools; generated units are checked
+with `systemd-analyze --user verify` when available, without starting services.

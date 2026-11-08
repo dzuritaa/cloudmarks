@@ -6,11 +6,9 @@ Signing in is delegated to rclone, so passwords and tokens never pass through
 CloudMarks output. Re-running continues from the last completed step.
 """
 
-import base64
 import configparser
 import json
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -24,18 +22,27 @@ from pathlib import Path
 
 from .install import atomic_json, json_bytes, locations, make_directory, write_new
 from .model import ConfigurationError, ScopeError, StorageError, canonical_drive
+from .signin import (  # noqa: F401  (re-exported)
+    ORIGIN_KEYS,
+    SCOPES,
+    SetupGraph,
+    _ini,
+    authorize_blob,
+    authorized_token,
+    write_origin,
+)
+from .units import (  # noqa: F401  (re-exported)
+    STATUS_UNIT,
+    UPLOAD_UNIT,
+    VIEW_UNIT,
+    command,
+    render_units,
+    unit_path,
+    unit_word,
+)
 
 STEPS = ("account", "folder", "storage", "files", "store", "install", "services")
-UPLOAD_UNIT = "cloudmarks-upload.service"
-STATUS_UNIT = "cloudmarks-status.service"
-VIEW_UNIT = "cloudmarks-view.service"
-ORIGIN_KEYS = ("type", "drive_id", "drive_type", "token", "root_folder_id", "client_id", "client_secret")
 GIB = 2**30
-# rclone's default OneDrive scopes plus User.Read, which /me needs to confirm the
-# signed-in account's email on every authentication.
-SCOPES = (
-    "Files.Read Files.ReadWrite Files.Read.All Files.ReadWrite.All Sites.Read.All offline_access User.Read"
-)
 
 
 def configure(commands):
@@ -106,222 +113,6 @@ class Prompter:
         return default if not reply else reply in ("y", "yes")
 
 
-def unit_word(value):
-    """Quote one systemd command-line word; refuse control characters."""
-    value = str(value)
-    if not value or any(ord(char) < 32 or ord(char) == 127 for char in value):
-        raise ConfigurationError("Unit paths cannot contain control characters")
-    if re.fullmatch(r"[A-Za-z0-9_./:=@+,-]+", value):
-        return value
-    escaped = value.replace("\\", "\\\\").replace('"', '\\"').replace("%", "%%").replace("$", "$$")
-    return f'"{escaped}"'
-
-
-def unit_path(value):
-    value = str(value)
-    if any(ord(char) < 32 or ord(char) == 127 for char in value) or re.search(r"\s", value):
-        raise ConfigurationError("Unit setting paths cannot contain whitespace or control characters")
-    return value.replace("%", "%%")
-
-
-def command(*words):
-    return " ".join(unit_word(word) for word in words)
-
-
-def render_units(paths, *, python, rclone):
-    """Return the three user units, modelled on the validated trial services."""
-    desktop = paths["desktop"]
-    guard = (python, "-m", "cloudmarks", "mount-guard", "--settings", desktop)
-    upload = f"""[Unit]
-Description=CloudMarks upload folder (writable rclone mount)
-Documentation=https://github.com/dzuritaa/cloudmarks
-
-[Service]
-Type=notify
-ExecStartPre={command(*guard, "--view", "upload", "--operation", "prepare")}
-ExecStart={
-        command(
-            rclone,
-            "mount",
-            "upload:",
-            paths["upload_root"],
-            "--config=" + paths["upload_config"],
-            "--cache-dir=" + paths["upload_cache"],
-            "--vfs-cache-mode=writes",
-            "--vfs-cache-max-size=1G",
-            f"--vfs-cache-min-free-space={paths['reserve_gib']}G",
-            "--vfs-write-back=2s",
-            "--dir-cache-time=2s",
-            "--poll-interval=0",
-            "--buffer-size=0",
-            "--contimeout=5s",
-            "--timeout=15s",
-            "--umask=077",
-            "--devname=cloudmarks-upload",
-            "--log-level=ERROR",
-            "--rc",
-            "--rc-addr=unix://" + paths["upload_socket"],
-        )
-    }
-ExecStop={command("fusermount3", "-u", paths["upload_root"])}
-ExecStopPost={command(*guard, "--view", "upload", "--operation", "protect")}
-UMask=0077
-RuntimeDirectory=cloudmarks-upload
-RuntimeDirectoryMode=0700
-Restart=on-failure
-RestartSec=10
-SyslogIdentifier=cloudmarks-upload
-KillMode=mixed
-KillSignal=SIGINT
-SendSIGKILL=no
-TimeoutStartSec=45
-TimeoutStopSec=30
-
-[Install]
-WantedBy=default.target
-"""
-    status = f"""[Unit]
-Description=CloudMarks status helper
-Documentation=https://github.com/dzuritaa/cloudmarks
-Wants={UPLOAD_UNIT}
-After={UPLOAD_UNIT}
-
-[Service]
-Type=simple
-ExecStart={command(python, paths["helper"], "serve", "--settings", desktop)}
-UMask=0077
-RuntimeDirectory=cloudmarks
-RuntimeDirectoryMode=0700
-Restart=on-failure
-RestartSec=3
-TimeoutStopSec=5
-NoNewPrivileges=true
-RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
-
-[Install]
-WantedBy=default.target
-"""
-    view = f"""[Unit]
-Description=CloudMarks offline view (read-only)
-Documentation=https://github.com/dzuritaa/cloudmarks
-Wants={STATUS_UNIT}
-After={STATUS_UNIT}
-
-[Service]
-Type=simple
-EnvironmentFile=-{unit_path(paths["mount_env"])}
-ExecStartPre={command(*guard, "--view", "offline", "--operation", "prepare")}
-ExecStart={command(python, "-m", "cloudmarks", "offline", "--config", paths["offline"], "mount")} $CLOUDMARKS_VIEW_FLAGS
-ExecStopPost={command(*guard, "--view", "offline", "--operation", "protect")}
-UMask=0077
-Restart=on-failure
-RestartSec=10
-KillMode=mixed
-KillSignal=SIGINT
-SendSIGKILL=no
-TimeoutStopSec=30
-
-[Install]
-WantedBy=default.target
-"""
-    return {UPLOAD_UNIT: upload, STATUS_UNIT: status, VIEW_UNIT: view}
-
-
-class SetupGraph:
-    """Minimal read-only Graph client over the freshly created sign-in copy."""
-
-    def __init__(self, rclone, config_path, *, opener=None, run=subprocess.run):
-        self.rclone, self.config_path, self.run = rclone, Path(config_path), run
-        self.opener = opener or urllib.request.build_opener(_NoRedirect())
-
-    def token(self):
-        from .onedrive import private_config
-
-        parser = private_config(self.config_path)
-        try:
-            value = json.loads(parser["origin"]["token"])["access_token"]
-        except (KeyError, ValueError, TypeError):
-            raise ConfigurationError("Sign-in did not produce a usable OneDrive credential") from None
-        if not isinstance(value, str) or not value or any(ord(c) < 33 for c in value):
-            raise ConfigurationError("Sign-in did not produce a usable OneDrive credential")
-        return value
-
-    def get(self, route, *, refreshed=False):
-        request = urllib.request.Request(
-            "https://graph.microsoft.com/v1.0/" + route, headers={"Authorization": "Bearer " + self.token()}
-        )
-        try:
-            with self.opener.open(request, timeout=20) as stream:
-                data = stream.read(1024 * 1024 + 1)
-            if len(data) > 1024 * 1024:
-                raise StorageError("OneDrive response exceeded its size limit")
-            return json.loads(data)
-        except urllib.error.HTTPError as error:
-            code = error.code
-            error.close()
-            if code == 401 and not refreshed:
-                from .onedrive import clean_environment
-
-                self.run(
-                    [self.rclone, "lsjson", "origin:", "--stat", "--config", str(self.config_path)],
-                    env=clean_environment(),
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    timeout=45,
-                )
-                return self.get(route, refreshed=True)
-            if code == 404:
-                raise ScopeError("That OneDrive folder does not exist") from None
-            raise StorageError(f"OneDrive returned HTTP {code}") from None
-        except (OSError, ValueError) as error:
-            raise StorageError("OneDrive could not be reached; check the connection") from error
-
-
-class _NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, request, fp, code, msg, headers, newurl):
-        return None
-
-
-def authorize_blob():
-    """Extra `rclone authorize` settings, encoded the way rclone decodes them."""
-    data = json.dumps({"access_scopes": SCOPES}, separators=(",", ":")).encode()
-    return base64.b64encode(data).decode().rstrip("=")
-
-
-def authorized_token(output):
-    """Extract the token from `rclone authorize` output, without echoing it.
-
-    With extra settings rclone prints an encoded settings map containing the
-    token; without them it prints the token JSON itself.
-    """
-    match = re.search(r"--->\s*\n(.*?)\n\s*<---End paste", output or "", re.S)
-    try:
-        printed = match.group(1).strip()
-        if not printed.startswith("{"):
-            settings = json.loads(base64.b64decode(printed + "=" * (-len(printed) % 4), validate=True))
-            printed = settings["token"]
-        value = json.loads(printed)
-        if not isinstance(value, dict) or not isinstance(value.get("access_token"), str):
-            raise ValueError
-    except (AttributeError, ValueError, KeyError, TypeError):
-        raise StorageError("OneDrive sign-in did not complete; run setup again to retry") from None
-    return printed
-
-
-def write_origin(path, origin, *, replace=False):
-    """Write the private sign-in copy; replacing goes through a new file and rename."""
-    parser = configparser.ConfigParser(interpolation=None)
-    parser["origin"] = origin
-    data = _ini(parser)
-    if not replace:
-        write_new(path, data)
-        return
-    temporary = path.with_name(path.name + ".new")
-    temporary.unlink(missing_ok=True)
-    write_new(temporary, data)
-    os.replace(temporary, path)
-
-
 def volume_of(path, run=subprocess.run):
     """Filesystem UUID and mount target of an existing directory."""
     result = run(
@@ -350,7 +141,9 @@ def init_store(config, values):
     from .state import StateStore
 
     OneDrive(config, values).authenticate()
-    initialize(config, values)
+    # The storage step refused an existing folder, so one found now was
+    # started by this setup's own interrupted store step.
+    initialize(config, values, resume=True)
     with StateStore(config):
         pass
 
@@ -373,7 +166,7 @@ class Setup:
         self.layout = layout or Layout.current()
         self.graph_factory, self.volume, self.store_initializer = graph_factory, volume, store_initializer
         self.python = python
-        self.record = {"version": 1, "completed": [], "values": {}}
+        self.record: dict = {"version": 1, "completed": [], "values": {}}
 
     # Progress record -----------------------------------------------------
 
@@ -789,14 +582,6 @@ def _positive(value):
     if number < 1:
         raise ValueError("Use a whole number of at least 1")
     return number
-
-
-def _ini(parser):
-    from io import StringIO
-
-    stream = StringIO()
-    parser.write(stream)
-    return stream.getvalue().encode()
 
 
 def load_answers(path):

@@ -7,6 +7,7 @@ import socket
 import stat
 import struct
 import time
+from collections.abc import Iterator, Sequence
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -144,8 +145,8 @@ def mapped_uri(uri, settings):
     return None
 
 
-def encode(value):
-    data = json.dumps(value, ensure_ascii=True, separators=(",", ":")).encode() + b"\n"
+def encode(value, *, ensure_ascii=True):
+    data = json.dumps(value, ensure_ascii=ensure_ascii, separators=(",", ":")).encode() + b"\n"
     if len(data) > MAX_FRAME:
         raise ValueError("Protocol frame too large")
     return data
@@ -175,7 +176,44 @@ def same_user(connection):
     return uid == os.getuid()
 
 
+def status_batches(paths: Sequence[str], *, view: str = "offline") -> Iterator[list[str]]:
+    """Bound both frames, reserving the largest valid encoded result per path."""
+    batch: list[str] = []
+    for path in paths:
+        candidate = [*batch, path]
+        frame = {"version": VERSION, "op": "status", "paths": candidate, "view": view}
+        response = {
+            "version": VERSION,
+            "results": {
+                item: {"state": "saved_locally", "reason": "\U00010000" * 256, "valid_for_ms": LEASE_MS}
+                for item in candidate
+            },
+        }
+        try:
+            encode(frame)
+            encode(response, ensure_ascii=False)
+            fits = len(candidate) <= MAX_BATCH
+        except ValueError:
+            fits = False
+        if batch and not fits:
+            yield batch
+            batch = []
+        batch.append(path)
+    if batch:
+        yield batch
+
+
 def request(socket_path, paths, *, view="offline"):
+    """Split valid batches by encoded response size as well as path count."""
+    if view not in ("offline", "upload") or not 1 <= len(paths) <= MAX_BATCH or len(set(paths)) != len(paths):
+        return {path: dict(UNKNOWN) for path in paths}
+    results = {}
+    for batch in status_batches(paths, view=view):
+        results.update(_request_batch(socket_path, batch, view=view))
+    return results
+
+
+def _request_batch(socket_path, paths, *, view="offline"):
     """Blocking client for background workers only. Fail closed on every error."""
     fallback = {path: dict(UNKNOWN) for path in paths}
 

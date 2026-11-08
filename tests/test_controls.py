@@ -106,6 +106,20 @@ class ControlsTests(test_tracking.TrackingCase):
         self.assertEqual((self.stops, self.starts), (2, 2))
         self.assertEqual(self.events[-1]["phase"], "complete")
 
+    def test_keep_free_doctor_treats_cancelled_jobs_as_terminal(self):
+        from cloudmarks.diagnostics import doctor
+
+        self.run_control("keep")
+        self.run_control("free")
+        self.reopen()
+        jobs = self.store.connection.execute("SELECT status FROM jobs").fetchall()
+        self.assertEqual([job[0] for job in jobs], ["cancelled", "cancelled"])
+        with patch("cloudmarks.diagnostics.mounted_view", return_value=None):
+            report = doctor(self.controller)
+        self.assertEqual(report["state_problems"], [])
+        self.assertEqual(report["unfinished_jobs"], 0)
+        self.assertTrue(report["ready_for_trial"])
+
     def test_file_keep_free_and_free_again_are_safe(self):
         self.run_control("keep", self.path)
         self.run_control("free", self.path)

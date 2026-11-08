@@ -1,9 +1,13 @@
 # Configuration reference
 
 `cloudmarks setup` creates every file below. This page describes them for
-review, troubleshooting and manual setups. All settings files are private:
-folders `0700`, files `0600`, owned by you. CloudMarks refuses files with wider
-permissions, symlinks or hard links.
+review, troubleshooting and manual setups. Setup writes profile settings with
+private directories (`0700`) and files (`0600`). JSON settings readers require
+private user-owned directories and single-link regular files; they reject
+symlinks and hard links. The core TOML must be a private regular file owned by
+the user (not a symlink), and the store root must be owned by the user with no
+group/other access. These checks do not require identical permissions for every
+installed artifact, such as systemd unit files.
 
 ## Locations
 

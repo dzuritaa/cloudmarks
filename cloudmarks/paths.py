@@ -48,17 +48,31 @@ def fingerprint(info):
     return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns, info.st_nlink)
 
 
+class PrivateRootError(StorageError):
+    """The store root exists but other users could reach it."""
+
+
 class SecureRoot:
     def __init__(self, path, volume_id):
         self.path = Path(path)
         self.fd = None
         try:
             self.fd = open_absolute_directory(self.path)
-            self.device = os.fstat(self.fd).st_dev
+            info = os.fstat(self.fd)
+            self.device = info.st_dev
+            # A private root keeps every retained copy unreachable for other
+            # users, whatever the modes below it.
+            if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) & 0o077:
+                raise PrivateRootError(
+                    "Offline storage folder must be owned by you and private; run: chmod 700 <folder>"
+                )
             with self.open_regular(MARKER) as marker:
                 value = os.read(marker, 1025)
             if len(value) > 1024 or value.decode("utf-8").rstrip("\n") != volume_id:
                 raise StorageError("Offline disk marker does not match")
+        except PrivateRootError:
+            self.close()
+            raise
         except (OSError, UnicodeError, ScopeError, StorageError):
             self.close()
             raise StorageError("Offline storage is unavailable or does not match its marker") from None
@@ -85,6 +99,10 @@ class SecureRoot:
                         os.mkdir(part, 0o700, dir_fd=fd)
                     except FileExistsError:
                         pass
+                    else:
+                        # Make the new name durable before anything is committed
+                        # that depends on files inside it.
+                        os.fsync(fd)
                 next_fd = os.open(part, DIRECTORY, dir_fd=fd)
                 if os.fstat(next_fd).st_dev != self.device:
                     os.close(next_fd)

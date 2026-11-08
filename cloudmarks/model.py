@@ -30,6 +30,14 @@ class VerificationRequired(CloudMarksError):
     pass
 
 
+class RemoteMissing(StorageError):
+    """Authenticated stable ID returned 404; absence is not proof of deletion."""
+
+
+class Cancelled(StorageError):
+    """The user cancelled; every previous byte and record is retained."""
+
+
 class VerificationPending(CloudMarksError):
     """A content check was queued to a background worker; ask again shortly."""
 
@@ -127,3 +135,40 @@ class FileStatus:
     @property
     def green(self):
         return self.state in (State.SAVED_LOCALLY, State.KEPT_OFFLINE)
+
+
+@dataclass(frozen=True)
+class Observation:
+    remote: RemoteFile
+    kind: str
+    digest: bytes
+
+    def hasher(self):
+        """A fresh hasher for this version's server checksum ``kind``."""
+        from .checksums import checksum
+
+        return checksum(self.kind)
+
+    def same_version(self, other):
+        a, b = self.remote, other.remote
+        return (
+            a.identity,
+            a.root_id,
+            a.relative_path,
+            a.revision,
+            a.size,
+            a.deleted,
+            a.is_directory,
+            self.kind,
+            self.digest,
+        ) == (
+            b.identity,
+            b.root_id,
+            b.relative_path,
+            b.revision,
+            b.size,
+            b.deleted,
+            b.is_directory,
+            other.kind,
+            other.digest,
+        )

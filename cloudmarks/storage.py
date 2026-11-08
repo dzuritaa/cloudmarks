@@ -27,6 +27,7 @@ import os
 import stat
 import time
 from dataclasses import dataclass
+from typing import Any
 
 from .model import StorageError
 from .paths import DIRECTORY, SecureRoot, fingerprint
@@ -61,7 +62,7 @@ def store_paths(value, found):
 
 def referenced(store):
     """Store-relative paths that any state record still needs."""
-    found = set()
+    found: set[str] = set()
     connection = store.connection
     version = store.schema_version()
     found.update(row[0] for row in connection.execute("SELECT object_path FROM copies"))
@@ -124,7 +125,7 @@ def collect(controller, *, apply=False, min_age_seconds=DEFAULT_MIN_AGE_SECONDS,
     controller.volume_check(config, controller.settings)
     if store.connection.execute("SELECT 1 FROM publications LIMIT 1").fetchone():
         raise StorageError("An interrupted operation needs recovery first; run offline recover")
-    summary = {
+    summary: dict[str, Any] = {
         "dry_run": not apply,
         "min_age_seconds": min_age_seconds,
         "categories": {

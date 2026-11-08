@@ -2,6 +2,62 @@
 
 ## 0.1.0a3.dev0 — unreleased
 
+- The Upload service starts rclone through `cloudmarks rclone-exec`, which
+  removes inherited `RCLONE_*` variables first: rclone honours them even with
+  `--config`, so an unrelated variable could change the mounted remote.
+  **Existing installs** keep their old unit until it is regenerated: back up
+  `~/.config/systemd/user/cloudmarks-upload.service`, then replace its
+  `ExecStart=<rclone> mount …` with `ExecStart=<python> -m cloudmarks
+  rclone-exec <rclone> mount …` and run `systemctl --user daemon-reload`.
+- CloudMarks refuses a core TOML that is a symlink, has other links, or is
+  readable by other users (`chmod 600` fixes it), and a store folder that is
+  not private (`chmod 700`). `check-config` still only checks syntax.
+- Setup resumes cleanly when it was interrupted after creating the offline
+  store; it still refuses a folder holding anything it did not create.
+- New directories in the store are synced into their parent before work that
+  depends on them is committed.
+- Internal: every state change and query of controls, offline, recovery and
+  tracking goes through `StateStore`; provider contracts have typed returns
+  and mypy checks that OneDrive satisfies them.
+- Folder badges now share single-file evidence: 60-second fingerprint hash
+  reuse and failure memory, and explicit five-minute proofs above 8 MiB.
+  Each folder check limits hashing to 16 MiB and checks a 150 ms time budget
+  between bounded reads; incomplete checks remain Needs checking.
+- Status clients split batches by encoded request and worst-case response size;
+  UTF-8 replies also preserve valid Unicode paths near the 16 KiB frame limit.
+- Both doctors share state-health classification, including consistency problems;
+  completed Free operations no longer report cancelled jobs as unfinished.
+- Mypy now checks 21 core modules, including folder proofs, verification, IPC,
+  offline configuration, the helper and both diagnostics commands.
+- Configuration documentation distinguishes core TOML and store-root permission
+  requirements from JSON settings and other installed artifacts.
+
+- Status answers and resumed jobs keep the cause of a failure (database,
+  disk, scope, configuration, permissions or unexpected) in a fixed message,
+  and the helper logs its category, instead of one generic message.
+- `cloudmarks offline doctor` reports state consistency problems
+  (`state_problems`) and is not ready for use while any exists.
+- Internal: Keep/Free run as named stages (`ControlRun`); core modules no
+  longer import the OneDrive module (`checksums.py`, provider-neutral
+  `Observation`); setup split into `units.py` and `signin.py`; job state
+  changes go through `StateStore.set_job`; mypy checks core modules in CI;
+  tests upgrade every state schema since 2.
+- Storage-volume proof refreshes run on a bounded background worker; cold or
+  expired evidence stays **Needs checking**. Mutations still verify synchronously.
+- Up to 16 socket peers can send/receive independently, so an incomplete request
+  no longer delays other badges (artificial p50: 581 ms → 0.49 ms). SQLite status
+  evaluation remains on one owner thread.
+- Folder observation reuses its derived manifest and avoids unused per-file
+  reads: 10,000 artificial entries take 120 ms instead of 230 ms (p50).
+- The progress window drains long error output without deadlocking and restores
+  Cancel on retry. Malformed progress frames are ignored within fixed limits.
+- Offline doctor warnings/failures retain their suggested next action.
+- CI enforces 85% combined coverage and runs installed deployment/doctor and
+  generated-unit checks in a temporary HOME, without an account or live services.
+  Current/historical handoff sections, cleanup and one-way schema 6 rollback
+  instructions are aligned; reproducible measurements are in
+  [the validation record](docs/dev/status-performance.md).
+
 - An interrupted **Free local copy** no longer loses the offline selection.
   The pins it releases are recorded first (state schema 6) and restored if
   the operation fails or the process is killed; run Free again to finish.

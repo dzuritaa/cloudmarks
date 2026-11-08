@@ -123,6 +123,20 @@ CloudMarks only shows a positive badge when it has fresh evidence. When OneDrive
 cannot be reached, a kept file stays readable but its badge changes to
 **Needs checking**.
 
+### Reclaim older local versions
+
+Free local copy releases the visible copy, but retained history and interrupted
+downloads can still use space. Preview safe cleanup, then apply it explicitly:
+
+```bash
+cloudmarks offline --config ~/.config/cloudmarks/profile/offline.json gc
+cloudmarks offline --config ~/.config/cloudmarks/profile/offline.json gc --apply
+```
+
+Cleanup removes only unreferenced files untouched for at least 7 days. It
+preserves selected copies, recovery records and OneDrive files. Nothing is
+cleaned automatically; do not delete files from the private store by hand.
+
 ### Work offline
 
 Without a connection, files you kept offline still open from the Offline folder.
@@ -206,6 +220,17 @@ previous values were `local-only`, restore them with:
 gsettings set org.gnome.nautilus.preferences show-directory-item-counts 'local-only'
 gsettings set org.gnome.nautilus.preferences show-image-thumbnails 'local-only'
 ```
+
+## Upgrade or downgrade
+
+Before upgrading, stop the three services and back up `state.sqlite3` in your
+state directory (normally `~/.local/state/cloudmarks`) **together with the
+matching offline store and private settings**. The current writer upgrades the
+database to schema 6. That migration is one-way: an older release cannot use it.
+To downgrade, preserve newer data separately and restore the whole stopped
+pre-upgrade backup, including `state.sqlite3`. Never edit the schema number or
+restore an older database over a newer live store. Follow the
+[upgrade and rollback steps](operations.md#upgrade-and-rollback).
 
 ## Remove CloudMarks
 

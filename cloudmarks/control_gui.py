@@ -47,6 +47,55 @@ def launch(settings_path, path, operation, binding):
     )
 
 
+def read_output(process, messages):
+    """Drain both pipes concurrently; retain bounded diagnostics and JSON frames.
+
+    The CLI can fail before writing progress. Even a full stderr pipe must not
+    strand cancellation or completion. Drop malformed/oversized progress and
+    excess updates, but always deliver the terminal result.
+    """
+    errors = []
+
+    def error_reader():
+        kept = 0
+        while block := process.stderr.read(4096):
+            if kept < 16384:
+                errors.append(block[: 16384 - kept])
+                kept += len(errors[-1])
+
+    err_thread = threading.Thread(target=error_reader, daemon=True)
+    err_thread.start()
+    oversized = False
+    while line := process.stdout.readline(65537):
+        if oversized or len(line) > 65536:
+            oversized = not line.endswith("\n")
+            continue
+        try:
+            value = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(value, dict):
+            continue
+        if any(
+            type(value.get(k, 0)) is not int or value.get(k, 0) < 0
+            for k in ("total", "completed", "retained_by_other_pins")
+        ):
+            continue
+        if not isinstance(value.get("phase", "planning"), str):
+            continue
+        if "reason" in value and not isinstance(value["reason"], str):
+            continue
+        try:
+            messages.put_nowait(("progress", value))
+        except queue.Full:
+            pass
+    code = process.wait()
+    err_thread.join()
+    process.stdout.close()
+    process.stderr.close()
+    messages.put(("done", code, "".join(errors)))
+
+
 def main(settings_path, path, operation, binding):
     import gi
 
@@ -108,6 +157,7 @@ def main(settings_path, path, operation, binding):
             self.retained = 0
             self.retry.set_visible(False)
             self.button.set_label("Cancel")
+            self.button.set_sensitive(True)
             self.label.set_label(phases["planning"])
             self.bar.set_fraction(0)
             self.process = subprocess.Popen(
@@ -118,32 +168,7 @@ def main(settings_path, path, operation, binding):
                 bufsize=1,
             )
 
-            def read():
-                errors = []
-
-                def error_reader():
-                    errors.append(self.process.stderr.read(16384))
-
-                err_thread = threading.Thread(target=error_reader, daemon=True)
-                err_thread.start()
-                for line in self.process.stdout:
-                    if len(line) > 65536:
-                        continue
-                    try:
-                        value = json.loads(line)
-                    except ValueError:
-                        continue
-                    try:
-                        self.messages.put_nowait(("progress", value))
-                    except queue.Full:
-                        pass
-                code = self.process.wait()
-                err_thread.join(timeout=1)
-                self.process.stdout.close()
-                self.process.stderr.close()
-                self.messages.put(("done", code, "".join(errors)))
-
-            threading.Thread(target=read, daemon=True).start()
+            threading.Thread(target=read_output, args=(self.process, self.messages), daemon=True).start()
 
         def drain(self):
             for _ in range(64):

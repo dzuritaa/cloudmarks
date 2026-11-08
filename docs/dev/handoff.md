@@ -1,12 +1,40 @@
-# CloudMarks handoff — M0 through M5 experimental prerelease
+# CloudMarks handoff — current status and historical milestones
 
-M0 feasibility, M1 status engine, M2 read-only Nautilus adapter and M3
-experimental individual-file controls are implemented. M2 remains read-only;
-M3 actions are separate explicit CLI commands. Nothing is installed in the daily
-desktop. M4 now adds explicit read-only change checks, durable download jobs, conflict
-snapshots and bounded recursive intent. M5 now prepares the 0.1.0a1 candidate, CI, package checks and operating guides.
-Personal-account main push, exact-tag hosted CI and v0.1.0a1 publication now pass.
-Physical reconnect/logout and daily-use acceptance remain open.
+## Current status — 0.1.0a3.dev0, 2026-11-07
+
+The current design is in [architecture](../architecture.md), not the milestone
+notes below. File/folder menu controls, opt-in live updates, background upload
+and folder observation, durable Free intent (schema 6), background hash and
+volume checks, and explicit `offline gc` are implemented. Schema 6 migration is
+one-way: stop CloudMarks and back up `state.sqlite3` with its matching store and
+configuration before upgrading or downgrading.
+
+Implementation branch: `t3/architecture-review-improvements`, based on
+`c3ea1f51833b03428f1cb855fce939161ada7e3c`. The final local commit is available
+with `git log -1`; no remote operation is required to resume.
+
+This implementation pass changes only helper/volume/folder/GUI/doctor code,
+their tests, CI, scripts and documentation; the parallel core refactor belongs
+to a separate agent. No account, desktop, user services or mounts were operated.
+No push, PR or release is part of this pass. Physical disconnect/reconnect,
+logout/login and real GTK/Files acceptance remain manual and unverified here.
+
+Local baseline: 383 tests and 77% combined statement/branch coverage. Current:
+433 tests; the exact coverage and checks are in the
+[performance and validation record](status-performance.md). CI enforces an 85%
+coverage floor. Added tests cover progress/cancel/retry without GI, fake mount
+lifecycle/attestation, slow/malformed socket peers, observer workers, and an
+isolated deployment/doctor round trip. The installed-wheel gate repeats that
+round trip and validates generated units without starting them.
+
+To resume: run the commands in the validation record, review this branch's diff,
+and integrate it with the separate core branch before repeating CI. See
+[ADR 0004](../decisions/0004-bounded-status-reception-and-volume-proofs.md) for the
+socket and volume proof decision and remaining performance limits.
+
+All sections after “Start here” that name M0–M6 are **historical snapshots**.
+Counts, private-session state, branch/commit claims and deferred features in
+those sections describe that milestone only, not today's machine or worktree.
 
 ## Start here
 
@@ -33,7 +61,7 @@ The default tests are local. Optional independent QuickXor vectors use the local
 rclone binary, without an account. Real-account and desktop runners are opt-in
 under `tests/integration` and `tests/desktop`.
 
-## M3 behavior
+## Historical M3 behavior
 
 Explicit private account/root settings, Graph ancestry, rclone effective item
 identity, server checksum, local SHA-256 and repeated revision checks guard every
@@ -62,7 +90,7 @@ lock or mutating recovery state.
 
 ## M0–M3 historical validation
 
-All **149 automated tests** pass on Python 3.14.4 and 3.11.16. M3's new checks also
+At M3, all **149 automated tests** passed on Python 3.14.4 and 3.11.16. M3's new checks also
 pass on the selected NTFS3 disk. They include cancellation at final metadata
 checks, checksum/revision races, budget/free-space failures, injected ENOSPC,
 link/dirty-file protection, scope checks, safe credential diagnostics, abrupt
@@ -81,7 +109,7 @@ the unchanged status-only protocol. Source/wheel packaging, installed CLI/assets
 lint/format/compilation, documentation links and sanitized evidence were checked.
 No release was published.
 
-## Private state and next steps
+## Historical M3 private state and next steps
 
 The current M3 config/result paths are recorded in
 `~/.config/cloudmarks-test/m3-work.json` (private, outside Git). That record points
@@ -107,7 +135,7 @@ Changes, including the prior documentation work, remain in the working tree.
 No commit or push was made.
 
 
-## M4 continuation
+## Historical M4 continuation
 
 All **184 automated tests** pass on Python 3.14.4 and 3.11.16. The 29 new
 store/controller cases also passed on the selected NTFS3 disk; six Graph-only
