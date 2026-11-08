@@ -8,7 +8,9 @@ The `0.1.0a1` prerelease provided experimental read-only offline viewing and
 explicit CLI controls for disposable test data. `0.1.0a2` adds guided setup, an
 opt-in [automatic upload/status observer](automatic-status.md)
 and [file/folder context-menu controls](folder-controls.md), plus
-[verification and recovery commands](dev/m6-hardening.md).
+[verification and recovery commands](dev/m6-hardening.md). The unreleased
+`0.1.0a3.dev0` adds durable Free recovery, background evidence checks and
+explicit `offline gc` cleanup.
 
 The base setup below establishes the account, store, and read-only adapter. For
 the current desktop workflow, configure automatic observation next, then enable
@@ -91,9 +93,11 @@ cloudmarks offline --config /private/offline.json init
 ```
 
 For an existing bound store, stop its view and run `recover` instead of `init`.
-The 0.1.0a2 writer upgrades schemas 1–4 to 5; the 0.1.0a1 writer
-upgrades schemas 1/2 to 3. Back up a consistent store/state/
-configuration bundle before upgrading; read-only helper startup does not migrate.
+The current writer upgrades schemas 1–5 to schema 6 on writer open. This is
+one-way: **back up `state.sqlite3` before upgrading or attempting a downgrade**.
+Stop CloudMarks first and back up the consistent store/state/configuration bundle,
+not just the database. Read-only helper startup does not migrate. The historical
+0.1.0a2 writer upgrades schemas 1–4 to 5; 0.1.0a1 upgrades schemas 1/2 to 3.
 The M4 conflict-test store deliberately contains issues and modified raw files;
 use a clean independent profile for viewing tests.
 
@@ -119,7 +123,12 @@ revision evidence; readable snapshots can still show unknown after evidence expi
 Online `mount` uses the scoped read-only union. It first checks all retained
 identities and refuses stale/conflicted local shadows. It does not download or
 repair them automatically. Unmount first, then explicitly `refresh`/`resume` or
-review `conflicts`. Every byte-changing control requires the view unmounted.
+review `conflicts`. Direct `offline` publication/eviction commands require the view
+unmounted. Version 4 menu/`control` operations normally stop and restore the view
+service automatically. With explicit `live_updates: true` they leave the view
+mounted and publish/evict local paths underneath it; see
+[live update controls](folder-controls.md). Open handles continue reading their
+existing inode. This does not allow writes through the read-only Offline view.
 
 [M4](dev/m4-change-tracking.md) documents `queue-tree`, aggregate limits, separate pin
 sources and conflict preservation. `unpin`/`unpin-tree` change intent only;
@@ -128,6 +137,21 @@ cloud evidence and no remaining pins, issue or dirty state. It never deletes a
 cloud file. Cancellation uses Ctrl-C; after restart/reconnection run `recover`
 and explicitly `resume`. Do not delete partial files or edit SQLite rows to
 force progress.
+
+### Reclaim retained history
+
+```bash
+cloudmarks offline --config /private/offline.json gc
+cloudmarks offline --config /private/offline.json gc --apply
+```
+
+The first command inventories unreferenced objects, partial downloads and
+rollback backups. Only `--apply` deletes candidates untouched for at least 7
+days (adjust with `--min-age-days`). Cleanup holds the writer lock, refuses
+unrecovered publication intents, skips changed fingerprints and preserves every
+referenced copy, conflict/archive/proof and the visible `local/` tree. Nothing
+is removed automatically or from OneDrive. Keep the view stopped for direct
+byte-changing CLI operations.
 
 ## Install the read-only Files adapter
 
@@ -234,7 +258,10 @@ If a schema rollback is necessary, restore the whole stopped backup bundle at it
 original bound paths after separately preserving any newer local bytes, pin/job
 intent and conflict candidates. Never restore an old DB over a newer live store.
 0.1.0a1 supports schema 3, but refuses schema 4. 0.1.0a2 supports schemas 1–5
-for reading and upgrades them to 5 when writing.
+for reading and upgrades them to 5 when writing. Neither older release can read
+schema 6. To downgrade from the current version, restore the pre-upgrade
+`state.sqlite3` together with its matching stopped store/configuration bundle;
+never change the schema number manually.
 
 The version 4 desktop profile adds opt-in [file/folder menu controls](folder-controls.md).
 
@@ -310,6 +337,13 @@ a sanitized current health snapshot; it is not a historical log.
 | Quota/free-space error | Retained history and partials count. Run `cloudmarks offline --config FILE gc` to see reclaimable bytes, then `gc --apply` to remove unreferenced files older than 7 days. Never delete raw objects by hand. |
 | Authentication expired | Reauthenticate the dedicated rclone origin locally. Check expected account/drive/root again. Never reconnect the personal account as a fallback. |
 | Busy unmount | Close applications using the experimental view and use its normal shutdown again. Never force/lazy-unmount it. |
+
+CI validates the installed-wheel deployment round trip in a disposable HOME
+using fake rclone/systemctl, runs an offline `doctor` smoke check, and checks
+generated user units with `systemd-analyze --user verify` when available. Run
+`python -m scripts.check_operation` from an installed development environment
+to reproduce it. It never starts services or uses an account; it does not
+replace physical reconnect/logout or actual Files acceptance.
 
 Use `--version`, `offline ... jobs` and the supported compatibility versions when
 reporting problems. Reports and service logs can contain private paths, names or

@@ -1,0 +1,214 @@
+{
+  "date": "2026-11-07",
+  "python": "3.14.4",
+  "platform": "Linux; system temporary filesystem; no FUSE or real metadata",
+  "baseline_commit": "c3ea1f51833b03428f1cb855fce939161ada7e3c",
+  "rounds": 5,
+  "entries_include_root": true,
+  "before": {
+    "folders": [
+      {
+        "entries": 1000,
+        "observer": {
+          "p50_ms": 23.0,
+          "p95_ms": 23.64,
+          "p99_ms": 23.64,
+          "max_ms": 23.64,
+          "state": "cloud_only"
+        },
+        "engine": {
+          "p50_ms": 0.64,
+          "p95_ms": 0.75,
+          "p99_ms": 0.75,
+          "max_ms": 0.75,
+          "state": "unknown"
+        },
+        "desktop": {
+          "accepted": 512,
+          "deferred": 488,
+          "burst_ms": 0.66,
+          "capacity": 512
+        },
+        "tree_limit": 10000
+      },
+      {
+        "entries": 10000,
+        "observer": {
+          "p50_ms": 230.13,
+          "p95_ms": 234.07,
+          "p99_ms": 234.07,
+          "max_ms": 234.07,
+          "state": "cloud_only"
+        },
+        "engine": {
+          "p50_ms": 7.13,
+          "p95_ms": 8.01,
+          "p99_ms": 8.01,
+          "max_ms": 8.01,
+          "state": "unknown"
+        },
+        "desktop": {
+          "accepted": 512,
+          "deferred": 9488,
+          "burst_ms": 7.19,
+          "capacity": 512
+        },
+        "tree_limit": 10000
+      },
+      {
+        "entries": 50000,
+        "observer": {
+          "p50_ms": 0.02,
+          "p95_ms": 0.02,
+          "p99_ms": 0.02,
+          "max_ms": 0.02,
+          "state": "unknown"
+        },
+        "engine": {
+          "p50_ms": 43.23,
+          "p95_ms": 44.8,
+          "p99_ms": 44.8,
+          "max_ms": 44.8,
+          "state": "unknown"
+        },
+        "desktop": {
+          "accepted": 512,
+          "deferred": 49488,
+          "burst_ms": 35.51,
+          "capacity": 512
+        },
+        "tree_limit": 10000
+      }
+    ],
+    "socket": {
+      "p50_ms": 0.17,
+      "p95_ms": 0.75,
+      "p99_ms": 0.75,
+      "max_ms": 0.75
+    },
+    "socket_with_idle_peer": {
+      "p50_ms": 581.04,
+      "p95_ms": 581.28,
+      "p99_ms": 581.28,
+      "max_ms": 581.28
+    },
+    "volume": {
+      "synthetic_findmnt_ms": 100,
+      "synchronous_fresh_proof": {
+        "p50_ms": 100.54,
+        "p95_ms": 100.62,
+        "p99_ms": 100.62,
+        "max_ms": 100.62
+      },
+      "background_cold_request": {
+        "p50_ms": 100.29,
+        "p95_ms": 100.74,
+        "p99_ms": 100.74,
+        "max_ms": 100.74
+      }
+    }
+  },
+  "after": {
+    "folders": [
+      {
+        "entries": 1000,
+        "observer": {
+          "p50_ms": 11.87,
+          "p95_ms": 12.32,
+          "p99_ms": 12.32,
+          "max_ms": 12.32,
+          "state": "cloud_only"
+        },
+        "engine": {
+          "p50_ms": 0.65,
+          "p95_ms": 0.87,
+          "p99_ms": 0.87,
+          "max_ms": 0.87,
+          "state": "unknown"
+        },
+        "desktop": {
+          "accepted": 512,
+          "deferred": 488,
+          "burst_ms": 0.64,
+          "capacity": 512
+        },
+        "tree_limit": 10000
+      },
+      {
+        "entries": 10000,
+        "observer": {
+          "p50_ms": 119.73,
+          "p95_ms": 120.63,
+          "p99_ms": 120.63,
+          "max_ms": 120.63,
+          "state": "cloud_only"
+        },
+        "engine": {
+          "p50_ms": 8.17,
+          "p95_ms": 9.08,
+          "p99_ms": 9.08,
+          "max_ms": 9.08,
+          "state": "unknown"
+        },
+        "desktop": {
+          "accepted": 512,
+          "deferred": 9488,
+          "burst_ms": 6.92,
+          "capacity": 512
+        },
+        "tree_limit": 10000
+      },
+      {
+        "entries": 50000,
+        "observer": {
+          "p50_ms": 0.02,
+          "p95_ms": 0.02,
+          "p99_ms": 0.02,
+          "max_ms": 0.02,
+          "state": "unknown"
+        },
+        "engine": {
+          "p50_ms": 47.54,
+          "p95_ms": 53.7,
+          "p99_ms": 53.7,
+          "max_ms": 53.7,
+          "state": "unknown"
+        },
+        "desktop": {
+          "accepted": 512,
+          "deferred": 49488,
+          "burst_ms": 34.98,
+          "capacity": 512
+        },
+        "tree_limit": 10000
+      }
+    ],
+    "socket": {
+      "p50_ms": 0.16,
+      "p95_ms": 0.33,
+      "p99_ms": 0.33,
+      "max_ms": 0.33
+    },
+    "socket_with_idle_peer": {
+      "p50_ms": 0.49,
+      "p95_ms": 0.52,
+      "p99_ms": 0.52,
+      "max_ms": 0.52
+    },
+    "volume": {
+      "synthetic_findmnt_ms": 100,
+      "synchronous_fresh_proof": {
+        "p50_ms": 100.35,
+        "p95_ms": 100.68,
+        "p99_ms": 100.68,
+        "max_ms": 100.68
+      },
+      "background_cold_request": {
+        "p50_ms": 0.23,
+        "p95_ms": 0.43,
+        "p99_ms": 0.43,
+        "max_ms": 0.43
+      }
+    }
+  }
+}

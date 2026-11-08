@@ -52,6 +52,7 @@ def main():
             "-q",
             env=dict(environment, PYTHONWARNINGS="error::ResourceWarning"),
         )
+        run("-m", "scripts.check_operation")
         print("Installed wheel suite passed with the source checkout excluded from imports.")
 
 

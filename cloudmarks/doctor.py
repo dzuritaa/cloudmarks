@@ -42,7 +42,7 @@ class Report:
         except Exception as error:
             return self.add(group, name, "fail", f"Unexpected {type(error).__name__}", hint)
         if isinstance(result, tuple):
-            return self.add(group, name, *result)
+            return self.add(group, name, *result, hint=hint)
         return self.add(group, name, "ok", result or "OK")
 
     @property
@@ -93,7 +93,13 @@ def system_checks(report, *, rclone=None, which=shutil.which, run=subprocess.run
         try:
             version = rclone_version(executable, run)
         except (OSError, ValueError, subprocess.SubprocessError):
-            report.add(group, "rclone", "fail", "Found, but its version could not be read")
+            report.add(
+                group,
+                "rclone",
+                "fail",
+                "Found, but its version could not be read",
+                "Run rclone version; reinstall rclone if it fails",
+            )
         else:
             shown = "v" + ".".join(map(str, version))
             if version[:2] < TESTED_RCLONE[:2]:

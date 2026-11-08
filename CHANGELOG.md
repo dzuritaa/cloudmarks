@@ -2,6 +2,22 @@
 
 ## 0.1.0a3.dev0 — unreleased
 
+- Storage-volume proof refreshes run on a bounded background worker; cold or
+  expired evidence stays **Needs checking**. Mutations still verify synchronously.
+- Up to 16 socket peers can send/receive independently, so an incomplete request
+  no longer delays other badges (artificial p50: 581 ms → 0.49 ms). SQLite status
+  evaluation remains on one owner thread.
+- Folder observation reuses its derived manifest and avoids unused per-file
+  reads: 10,000 artificial entries take 120 ms instead of 230 ms (p50).
+- The progress window drains long error output without deadlocking and restores
+  Cancel on retry. Malformed progress frames are ignored within fixed limits.
+- Offline doctor warnings/failures retain their suggested next action.
+- CI enforces 85% combined coverage and runs installed deployment/doctor and
+  generated-unit checks in a temporary HOME, without an account or live services.
+  Current/historical handoff sections, cleanup and one-way schema 6 rollback
+  instructions are aligned; reproducible measurements are in
+  [the validation record](docs/dev/status-performance.md).
+
 - An interrupted **Free local copy** no longer loses the offline selection.
   The pins it releases are recorded first (state schema 6) and restored if
   the operation fails or the process is killed; run Free again to finish.

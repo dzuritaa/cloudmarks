@@ -9,6 +9,7 @@ never constructs transport or reads credentials.
 import fcntl
 import json
 import os
+import selectors
 import socket
 import sqlite3
 import stat
@@ -17,7 +18,7 @@ from pathlib import Path
 
 from .config import load_config
 from .engine import CHECKING_REASON, StatusEngine
-from .ipc import LEASE_MS, MAX_BATCH, VERSION, encode, private_directory, receive, same_user
+from .ipc import LEASE_MS, MAX_BATCH, MAX_FRAME, TIMEOUT, VERSION, encode, private_directory, same_user
 from .model import CloudMarksError, ConfigurationError, FileIdentity
 from .paths import SecureRoot, relative_parts
 from .state import StateStore
@@ -150,7 +151,7 @@ class StatusService(BaseStatusService):
 
 
 def serve(settings, store, *, stop=None, tick=None, ready=None, service=None):
-    """One bounded request at a time; a stuck disk can stall only this process.
+    """Multiplex up to 16 bounded peers; evaluate status on the SQLite owner thread.
 
     Call on the thread owning StateStore. tick/stop/ready are local test hooks,
     never remotely callable operations. No cloud transport is imported here.
@@ -190,28 +191,90 @@ def serve(settings, store, *, stop=None, tick=None, ready=None, service=None):
         listener.bind(f"/proc/self/fd/{directory}/{path.name}")
         os.chmod(path.name, 0o600, dir_fd=directory, follow_symlinks=False)
         bound = os.stat(path.name, dir_fd=directory, follow_symlinks=False)
-        listener.listen(8)
-        listener.settimeout(0.1)
+        listener.listen(16)
+        listener.setblocking(False)
         record("helper", "helper_started", mode=settings["mode"])
-        if ready:
-            ready()
-        while not (stop and stop()):
-            if tick:
-                tick()
+        with selectors.DefaultSelector() as selector:
+            selector.register(listener, selectors.EVENT_READ)
+            clients = {}
+
+            def discard(connection):
+                selector.unregister(connection)
+                clients.pop(connection, None)
+                connection.close()
+
+            if ready:
+                ready()
             try:
-                connection, _ = listener.accept()
-            except TimeoutError:
-                continue
-            with connection:
-                try:
-                    if not same_user(connection):
-                        continue
-                    response = service.handle(receive(connection))
-                    connection.sendall(encode(response))
-                except (OSError, ValueError, TypeError, KeyError, sqlite3.Error, CloudMarksError) as error:
-                    # Close malformed requests without paths or raw private error text.
-                    record("helper", "request_rejected", error=error_category(error))
-                    continue
+                while not (stop and stop()):
+                    if tick:
+                        tick()
+                    for key, _ in selector.select(0.05):
+                        connection = key.fileobj
+                        if connection is listener:
+                            try:
+                                connection, _ = listener.accept()
+                            except BlockingIOError:
+                                continue
+                            try:
+                                if len(clients) >= 16 or not same_user(connection):
+                                    connection.close()
+                                    continue
+                                connection.setblocking(False)
+                                clients[connection] = (time.monotonic() + TIMEOUT, bytearray(), None)
+                                selector.register(connection, selectors.EVENT_READ)
+                            except (OSError, CloudMarksError) as error:
+                                connection.close()
+                                record("helper", "request_rejected", error=error_category(error))
+                            continue
+                        deadline, incoming, outgoing = clients[connection]
+                        try:
+                            if time.monotonic() >= deadline:
+                                raise TimeoutError("Protocol deadline exceeded")
+                            if outgoing is not None:
+                                sent = connection.send(outgoing)
+                                if sent == 0:
+                                    raise ConnectionError("Peer closed response stream")
+                                outgoing = outgoing[sent:]
+                                if not outgoing:
+                                    discard(connection)
+                                else:
+                                    clients[connection] = (deadline, incoming, outgoing)
+                                continue
+                            chunk = connection.recv(min(4096, MAX_FRAME + 1 - len(incoming)))
+                            if not chunk:
+                                raise ValueError("Incomplete protocol frame")
+                            incoming.extend(chunk)
+                            if len(incoming) > MAX_FRAME:
+                                raise ValueError("Protocol frame too large")
+                            if b"\n" not in incoming:
+                                continue
+                            if not incoming.endswith(b"\n") or incoming.count(b"\n") != 1:
+                                raise ValueError("Expected one bounded frame")
+                            # Only framing is multiplexed. The owning thread
+                            # still evaluates every status and SQLite read.
+                            outgoing = encode(service.handle(json.loads(incoming)))
+                            clients[connection] = (deadline, incoming, outgoing)
+                            selector.modify(connection, selectors.EVENT_WRITE)
+                        except BlockingIOError:
+                            continue
+                        except (
+                            OSError,
+                            ValueError,
+                            TypeError,
+                            KeyError,
+                            sqlite3.Error,
+                            CloudMarksError,
+                        ) as error:
+                            record("helper", "request_rejected", error=error_category(error))
+                            discard(connection)
+                    for connection, (deadline, _, _) in list(clients.items()):
+                        if time.monotonic() >= deadline:
+                            discard(connection)
+            finally:
+                for connection in list(clients):
+                    discard(connection)
+
     finally:
         if listener:
             listener.close()
